@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # fmt, clippy and tests on every OS and on Rust 1.85, on the tagged commit.
+  # Nothing is built or released unless all of them pass.
+  ci:
+    name: CI on the tagged commit
+    uses: ./.github/workflows/ci.yml
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: ci
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Built on Ubuntu 22.04 for an older glibc baseline.
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          # Statically linked: no glibc needed, also runs on Alpine.
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+            macos_min: "10.12"
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            macos_min: "11.0"
+    env:
+      MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_min }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Package
+        shell: bash
+        run: |
+          name="acme-renew-doctor-${GITHUB_REF_NAME}-${{ matrix.target }}"
+          mkdir -p "dist/$name/tests"
+          # Everything the README links to with a relative link, so the links
+          # and the quick start examples work inside the archive.
+          cp README.md README.nl.md LICENSE-MIT LICENSE-APACHE CHANGELOG.md CONTRIBUTING.md SECURITY.md "dist/$name/"
+          cp -R docs "dist/$name/"
+          cp -R tests/fixtures "dist/$name/tests/"
+          cd dist
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "../target/${{ matrix.target }}/release/acme-renew-doctor.exe" "$name/"
+            7z a -tzip "$name.zip" "$name" > /dev/null
+            sha256sum "$name.zip" > "$name.zip.sha256"
+          else
+            cp "../target/${{ matrix.target }}/release/acme-renew-doctor" "$name/"
+            tar -czf "$name.tar.gz" "$name"
+            shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
+          fi
+          rm -rf "$name"
+      - name: Smoke test the archive
+        shell: bash
+        run: |
+          name="acme-renew-doctor-${GITHUB_REF_NAME}-${{ matrix.target }}"
+          expected="acme-renew-doctor ${GITHUB_REF_NAME#v}"
+          mkdir smoke
+          cd smoke
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            7z x "../dist/$name.zip" > /dev/null
+            bin="./acme-renew-doctor.exe"
+          else
+            tar -xzf "../dist/$name.tar.gz"
+            bin="./acme-renew-doctor"
+          fi
+          cd "$name"
+          got=$("$bin" --version | tr -d '\r')
+          echo "$got"
+          test "$got" = "$expected"
+          # The first quick start example, run from inside the archive.
+          set +e
+          "$bin" example.com --from-log tests/fixtures/certbot/http01-timeout-repeated.log --from-timer-status tests/fixtures/timer/certbot-timer-disabled.txt > out.txt
+          code=$?
+          set -e
+          test "$code" -eq 1
+          tr -d '\r' < out.txt | grep -q 'LAYER1_TIMER_DISABLED'
+          test -f README.nl.md
+          test -f docs/reference.md
+          test -f docs/reference.nl.md
+          test -f SECURITY.md
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*
+
+  release:
+    name: Publish release
+    needs: [ci, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Release notes from CHANGELOG
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v v="$version" '
+            $0 ~ "^## \\[" v "\\]" { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+          test -s notes.md
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          test "$(ls *.tar.gz *.zip | wc -l)" -eq 5
+          sha256sum *.tar.gz *.zip > SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" --title "acme-renew-doctor $GITHUB_REF_NAME" --notes-file ../notes.md --verify-tag ./*

@@ -1,0 +1,50 @@
+2025-03-15 19:03:02,130:DEBUG:urllib3.connectionpool:https://acme-v02.api.letsencrypt.org:443 "POST /acme/new-order HTTP/1.1" 429 306
+2025-03-15 19:03:02,131:DEBUG:acme.client:Received response:
+HTTP 429
+Server: nginx
+Date: Sat, 15 Mar 2025 13:03:02 GMT
+Content-Type: application/problem+json
+Content-Length: 306
+Connection: keep-alive
+Boulder-Requester: 1000000002
+Cache-Control: public, max-age=0, no-cache
+Link: <https://acme-v02.api.letsencrypt.org/directory>;rel="index", <https://letsencrypt.org/docs/rate-limits>;rel="help"
+Replay-Nonce: NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN
+Retry-After: 49894
+
+{
+  "type": "urn:ietf:params:acme:error:rateLimited",
+  "detail": "too many certificates (5) already issued for this exact set of domains in the last 168h0m0s, retry after 2025-03-16 02:54:35 UTC: see https://letsencrypt.org/docs/rate-limits/#new-certificates-per-exact-set-of-hostnames",
+  "status": 429
+}
+2025-03-15 19:03:02,131:DEBUG:certbot._internal.log:Exiting abnormally:
+Traceback (most recent call last):
+  File "/bin/certbot", line 8, in <module>
+    sys.exit(main())
+  File "/usr/lib/python3.9/site-packages/certbot/main.py", line 19, in main
+    return internal_main.main(cli_args)
+  File "/usr/lib/python3.9/site-packages/certbot/_internal/main.py", line 1894, in main
+    return config.func(config, plugins)
+  File "/usr/lib/python3.9/site-packages/certbot/_internal/main.py", line 1600, in certonly
+    lineage = _get_and_save_cert(le_client, config, domains, certname, lineage)
+  File "/usr/lib/python3.9/site-packages/certbot/_internal/main.py", line 143, in _get_and_save_cert
+    lineage = le_client.obtain_and_enroll_certificate(domains, certname)
+  File "/usr/lib/python3.9/site-packages/certbot/_internal/client.py", line 517, in obtain_and_enroll_certificate
+    cert, chain, key, _ = self.obtain_certificate(domains)
+  File "/usr/lib/python3.9/site-packages/certbot/_internal/client.py", line 428, in obtain_certificate
+    orderr = self._get_order_and_authorizations(csr.data, self.config.allow_subset_of_names)
+  File "/usr/lib/python3.9/site-packages/certbot/_internal/client.py", line 478, in _get_order_and_authorizations
+    orderr = self.acme.new_order(csr_pem)
+  File "/usr/lib/python3.9/site-packages/acme/client.py", line 137, in new_order
+    response = self._post(self.directory['newOrder'], order)
+  File "/usr/lib/python3.9/site-packages/acme/client.py", line 365, in _post
+    return self.net.post(*args, **kwargs)
+  File "/usr/lib/python3.9/site-packages/acme/client.py", line 738, in post
+    return self._post_once(*args, **kwargs)
+  File "/usr/lib/python3.9/site-packages/acme/client.py", line 751, in _post_once
+    response = self._check_response(response, content_type=content_type)
+  File "/usr/lib/python3.9/site-packages/acme/client.py", line 602, in _check_response
+    raise messages.Error.from_json(jobj)
+acme.messages.Error: urn:ietf:params:acme:error:rateLimited :: There were too many requests of a given type :: too many certificates (5) already issued for this exact set of domains in the last 168h0m0s, retry after 2025-03-16 02:54:35 UTC: see https://letsencrypt.org/docs/rate-limits/#new-certificates-per-exact-set-of-hostnames
+2025-03-15 19:03:02,132:ERROR:certbot._internal.log:An unexpected error occurred:
+2025-03-15 19:03:02,132:ERROR:certbot._internal.log:too many certificates (5) already issued for this exact set of domains in the last 168h0m0s, retry after 2025-03-16 02:54:35 UTC: see https://letsencrypt.org/docs/rate-limits/#new-certificates-per-exact-set-of-hostnames

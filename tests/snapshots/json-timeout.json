@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "tool": {
+    "name": "acme-renew-doctor",
+    "version": "0.1.0"
+  },
+  "input": {
+    "domain": "example.com",
+    "all": false,
+    "client": "auto",
+    "from_log": "tests/fixtures/certbot/http01-timeout-repeated.log",
+    "from_timer_status": "tests/fixtures/timer/certbot-timer-disabled.txt",
+    "from_cert_disk": null,
+    "from_cert_live": null
+  },
+  "findings": [
+    {
+      "code": "LAYER1_TIMER_DISABLED",
+      "layer": "scheduler",
+      "confidence": "high",
+      "evidence": [
+        {
+          "source": "timer",
+          "text": "UnitFileState=disabled"
+        },
+        {
+          "source": "timer",
+          "text": "ActiveState=inactive"
+        }
+      ]
+    },
+    {
+      "code": "LAYER2_HTTP01_TIMEOUT",
+      "layer": "validation",
+      "confidence": "high",
+      "evidence": [
+        {
+          "source": "log",
+          "text": "line 68: 203.0.113.10: Fetching http://example.com/.well-known/acme-challenge/timeouttoken0000000000000000001: Timeout during connect (likely firewall problem)"
+        },
+        {
+          "source": "log",
+          "text": "2 attempts in this log (ACME response and Certbot summary of one attempt count as one), first on line 20"
+        }
+      ]
+    }
+  ],
+  "next_checks": [
+    {
+      "for": "LAYER1_TIMER_DISABLED",
+      "command": "systemctl list-timers --all certbot.timer",
+      "why": "shows whether the timer is scheduled and when it last ran",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER1_TIMER_DISABLED",
+      "command": "systemctl is-enabled certbot.timer",
+      "why": "shows whether the timer is enabled",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER1_TIMER_DISABLED",
+      "command": "systemctl status certbot.timer --no-pager",
+      "why": "shows whether the timer is active",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "curl -q -sI --max-time 10 http://example.com/.well-known/acme-challenge/acme-renew-doctor-check",
+      "why": "any HTTP answer, even 404, means port 80 answers here; a timeout points to firewall or routing",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "dig +short A example.com",
+      "why": "compare the A record with the public IPv4 address of this server",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "dig +short AAAA example.com",
+      "why": "compare with the public IP of this server; a stale AAAA record is a common cause",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "ss -ltn",
+      "why": "look for a listener on port 80",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "sudo tail -n 200 /var/log/letsencrypt/letsencrypt.log",
+      "why": "shows recent lines from the Certbot log",
+      "safety": "read-only"
+    }
+  ],
+  "exit_code": 1
+}

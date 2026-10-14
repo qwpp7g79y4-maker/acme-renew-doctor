@@ -1,0 +1,10 @@
+$ systemctl status certbot.timer
+
+○ certbot.timer
+     Loaded: masked (Reason: Unit certbot.timer is masked.)
+     Active: inactive (dead) since Mon 2023-05-01 21:07:19 UTC; 31min ago
+    Trigger: n/a
+
+Apr 29 16:42:52 host systemd[1]: Started Run certbot twice daily.
+May 01 21:07:19 host systemd[1]: certbot.timer: Deactivated successfully.
+May 01 21:07:19 host systemd[1]: Stopped Run certbot twice daily.

@@ -1,0 +1,9 @@
+NextElapseUSecRealtime=
+LastTriggerUSec=Mon 2026-10-05 03:12:44 CEST
+Result=resources
+Id=certbot.timer
+LoadState=loaded
+ActiveState=failed
+SubState=failed
+UnitFileState=enabled
+ConditionResult=yes

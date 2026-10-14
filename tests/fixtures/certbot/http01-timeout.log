@@ -1,0 +1,36 @@
+2026-09-28 03:12:44,512:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Replay-Nonce: fakeNonceTimeout0000000000000001
+
+{
+  "identifier": {
+    "type": "dns",
+    "value": "example.com"
+  },
+  "status": "invalid",
+  "expires": "2026-09-28T04:12:44Z",
+  "challenges": [
+    {
+      "type": "http-01",
+      "url": "https://acme-v02.api.letsencrypt.org/acme/chall/fakeChallTimeout",
+      "status": "invalid",
+      "validated": "2026-09-28T03:12:40Z",
+      "error": {
+        "type": "urn:ietf:params:acme:error:connection",
+        "detail": "203.0.113.10: Fetching http://example.com/.well-known/acme-challenge/timeouttoken0000000000000000001: Timeout during connect (likely firewall problem)",
+        "status": 400
+      },
+      "token": "timeouttoken0000000000000000001"
+    }
+  ]
+}
+2026-09-28 03:12:44,600:INFO:certbot._internal.auth_handler:Challenge failed for domain example.com
+2026-09-28 03:12:44,601:INFO:certbot._internal.auth_handler:http-01 challenge for example.com
+2026-09-28 03:12:44,602:DEBUG:certbot._internal.display.obj:Notifying user: 
+Certbot failed to authenticate some domains (authenticator: webroot). The Certificate Authority reported these problems:
+  Domain: example.com
+  Type:   connection
+  Detail: 203.0.113.10: Fetching http://example.com/.well-known/acme-challenge/timeouttoken0000000000000000001: Timeout during connect (likely firewall problem)
+
+Hint: The Certificate Authority failed to download the temporary challenge files created by Certbot. Ensure that the listed domains serve their content from the provided --webroot-path/-w and that files created there can be downloaded from the internet.

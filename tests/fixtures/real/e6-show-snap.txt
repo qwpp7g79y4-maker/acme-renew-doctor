@@ -1,0 +1,19 @@
+NextElapseUSecRealtime=
+LastTriggerUSec=
+Result=success
+Id=certbot.timer
+LoadState=masked
+ActiveState=inactive
+SubState=dead
+UnitFileState=masked
+ConditionResult=no
+
+NextElapseUSecRealtime=Tue 2023-05-02 18:08:00 UTC
+LastTriggerUSec=
+Result=success
+Id=snap.certbot.renew.timer
+LoadState=loaded
+ActiveState=active
+SubState=waiting
+UnitFileState=enabled
+ConditionResult=yes

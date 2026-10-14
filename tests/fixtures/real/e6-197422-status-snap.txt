@@ -1,0 +1,17 @@
+$ systemctl status snap.certbot.renew.timer
+
+● snap.certbot.renew.timer - Timer renew for snap application certbot.renew
+     Loaded: loaded (/etc/systemd/system/snap.certbot.renew.timer; enabled; vendor preset: enabled)
+     Active: active (waiting) since Mon 2023-05-01 21:06:32 UTC; 20h ago
+    Trigger: Tue 2023-05-02 18:08:00 UTC; 47min left
+   Triggers: ● snap.certbot.renew.service
+
+May 01 21:06:32 host systemd[1]: Started Timer renew for snap application certbot.renew.
+
+
+$ systemctl list-unit-files | grep cert
+
+snap-certbot-2913.mount                    enabled         enabled
+snap.certbot.renew.service                 static          -
+certbot.timer                              masked          enabled
+snap.certbot.renew.timer                   enabled         enabled

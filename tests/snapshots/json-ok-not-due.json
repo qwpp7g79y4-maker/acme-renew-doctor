@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "tool": {
+    "name": "acme-renew-doctor",
+    "version": "0.1.0"
+  },
+  "input": {
+    "domain": "example.com",
+    "all": false,
+    "client": "auto",
+    "from_log": null,
+    "from_timer_status": "tests/fixtures/timer/certbot-timer-enabled.txt",
+    "from_cert_disk": "tests/fixtures/certs/dates-current.txt",
+    "from_cert_live": "tests/fixtures/certs/dates-current.txt"
+  },
+  "findings": [
+    {
+      "code": "OK_NOT_DUE",
+      "layer": null,
+      "confidence": "high",
+      "evidence": [
+        {
+          "source": "disk",
+          "text": "notAfter=Dec 27 03:12:44 2026 GMT"
+        },
+        {
+          "source": "handshake",
+          "text": "notAfter=Dec 27 03:12:44 2026 GMT"
+        },
+        {
+          "source": "timer",
+          "text": "Id=certbot.timer"
+        },
+        {
+          "source": "timer",
+          "text": "LoadState=loaded"
+        },
+        {
+          "source": "timer",
+          "text": "ActiveState=active"
+        },
+        {
+          "source": "timer",
+          "text": "UnitFileState=enabled"
+        }
+      ]
+    }
+  ],
+  "next_checks": [
+    {
+      "for": "OK_NOT_DUE",
+      "command": "systemctl list-timers --all certbot.timer",
+      "why": "shows whether the timer is scheduled and when it last ran",
+      "safety": "read-only"
+    }
+  ],
+  "exit_code": 0
+}

@@ -1,0 +1,19 @@
+[package]
+name = "acme-renew-doctor"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+authors = ["PEPAI <pep_ai@icloud.com>"]
+license = "MIT OR Apache-2.0"
+description = "Explain why an ACME certificate renewal failed or never ran, from files you pass"
+repository = "https://github.com/qwpp7g79y4-maker/acme-renew-doctor"
+readme = "README.md"
+keywords = ["acme", "certbot", "letsencrypt", "tls", "cli"]
+categories = ["command-line-utilities"]
+exclude = [".github/", ".gitattributes"]
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+proptest = "1"

@@ -1,0 +1,21 @@
+acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+target: example.com · client: auto
+inputs: log=tests/fixtures/certbot/http01-connection-refused.log · timer status=(none) · cert disk=(none) · cert live=(none)
+
+✗ LAYER2_HTTP01_REFUSED  confidence=high  layer=validation
+  evidence:
+  • [log] line 32: 203.0.113.10: Fetching http://example.com/.well-known/acme-challenge/refusedtoken0000000000000000001: Connection refused
+
+Next (SAFE copy-paste checks, read-only; Doctor runs nothing and will NOT renew or reload for you):
+  → curl -q -sI --max-time 10 http://example.com/.well-known/acme-challenge/acme-renew-doctor-check
+    why: connection refused means nothing listens on port 80 here, or a firewall rejects the connection
+  → ss -ltn
+    why: look for a listener on port 80
+  → dig +short A example.com
+    why: compare the A record with the public IPv4 address of this server
+  → dig +short AAAA example.com
+    why: compare with the public IP of this server; a stale AAAA record is a common cause
+  ⚠ Do not force a renewal: Let's Encrypt rate limits apply. Fix the named layer first.
+    (dangerous suggestions suppressed by default)
+
+exit 1: problem found

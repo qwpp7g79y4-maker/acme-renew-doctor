@@ -1,0 +1,20 @@
+acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+target: example.com · client: auto
+inputs: log=(none) · timer status=tests/fixtures/timer/certbot-timer-enabled.txt · cert disk=tests/fixtures/certs/dates-current.txt · cert live=tests/fixtures/certs/dates-current.txt
+
+✓ OK_NOT_DUE  confidence=high  layer=-
+  evidence:
+  • [disk] notAfter=Dec 27 03:12:44 2026 GMT
+  • [handshake] notAfter=Dec 27 03:12:44 2026 GMT
+  • [timer] Id=certbot.timer
+  • [timer] LoadState=loaded
+  • [timer] ActiveState=active
+  • [timer] UnitFileState=enabled
+
+Next (SAFE copy-paste checks, read-only; Doctor runs nothing and will NOT renew or reload for you):
+  → systemctl list-timers --all certbot.timer
+    why: shows whether the timer is scheduled and when it last ran
+  ⚠ Do not force a renewal: Let's Encrypt rate limits apply. Fix the named layer first.
+    (dangerous suggestions suppressed by default)
+
+exit 0: ok, not due

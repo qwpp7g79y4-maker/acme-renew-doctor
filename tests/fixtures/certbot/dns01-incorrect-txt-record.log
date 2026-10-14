@@ -1,0 +1,36 @@
+2026-09-30 05:40:18,512:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Replay-Nonce: fakeNonceDns01BadTxt0000000000001
+
+{
+  "identifier": {
+    "type": "dns",
+    "value": "example.com"
+  },
+  "status": "invalid",
+  "expires": "2026-09-30T06:40:18Z",
+  "challenges": [
+    {
+      "type": "dns-01",
+      "url": "https://acme-v02.api.letsencrypt.org/acme/chall/fakeChallDns01Incorrect",
+      "status": "invalid",
+      "validated": "2026-09-30T05:40:14Z",
+      "error": {
+        "type": "urn:ietf:params:acme:error:unauthorized",
+        "detail": "Incorrect TXT record \"fakeOldTxtValue000000000000000000000000000\" found at _acme-challenge.example.com",
+        "status": 403
+      },
+      "token": "dns01badtxttoken00000000000000001"
+    }
+  ]
+}
+2026-09-30 05:40:18,600:INFO:certbot._internal.auth_handler:Challenge failed for domain example.com
+2026-09-30 05:40:18,601:INFO:certbot._internal.auth_handler:dns-01 challenge for example.com
+2026-09-30 05:40:18,602:DEBUG:certbot._internal.display.obj:Notifying user: 
+Certbot failed to authenticate some domains (authenticator: manual). The Certificate Authority reported these problems:
+  Domain: example.com
+  Type:   unauthorized
+  Detail: Incorrect TXT record "fakeOldTxtValue000000000000000000000000000" found at _acme-challenge.example.com
+
+Hint: The Certificate Authority failed to verify the manually created DNS TXT records. Ensure that you created these in the correct location, or try waiting longer for DNS propagation on the next attempt.

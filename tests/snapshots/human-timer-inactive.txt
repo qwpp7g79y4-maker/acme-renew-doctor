@@ -1,0 +1,25 @@
+acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+target: example.com · client: auto
+inputs: log=(none) · timer status=tests/fixtures/timer/certbot-timer-enabled-inactive.txt · cert disk=(none) · cert live=(none)
+
+✗ LAYER1_TIMER_NOT_FIRING  confidence=high  layer=scheduler
+  evidence:
+  • [timer] certbot.timer: ActiveState=inactive
+  • [timer] SubState=dead
+  • [timer] Result=success
+  • [timer] UnitFileState=enabled
+  • [timer] ConditionResult=no
+
+Next (SAFE copy-paste checks, read-only; Doctor runs nothing and will NOT renew or reload for you):
+  → systemctl list-timers --all certbot.timer
+    why: shows whether the timer is scheduled and when it last ran
+  → systemctl status certbot.timer --no-pager
+    why: shows whether the timer is active
+  → systemctl show certbot.timer -p ConditionResult,ConditionTimestamp,Result
+    why: an unmet condition or a failed result keeps an enabled timer from firing
+  → journalctl -u certbot.timer -n 50 --no-pager
+    why: recent messages about the timer
+  ⚠ Do not force a renewal: Let's Encrypt rate limits apply. Fix the named layer first.
+    (dangerous suggestions suppressed by default)
+
+exit 1: problem found

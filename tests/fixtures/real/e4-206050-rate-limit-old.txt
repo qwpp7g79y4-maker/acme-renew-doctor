@@ -1,0 +1,28 @@
+C:\Program Files\Certbot>certbot renew
+Saving debug log to C:\Certbot\log\letsencrypt.log
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Processing C:\Certbot\renewal\f
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Certificate not yet due for renewal
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Processing C:\Certbot\renewal\l
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Certificate not yet due for renewal
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Processing C:\Certbot\renewal\n
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Renewing an existing certificate for n
+Failed to renew certificate n with error: urn:ietf:params:acme:error:rateLimited :: There were too many requests of a given type :: Error creating new order :: too many certificates (5) already issued for this exact set of domains in the last 168 hours: example.com, retry after 2023-10-04T10:49:08Z: see https://letsencrypt.org/docs/duplicate-certificate-limit/
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The following certificates are not due for renewal yet:
+  C:\Certbot\live\f\fullchain.pem expires on 2023-12-09 (skipped)
+  C:\Certbot\live\l\fullchain.pem expires on 2023-12-09 (skipped)
+All renewals failed. The following certificates could not be renewed:
+  C:\Certbot\live\n\fullchain.pem (failure)
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+1 renew failure(s), 0 parse failure(s)
+Ask for help or search for solutions at https://community.letsencrypt.org. See the logfile C:\Certbot\log\letsencrypt.log or re-run Certbot with -v for more details.

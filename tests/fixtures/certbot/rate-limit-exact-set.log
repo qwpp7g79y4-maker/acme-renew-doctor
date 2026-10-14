@@ -1,0 +1,13 @@
+2026-10-05 08:14:02,100:DEBUG:acme.client:Sending POST request to https://acme-v02.api.letsencrypt.org/acme/new-order:
+2026-10-05 08:14:02,450:DEBUG:acme.client:Received response:
+HTTP 429
+Content-Type: application/problem+json
+Retry-After: 604800
+
+{
+  "type": "urn:ietf:params:acme:error:rateLimited",
+  "detail": "too many certificates (5) already issued for this exact set of identifiers in the last 168h0m0s, retry after 2026-10-12 08:14:02 UTC: see https://letsencrypt.org/docs/rate-limits/#new-certificates-per-exact-set-of-identifiers",
+  "status": 429
+}
+2026-10-05 08:14:02,451:ERROR:certbot._internal.log:An unexpected error occurred:
+2026-10-05 08:14:02,452:ERROR:certbot._internal.log:too many certificates (5) already issued for this exact set of identifiers in the last 168h0m0s, retry after 2026-10-12 08:14:02 UTC: see https://letsencrypt.org/docs/rate-limits/#new-certificates-per-exact-set-of-identifiers

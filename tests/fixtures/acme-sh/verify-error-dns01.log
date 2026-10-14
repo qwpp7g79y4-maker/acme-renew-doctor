@@ -1,0 +1,14 @@
+[..., 15:01:25 (UTC+0200)] All success, let's return
+[..., 15:01:25 (UTC+0200)] Verifying: example.com
+[..., 15:01:28 (UTC+0200)] Success
+[..., 15:01:28 (UTC+0200)] Verifying: *.example.com
+[..., 15:01:31 (UTC+0200)] *.example.com:Verify error:During secondary validation: No TXT record found at _acme-challenge.example.com
+[..., 15:01:31 (UTC+0200)] Removing DNS records.
+[..., 15:01:31 (UTC+0200)] Removing txt: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA for domain: _acme-challenge.example.com
+[..., 15:01:31 (UTC+0200)] removing _acme-challenge.example.com. txt
+[..., 15:01:31 (UTC+0200)] Removed: Success
+[..., 15:01:31 (UTC+0200)] Removing txt: BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB for domain: _acme-challenge.example.com
+[..., 15:01:31 (UTC+0200)] removing _acme-challenge.example.com. txt
+[..., 15:01:31 (UTC+0200)] Removed: Success
+[..., 15:01:31 (UTC+0200)] Please add '--debug' or '--log' to check more details.
+[..., 15:01:31 (UTC+0200)] See: https://github.com/acmesh-official/acme.sh/wiki/How-to-debug-acme.sh

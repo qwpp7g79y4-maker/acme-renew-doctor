@@ -1,0 +1,20 @@
+acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+target: example.com · client: auto
+inputs: log=tests/fixtures/acme-sh/verify-error-dns01.log · timer status=(none) · cert disk=(none) · cert live=(none)
+
+? CLIENT_UNKNOWN  confidence=high  layer=-
+  evidence:
+  • [log] no Certbot log lines found in tests/fixtures/acme-sh/verify-error-dns01.log (expected lines like '2026-09-28 03:12:44,512:DEBUG:certbot._internal.main:...')
+  • [log] acme.sh logs are not parsed yet (v0.1 parses Certbot logs only)
+
+Next (SAFE copy-paste checks, read-only; Doctor runs nothing and will NOT renew or reload for you):
+  → ls -la /var/log/letsencrypt
+    why: a Certbot install writes letsencrypt.log here; pass that file with --from-log
+  → sudo tail -n 400 /var/log/letsencrypt/letsencrypt.log
+    why: Certbot lines start with a timestamp like 2026-09-28 03:12:44,512:DEBUG:
+  → ls -la ~/.acme.sh
+    why: acme.sh keeps its files here; acme.sh logs are not parsed yet
+  ⚠ Do not force a renewal: Let's Encrypt rate limits apply. Fix the named layer first.
+    (dangerous suggestions suppressed by default)
+
+exit 3: usage error

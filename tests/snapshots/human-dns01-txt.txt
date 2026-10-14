@@ -1,0 +1,17 @@
+acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+target: example.com · client: auto
+inputs: log=tests/fixtures/certbot/dns01-no-txt-record.log · timer status=(none) · cert disk=(none) · cert live=(none)
+
+✗ LAYER2_DNS01_TXT  confidence=high  layer=validation
+  evidence:
+  • [log] line 32: No TXT record found at _acme-challenge.example.com
+
+Next (SAFE copy-paste checks, read-only; Doctor runs nothing and will NOT renew or reload for you):
+  → dig +short TXT _acme-challenge.example.com
+    why: shows the TXT records public DNS returns now; compare with the value Certbot asked for
+  → dig +short NS example.com
+    why: the TXT record must be created at the DNS provider that is authoritative for this domain
+  ⚠ Do not force a renewal: Let's Encrypt rate limits apply. Fix the named layer first.
+    (dangerous suggestions suppressed by default)
+
+exit 1: problem found

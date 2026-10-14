@@ -1,0 +1,36 @@
+2026-09-30 03:12:44,512:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Replay-Nonce: fakeNonceDns01NoTxt00000000000001
+
+{
+  "identifier": {
+    "type": "dns",
+    "value": "example.com"
+  },
+  "status": "invalid",
+  "expires": "2026-09-30T04:12:44Z",
+  "challenges": [
+    {
+      "type": "dns-01",
+      "url": "https://acme-v02.api.letsencrypt.org/acme/chall/fakeChallDns01NoTxt",
+      "status": "invalid",
+      "validated": "2026-09-30T03:12:40Z",
+      "error": {
+        "type": "urn:ietf:params:acme:error:unauthorized",
+        "detail": "During secondary validation: No TXT record found at _acme-challenge.example.com",
+        "status": 403
+      },
+      "token": "dns01notxttoken000000000000000001"
+    }
+  ]
+}
+2026-09-30 03:12:44,600:INFO:certbot._internal.auth_handler:Challenge failed for domain example.com
+2026-09-30 03:12:44,601:INFO:certbot._internal.auth_handler:dns-01 challenge for example.com
+2026-09-30 03:12:44,602:DEBUG:certbot._internal.display.obj:Notifying user: 
+Certbot failed to authenticate some domains (authenticator: manual). The Certificate Authority reported these problems:
+  Domain: example.com
+  Type:   unauthorized
+  Detail: During secondary validation: No TXT record found at _acme-challenge.example.com
+
+Hint: The Certificate Authority failed to verify the manually created DNS TXT records. Ensure that you created these in the correct location, or try waiting longer for DNS propagation on the next attempt.

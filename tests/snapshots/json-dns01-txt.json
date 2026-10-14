@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "tool": {
+    "name": "acme-renew-doctor",
+    "version": "0.1.0"
+  },
+  "input": {
+    "domain": "example.com",
+    "all": false,
+    "client": "auto",
+    "from_log": "tests/fixtures/certbot/dns01-no-txt-record.log",
+    "from_timer_status": null,
+    "from_cert_disk": null,
+    "from_cert_live": null
+  },
+  "findings": [
+    {
+      "code": "LAYER2_DNS01_TXT",
+      "layer": "validation",
+      "confidence": "high",
+      "evidence": [
+        {
+          "source": "log",
+          "text": "line 32: No TXT record found at _acme-challenge.example.com"
+        }
+      ]
+    }
+  ],
+  "next_checks": [
+    {
+      "for": "LAYER2_DNS01_TXT",
+      "command": "dig +short TXT _acme-challenge.example.com",
+      "why": "shows the TXT records public DNS returns now; compare with the value Certbot asked for",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_DNS01_TXT",
+      "command": "dig +short NS example.com",
+      "why": "the TXT record must be created at the DNS provider that is authoritative for this domain",
+      "safety": "read-only"
+    }
+  ],
+  "exit_code": 1
+}

@@ -1,0 +1,4 @@
+$ sudo systemctl status certbot.timer
+● certbot.timer - Run certbot twice daily
+   Loaded: loaded (/lib/systemd/system/certbot.timer; enabled; vendor preset: enabled)
+   Active: inactive (dead) since .....; 1 months 7 days ago

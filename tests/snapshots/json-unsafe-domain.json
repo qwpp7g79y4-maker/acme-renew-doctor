@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "tool": {
+    "name": "acme-renew-doctor",
+    "version": "0.1.0"
+  },
+  "input": {
+    "domain": "YOUR_DOMAIN",
+    "all": false,
+    "client": "auto",
+    "from_log": "tests/fixtures/certbot/http01-timeout.log",
+    "from_timer_status": null,
+    "from_cert_disk": null,
+    "from_cert_live": null
+  },
+  "findings": [
+    {
+      "code": "LAYER2_HTTP01_TIMEOUT",
+      "layer": "validation",
+      "confidence": "high",
+      "evidence": [
+        {
+          "source": "log",
+          "text": "line 32: 203.0.113.10: Fetching http://example.com/.well-known/acme-challenge/timeouttoken0000000000000000001: Timeout during connect (likely firewall problem)"
+        }
+      ]
+    }
+  ],
+  "next_checks": [
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "curl -q -sI --max-time 10 http://YOUR_DOMAIN/.well-known/acme-challenge/acme-renew-doctor-check",
+      "why": "any HTTP answer, even 404, means port 80 answers here; a timeout points to firewall or routing",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "dig +short A YOUR_DOMAIN",
+      "why": "compare the A record with the public IPv4 address of this server",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "dig +short AAAA YOUR_DOMAIN",
+      "why": "compare with the public IP of this server; a stale AAAA record is a common cause",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "ss -ltn",
+      "why": "look for a listener on port 80",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER2_HTTP01_TIMEOUT",
+      "command": "sudo tail -n 200 /var/log/letsencrypt/letsencrypt.log",
+      "why": "shows recent lines from the Certbot log",
+      "safety": "read-only"
+    }
+  ],
+  "notes": ["note: the domain contains characters that are unsafe in a shell command; replace YOUR_DOMAIN yourself."],
+  "exit_code": 1
+}

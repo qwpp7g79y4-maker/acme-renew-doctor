@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "tool": {
+    "name": "acme-renew-doctor",
+    "version": "0.1.0"
+  },
+  "input": {
+    "domain": "example.com",
+    "all": false,
+    "client": "auto",
+    "from_log": null,
+    "from_timer_status": "tests/fixtures/timer/certbot-timer-failed.txt",
+    "from_cert_disk": null,
+    "from_cert_live": null
+  },
+  "findings": [
+    {
+      "code": "LAYER1_TIMER_NOT_FIRING",
+      "layer": "scheduler",
+      "confidence": "high",
+      "evidence": [
+        {
+          "source": "timer",
+          "text": "certbot.timer: ActiveState=failed"
+        },
+        {
+          "source": "timer",
+          "text": "SubState=failed"
+        },
+        {
+          "source": "timer",
+          "text": "Result=resources"
+        },
+        {
+          "source": "timer",
+          "text": "UnitFileState=enabled"
+        },
+        {
+          "source": "timer",
+          "text": "ConditionResult=yes"
+        }
+      ]
+    }
+  ],
+  "next_checks": [
+    {
+      "for": "LAYER1_TIMER_NOT_FIRING",
+      "command": "systemctl list-timers --all certbot.timer",
+      "why": "shows whether the timer is scheduled and when it last ran",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER1_TIMER_NOT_FIRING",
+      "command": "systemctl status certbot.timer --no-pager",
+      "why": "shows whether the timer is active",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER1_TIMER_NOT_FIRING",
+      "command": "systemctl show certbot.timer -p ConditionResult,ConditionTimestamp,Result",
+      "why": "an unmet condition or a failed result keeps an enabled timer from firing",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER1_TIMER_NOT_FIRING",
+      "command": "journalctl -u certbot.timer -n 50 --no-pager",
+      "why": "recent messages about the timer",
+      "safety": "read-only"
+    }
+  ],
+  "exit_code": 1
+}

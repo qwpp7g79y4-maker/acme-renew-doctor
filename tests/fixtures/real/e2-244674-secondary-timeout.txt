@@ -1,0 +1,4 @@
+Certbot failed to authenticate some domains (authenticator: webroot). The Certificate Authority reported these problems:
+  Domain: xxxxxx.yyy
+  Type:   connection
+  Detail: During secondary validation: XXX.XXX.XXX.XXX: Fetching http://xxxxxx/.well-known/acme-challenge/YYYYYYYYYYYYYYYYYYYY: Timeout during connect (likely firewall problem)

@@ -1,0 +1,36 @@
+2026-09-28 04:05:11,100:DEBUG:acme.client:Received response:
+HTTP 200
+Content-Type: application/json
+Replay-Nonce: fakeNonceRefused0000000000000001
+
+{
+  "identifier": {
+    "type": "dns",
+    "value": "example.com"
+  },
+  "status": "invalid",
+  "expires": "2026-09-28T05:05:11Z",
+  "challenges": [
+    {
+      "type": "http-01",
+      "url": "https://acme-v02.api.letsencrypt.org/acme/chall/fakeChallRefused",
+      "status": "invalid",
+      "validated": "2026-09-28T04:05:08Z",
+      "error": {
+        "type": "urn:ietf:params:acme:error:connection",
+        "detail": "203.0.113.10: Fetching http://example.com/.well-known/acme-challenge/refusedtoken0000000000000000001: Connection refused",
+        "status": 400
+      },
+      "token": "refusedtoken0000000000000000001"
+    }
+  ]
+}
+2026-09-28 04:05:11,200:INFO:certbot._internal.auth_handler:Challenge failed for domain example.com
+2026-09-28 04:05:11,201:INFO:certbot._internal.auth_handler:http-01 challenge for example.com
+2026-09-28 04:05:11,202:DEBUG:certbot._internal.display.obj:Notifying user: 
+Certbot failed to authenticate some domains (authenticator: webroot). The Certificate Authority reported these problems:
+  Identifier: example.com
+  Type:   connection
+  Detail: 203.0.113.10: Fetching http://example.com/.well-known/acme-challenge/refusedtoken0000000000000000001: Connection refused
+
+Hint: The Certificate Authority failed to download the temporary challenge files created by Certbot. Ensure that the listed identifiers serve their content from the provided --webroot-path/-w and that files created there can be downloaded from the internet.

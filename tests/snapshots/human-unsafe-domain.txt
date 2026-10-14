@@ -1,0 +1,25 @@
+acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+target: YOUR_DOMAIN · client: auto
+inputs: log=tests/fixtures/certbot/http01-timeout.log · timer status=(none) · cert disk=(none) · cert live=(none)
+
+✗ LAYER2_HTTP01_TIMEOUT  confidence=high  layer=validation
+  evidence:
+  • [log] line 32: 203.0.113.10: Fetching http://example.com/.well-known/acme-challenge/timeouttoken0000000000000000001: Timeout during connect (likely firewall problem)
+
+Next (SAFE copy-paste checks, read-only; Doctor runs nothing and will NOT renew or reload for you):
+  → curl -q -sI --max-time 10 http://YOUR_DOMAIN/.well-known/acme-challenge/acme-renew-doctor-check
+    why: any HTTP answer, even 404, means port 80 answers here; a timeout points to firewall or routing
+  → dig +short A YOUR_DOMAIN
+    why: compare the A record with the public IPv4 address of this server
+  → dig +short AAAA YOUR_DOMAIN
+    why: compare with the public IP of this server; a stale AAAA record is a common cause
+  → ss -ltn
+    why: look for a listener on port 80
+  → sudo tail -n 200 /var/log/letsencrypt/letsencrypt.log
+    why: shows recent lines from the Certbot log
+  # also test from outside your network: the CA does not see what localhost sees
+  ⚠ Do not force a renewal: Let's Encrypt rate limits apply. Fix the named layer first.
+    (dangerous suggestions suppressed by default)
+note: the domain contains characters that are unsafe in a shell command; replace YOUR_DOMAIN yourself.
+
+exit 1: problem found

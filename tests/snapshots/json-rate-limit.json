@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "tool": {
+    "name": "acme-renew-doctor",
+    "version": "0.1.0"
+  },
+  "input": {
+    "domain": "example.com",
+    "all": false,
+    "client": "auto",
+    "from_log": "tests/fixtures/certbot/rate-limit-exact-set.log",
+    "from_timer_status": null,
+    "from_cert_disk": null,
+    "from_cert_live": null
+  },
+  "findings": [
+    {
+      "code": "LAYER2_RATE_LIMIT",
+      "layer": "validation",
+      "confidence": "high",
+      "evidence": [
+        {
+          "source": "log",
+          "text": "line 8: too many certificates (5) already issued for this exact set of identifiers in the last 168h0m0s, retry after 2026-10-12 08:14:02 UTC: see https://letsencrypt.org/docs/rate-limits/#new-certificates-per-exact-set-of-identifiers"
+        },
+        {
+          "source": "log",
+          "text": "retry after 2026-10-12 08:14:02 UTC"
+        }
+      ]
+    }
+  ],
+  "next_checks": [
+    {
+      "for": "LAYER2_RATE_LIMIT",
+      "command": "sudo tail -n 200 /var/log/letsencrypt/letsencrypt.log",
+      "why": "read the retry-after time in the error; new attempts before then fail again",
+      "safety": "read-only"
+    }
+  ],
+  "exit_code": 1
+}

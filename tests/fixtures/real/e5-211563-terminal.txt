@@ -1,0 +1,19 @@
+root@host:~# certbot renew
+Saving debug log to /var/log/letsencrypt/letsencrypt.log
+                                       
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Processing /etc/letsencrypt/renewal/example.com.conf
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+Renewing an existing certificate for *.example.com and example.com
+                                                                               
+Certbot failed to authenticate some domains (authenticator: manual). The Certificate Authority reported these problems:
+  Domain: example.com
+  Type:   unauthorized
+  Detail: No TXT record found at _acme-challenge.example.com
+
+  Domain: example.com                                                                                                                                   Type:   unauthorized                                                                                                                                        
+  Detail: No TXT record found at _acme-challenge.example.com
+                                                                                                                                                              
+Hint: The Certificate Authority failed to verify the DNS TXT records created by the --manual-auth-hook. Ensure that this hook is functioning correctly and tha
+t it waits a sufficient duration of time for DNS propagation. Refer to "certbot --help manual" and the Certbot User Guide.
+                                                                               

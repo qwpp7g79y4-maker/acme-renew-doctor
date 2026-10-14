@@ -1,0 +1,9 @@
+NextElapseUSecRealtime=
+LastTriggerUSec=
+Result=success
+Id=certbot.timer
+LoadState=loaded
+ActiveState=inactive
+SubState=dead
+UnitFileState=enabled
+ConditionResult=yes

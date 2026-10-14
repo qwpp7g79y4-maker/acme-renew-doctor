@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "tool": {
+    "name": "acme-renew-doctor",
+    "version": "0.1.0"
+  },
+  "input": {
+    "domain": "example.com",
+    "all": false,
+    "client": "auto",
+    "from_log": null,
+    "from_timer_status": null,
+    "from_cert_disk": "tests/fixtures/certs/dates-disk-renewed.txt",
+    "from_cert_live": "tests/fixtures/certs/dates-live-old.txt"
+  },
+  "findings": [
+    {
+      "code": "LAYER3_NO_RELOAD",
+      "layer": "deployment",
+      "confidence": "high",
+      "evidence": [
+        {
+          "source": "disk",
+          "text": "notAfter=Jan  2 06:14:02 2027 GMT"
+        },
+        {
+          "source": "handshake",
+          "text": "notAfter=Oct  4 06:12:43 2026 GMT"
+        }
+      ]
+    }
+  ],
+  "next_checks": [
+    {
+      "for": "LAYER3_NO_RELOAD",
+      "command": "sudo openssl x509 -noout -enddate -in /etc/letsencrypt/live/example.com/fullchain.pem",
+      "why": "shows the notAfter date of the certificate file on disk",
+      "safety": "read-only"
+    },
+    {
+      "for": "LAYER3_NO_RELOAD",
+      "command": "echo | timeout 10 openssl s_client -connect example.com:443 -servername example.com | openssl x509 -noout -enddate",
+      "why": "if the date on disk is newer than the live one, the web server still serves the old certificate; you decide when to reload it, Doctor never does",
+      "safety": "read-only"
+    }
+  ],
+  "exit_code": 1
+}

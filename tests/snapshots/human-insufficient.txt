@@ -1,0 +1,26 @@
+acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+target: example.com · client: auto
+inputs: log=(none) · timer status=(none) · cert disk=(none) · cert live=(none)
+
+? INSUFFICIENT_EVIDENCE  confidence=low  layer=-
+  evidence:
+  • [timer] no timer status
+  • [log] no log given
+  • [disk] no disk notAfter
+  • [handshake] no live notAfter
+
+Next (SAFE copy-paste checks, read-only; Doctor runs nothing and will NOT renew or reload for you):
+  → systemctl show certbot.timer certbot.service -p Id,LoadState,ActiveState,SubState,UnitFileState,Result,ConditionResult,LastTriggerUSec,NextElapseUSecRealtime
+    why: save this output yourself and pass the file with --from-timer-status
+  → sudo tail -n 400 /var/log/letsencrypt/letsencrypt.log
+    why: save a copy yourself and pass it with --from-log
+  → sudo openssl x509 -noout -dates -in /etc/letsencrypt/live/example.com/fullchain.pem
+    why: save this output yourself and pass the file with --from-cert-disk
+  → echo | timeout 10 openssl s_client -connect example.com:443 -servername example.com | openssl x509 -noout -dates
+    why: save this output yourself and pass the file with --from-cert-live
+  ⚠ Do not force a renewal: Let's Encrypt rate limits apply. Fix the named layer first.
+    (dangerous suggestions suppressed by default)
+
+note: live collection is not built yet; pass --from-log, --from-timer-status, --from-cert-disk and/or --from-cert-live.
+
+exit 2: insufficient evidence

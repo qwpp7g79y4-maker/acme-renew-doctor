@@ -1,0 +1,3 @@
+Domain: www.example.com
+  Type:   connection
+  Detail: During secondary validation: 203.0.113.10: Fetching http://www.example.com/.well-known/acme-challenge/TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT: Timeout during connect (likely firewall problem)

@@ -1,0 +1,7 @@
+Result=exit-code
+Id=certbot.service
+LoadState=loaded
+ActiveState=failed
+SubState=failed
+UnitFileState=enabled
+ConditionResult=yes
