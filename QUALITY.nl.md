@@ -6,9 +6,10 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 | | |
 |---|---|
-| Versie | 0.1.0 |
+| Versie | 0.1.0 ([release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.1.0), [crates.io](https://crates.io/crates/acme-renew-doctor/0.1.0)) |
+| Gecontroleerde commit | [`4b64288`](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/commit/4b64288) |
 | Datum | 2026-10-14 |
-| Tests | 317 geautomatiseerde tests |
+| Tests | 317 geautomatiseerde tests, gedraaid in debug- en releasemodus |
 
 ### Wat we controleerden
 
@@ -35,7 +36,7 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 - Onafhankelijke codereview, door reviewers die de code niet schreven.
 - Een externe geautomatiseerde codereview. Alle bevestigde bevindingen zijn in deze versie opgelost, elk met een regressietest.
-- Geautomatiseerde tests in CI: [CI op main](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml?query=branch%3Amain).
+- Geautomatiseerde tests in CI: [run 38541717053](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/runs/38541717053).
 - Afhankelijkheden gecontroleerd met `cargo audit`.
 
 We noemen de reviewdiensten hier niet. Het gaat om de controles en hun resultaten, en elk resultaat is na te gaan in de code, de tests en de changelog.

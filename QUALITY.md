@@ -6,9 +6,10 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 | | |
 |---|---|
-| Version | 0.1.0 |
+| Version | 0.1.0 ([release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.1.0), [crates.io](https://crates.io/crates/acme-renew-doctor/0.1.0)) |
+| Commit checked | [`4b64288`](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/commit/4b64288) |
 | Date | 2026-10-14 |
-| Tests | 317 automated tests |
+| Tests | 317 automated tests, run in debug and release mode |
 
 ### What we checked
 
@@ -35,7 +36,7 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 - Independent code review, by reviewers who did not write the code.
 - An external automated code review. All its findings that were confirmed are fixed in this version, each with a regression test.
-- Automated tests in CI: [CI on main](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml?query=branch%3Amain).
+- Automated tests in CI: [run 38541717053](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/runs/38541717053).
 - Dependency audit with `cargo audit`.
 
 We do not name the review services here. The checks and their results are what matters, and every result can be verified in the code, the tests and the changelog.
