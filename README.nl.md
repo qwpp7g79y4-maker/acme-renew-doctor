@@ -4,6 +4,8 @@
 
 Leg uit waarom een Certbot-vernieuwing faalde, of stilletjes nooit draaide, aan de hand van bestanden die je meegeeft.
 
+[![PEPAI gecontroleerd](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.nl.md)
+
 [Installatie](#installatie) • [Snel aan de slag](#snel-aan-de-slag) • [Hoe het werkt](#hoe-het-werkt) • [Alternatieven](#vergelijking-met-alternatieven) • [Beperkingen](#beperkingen) • [Referentie](docs/reference.nl.md)
 
 acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. Het legt uit waarom een Certbot-TLS-vernieuwing faalde, of stilletjes nooit draaide. Het verzamelt niets. Het leest alleen bestanden die je meegeeft: opgeslagen opdrachtuitvoer, of tekst die je in een bestand plakte. Het voert geen opdracht uit, forceert nooit een vernieuwing en herlaadt nooit een service. Een bevinding is een vaste code plus het bewijs daarvoor. Codes die een laag noemen gebruiken scheduler, validation of deployment. Het heeft geen account nodig en maakt geen netwerkverbinding.

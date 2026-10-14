@@ -4,6 +4,8 @@ English · [Nederlands](README.nl.md)
 
 Explain why a Certbot renewal failed, or quietly never ran, from files you pass.
 
+[![PEPAI checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.md)
+
 [Installation](#installation) • [Quick start](#quick-start) • [How it works](#how-it-works) • [Alternatives](#compared-with-alternatives) • [Limitations](#limitations) • [Reference](docs/reference.md)
 
 acme-renew-doctor is a local, read-only command-line tool written in Rust. It explains why a Certbot TLS renewal failed, or quietly never ran. It collects nothing. It only reads files you pass in: saved command output, or text you pasted into a file. It runs no command, never forces a renewal, and never reloads a service. A finding is a fixed code plus the evidence for it. Codes that name a layer use scheduler, validation, or deployment. It needs no account and makes no network connection.
