@@ -38,6 +38,7 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 - Een externe geautomatiseerde codereview. Alle bevestigde bevindingen zijn in deze versie opgelost, elk met een regressietest.
 - Geautomatiseerde tests in CI: [run 38541717053](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/runs/38541717053).
 - Afhankelijkheden gecontroleerd met `cargo audit`.
+- Een verse onafhankelijke eindreview van commit [`8156ad9`](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/commit/8156ad9) (dezelfde code als de gecontroleerde commit hierboven; alleen dit rapport is gewijzigd) tegen een vaste edge-case-checklist, elk punt met een concrete kwade invoer. Die eindigde op DONE, zonder blokkerende bevindingen.
 
 We noemen de reviewdiensten hier niet. Het gaat om de controles en hun resultaten, en elk resultaat is na te gaan in de code, de tests en de changelog.
 

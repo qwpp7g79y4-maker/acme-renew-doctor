@@ -38,6 +38,7 @@ This page shows how acme-renew-doctor was checked before its first public releas
 - An external automated code review. All its findings that were confirmed are fixed in this version, each with a regression test.
 - Automated tests in CI: [run 38541717053](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/runs/38541717053).
 - Dependency audit with `cargo audit`.
+- A fresh independent final review of commit [`8156ad9`](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/commit/8156ad9) (same code as the commit checked above; only this report changed) against a fixed edge-case checklist, every item tried with a concrete bad input. It ended DONE, with no blocking findings.
 
 We do not name the review services here. The checks and their results are what matters, and every result can be verified in the code, the tests and the changelog.
 
