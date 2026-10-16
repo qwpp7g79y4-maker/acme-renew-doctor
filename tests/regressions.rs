@@ -331,20 +331,73 @@ fn duplicate_type_or_detail_of_any_json_kind_is_ambiguous() {
     assert!(parsed.problems[0].detail.is_empty());
 }
 
-#[test]
-fn forty_thousand_distinct_errors_parse_quickly() {
-    let mut text = String::with_capacity(40_000 * 90);
+fn distinct_errors_log(count: usize) -> String {
+    let mut text = String::with_capacity(count * 90 + 64);
     text.push_str("2026-09-28 03:12:44,512:DEBUG:certbot._internal.main:start\n");
-    for n in 0..40_000 {
+    for n in 0..count {
         text.push_str("{\"type\":\"urn:ietf:params:acme:error:connection\",\"detail\":\"err ");
         text.push_str(&n.to_string());
         text.push_str("\"}\n");
     }
-    let started = std::time::Instant::now();
-    let problems = certbot_log::parse(&text);
-    let elapsed = started.elapsed();
-    assert_eq!(problems.len(), 40_000);
-    assert!(elapsed < Duration::from_secs(3), "parse took {elapsed:?}");
+    text
+}
+
+/// Parses `text` `repeats` times and returns the fastest wall-clock time seen,
+/// alongside the problem count (which is identical on every repeat).
+fn fastest_parse(text: &str, repeats: u32) -> (Duration, usize) {
+    let mut best = Duration::MAX;
+    let mut count = 0;
+    for _ in 0..repeats {
+        let started = std::time::Instant::now();
+        let problems = certbot_log::parse(text);
+        let elapsed = started.elapsed();
+        count = problems.len();
+        best = best.min(elapsed);
+    }
+    (best, count)
+}
+
+/// A wall-clock ceiling on parsing is flaky on shared CI runners (it once
+/// flaked on a slow macOS Intel runner at 3.67s against a 3s budget), since
+/// the runner's absolute speed is outside our control. What we actually care
+/// about is that `certbot_log::parse` stays roughly linear in the number of
+/// distinct errors, so a quadratic-or-worse regression still gets caught.
+/// We time a small input and a 4x-larger one (best of a few repeats each, to
+/// damp scheduler jitter) and assert the runtime ratio stays far below the
+/// 16x a quadratic algorithm would produce, plus a very generous absolute
+/// cap as a backstop against outright hangs.
+#[test]
+fn distinct_errors_parse_scales_linearly() {
+    const SMALL: usize = 10_000;
+    const FACTOR: usize = 4;
+    const REPEATS: u32 = 5;
+
+    let small_text = distinct_errors_log(SMALL);
+    let large_text = distinct_errors_log(SMALL * FACTOR);
+
+    let (small_time, small_count) = fastest_parse(&small_text, REPEATS);
+    let (large_time, large_count) = fastest_parse(&large_text, REPEATS);
+
+    assert_eq!(small_count, SMALL);
+    assert_eq!(large_count, SMALL * FACTOR);
+
+    assert!(
+        large_time < Duration::from_secs(30),
+        "parsing {} distinct errors took {large_time:?}, which looks hung rather than merely slow",
+        SMALL * FACTOR
+    );
+
+    let small_nanos = (small_time.as_nanos() as f64).max(1.0);
+    let large_nanos = large_time.as_nanos() as f64;
+    let ratio = large_nanos / small_nanos;
+    assert!(
+        ratio < 12.0,
+        "parse time scaled {ratio:.2}x for a {FACTOR}x larger input \
+         (small={small_time:?} for {SMALL}, large={large_time:?} for {}); \
+         linear scaling would be {FACTOR}x and quadratic would be {}x",
+        SMALL * FACTOR,
+        FACTOR * FACTOR
+    );
 }
 
 #[test]
