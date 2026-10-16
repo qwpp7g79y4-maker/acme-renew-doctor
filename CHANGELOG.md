@@ -40,7 +40,7 @@ All notable changes to this project are documented in this file.
 - Escape the same characters in input paths shown on the `inputs:` line of the text report.
 - Parse ACME JSON when whitespace, including a newline, sits between a key, the colon and the value. A nested subproblem outranks its parent at the same timestamp.
 - Treat a repeated `type` or `detail` with a different value of any JSON kind as ambiguous. Deduplicate repeated errors by type and detail, and keep the earliest timestamp on `first_line`.
-- Open an input file before checking its type. On Linux that open does not block on a fifo.
+- Open an input file before checking its type. On Linux, macOS and the other Unix systems that open does not block on a fifo.
 - A duplicate key with a different value inside one `systemctl show` block makes that unit ambiguous. Equal values still count as one.
 - Do not report `OK_NOT_DUE` when the only timer is `snap.certbot.renew.timer` and it is not loaded and active. A missing ActiveState or UnitFileState is not a high-confidence timer failure.
 - Suggested `curl` commands start with `curl -q`. A pipe is split on `|` without requiring spaces, and file-writing curl options are rejected.
