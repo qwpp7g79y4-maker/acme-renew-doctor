@@ -897,3 +897,88 @@ fn python_json_tool_accepts_injected_and_garbage_reports() {
         assert!(violations.is_empty(), "{violations:?}: {command}");
     }
 }
+
+/// Independent oracle for the shape `safe::safe_domain` accepts: at least
+/// two labels, each 1 to 63 ASCII alphanumeric or '-' bytes that do not
+/// start or end with '-', joined by '.', at most 253 bytes in total. Kept
+/// separate from `safe_domain`'s own code so the property actually checks
+/// the spec instead of restating the implementation.
+fn is_valid_domain_shape(domain: &str) -> bool {
+    if domain.is_empty() || domain.len() > 253 {
+        return false;
+    }
+    let labels: Vec<&str> = domain.split('.').collect();
+    if labels.len() < 2 {
+        return false;
+    }
+    labels.iter().all(|label| {
+        !label.is_empty()
+            && label.len() <= 63
+            && !label.starts_with('-')
+            && !label.ends_with('-')
+            && label
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+    })
+}
+
+proptest! {
+    #![proptest_config(proptest_config(48))]
+
+    #[test]
+    fn safe_domain_accepted_only_when_shape_is_valid(
+        domain in "[-.a-zA-Z0-9]{0,70}",
+    ) {
+        let accepted = acme_renew_doctor::safe::safe_domain(Some(&domain)).is_some();
+        prop_assert_eq!(
+            accepted,
+            is_valid_domain_shape(&domain),
+            "safe_domain disagreed with the shape oracle for {:?}",
+            domain
+        );
+    }
+
+    #[test]
+    fn a_generated_valid_domain_name_is_accepted(
+        labels in prop::collection::vec("[a-zA-Z0-9]([a-zA-Z0-9-]{0,38}[a-zA-Z0-9])?", 2..=4),
+    ) {
+        let domain = labels.join(".");
+        prop_assert!(
+            is_valid_domain_shape(&domain),
+            "oracle rejected its own generator: {}",
+            domain
+        );
+        prop_assert_eq!(
+            acme_renew_doctor::safe::safe_domain(Some(&domain)),
+            Some(domain.as_str()),
+            "safe_domain rejected a shape-valid name: {}",
+            domain
+        );
+    }
+}
+
+proptest! {
+    #![proptest_config(proptest_config(32))]
+
+    #[test]
+    fn certbot_log_parse_log_does_not_panic_on_arbitrary_text(
+        text in "\\PC{0,80}",
+    ) {
+        let _ = acme_renew_doctor::certbot_log::has_certbot_lines(&text);
+        let _ = acme_renew_doctor::certbot_log::parse_log(&text);
+    }
+
+    #[test]
+    fn timer_classify_show_does_not_panic_on_arbitrary_text(
+        text in "\\PC{0,80}",
+    ) {
+        let _ = acme_renew_doctor::timer::classify_show(&text);
+    }
+
+    #[test]
+    fn certtime_parse_openssl_enddate_does_not_panic_on_arbitrary_text(
+        text in "\\PC{0,80}",
+    ) {
+        let _ = acme_renew_doctor::certtime::parse_openssl_enddate(&text);
+    }
+}

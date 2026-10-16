@@ -8,6 +8,7 @@ use crate::safe::{self, SafeCheck};
 pub const SCHEMA_VERSION: u32 = 1;
 
 const LIVE_NOTE: &str = "note: live collection is not built yet; pass --from-log, --from-timer-status, --from-cert-disk and/or --from-cert-live.";
+const INVALID_DOMAIN_NOTE: &str = "note: the domain is not a valid hostname (it needs at least two labels of 1 to 63 characters, no label may start or end with '-', and the name may be at most 253 characters); replace YOUR_DOMAIN yourself.";
 const UNSAFE_DOMAIN_NOTE: &str = "note: the domain contains characters that are unsafe in a shell command; replace YOUR_DOMAIN yourself.";
 
 pub fn human(report: &Report, checks: &[SafeCheck]) -> String {
@@ -249,10 +250,18 @@ fn report_notes(report: &Report) -> Vec<String> {
     if let Some(note) = replacement_note(report.replaced_invalid_utf8_bytes) {
         notes.push(note);
     }
-    if report.snapshot.domain.is_some()
-        && safe::safe_domain(report.snapshot.domain.as_deref()).is_none()
-    {
-        notes.push(UNSAFE_DOMAIN_NOTE.to_string());
+    if let Some(domain) = report.snapshot.domain.as_deref() {
+        if safe::safe_domain(Some(domain)).is_none() {
+            let only_hostname_bytes = !domain.is_empty()
+                && domain
+                    .bytes()
+                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'.');
+            notes.push(if only_hostname_bytes {
+                INVALID_DOMAIN_NOTE.to_string()
+            } else {
+                UNSAFE_DOMAIN_NOTE.to_string()
+            });
+        }
     }
     notes
 }

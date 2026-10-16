@@ -134,7 +134,7 @@ pub fn safe_domain(domain: Option<&str>) -> Option<&str> {
     let mut labels = 0;
     for label in domain.split('.') {
         labels += 1;
-        if label.is_empty() || label.starts_with('-') || label.ends_with('-') {
+        if label.is_empty() || label.len() > 63 || label.starts_with('-') || label.ends_with('-') {
             return None;
         }
         if !label
@@ -1083,6 +1083,57 @@ acme-renew-doctor\n\
             "exa mple.com",
         ] {
             assert_eq!(safe_domain(Some(rejected)), None, "{rejected}");
+        }
+        assert_eq!(safe_domain(None), None);
+    }
+
+    #[test]
+    fn safe_domain_enforces_label_and_name_length() {
+        let l63 = "a".repeat(63);
+        let l64 = "a".repeat(64);
+        let ok63 = format!("{l63}.com");
+        assert_eq!(safe_domain(Some(&ok63)), Some(ok63.as_str()));
+        let multi_ok = format!("{l63}.{l63}.{l63}.com");
+        assert_eq!(safe_domain(Some(&multi_ok)), Some(multi_ok.as_str()));
+        // 63+1+63+1+63+1+61 = 253 bytes: the longest accepted name.
+        let max = format!("{l63}.{l63}.{l63}.{}", "b".repeat(61));
+        assert_eq!(max.len(), 253);
+        assert_eq!(safe_domain(Some(&max)), Some(max.as_str()));
+        let over = format!("{l63}.{l63}.{l63}.{}", "b".repeat(62));
+        assert_eq!(over.len(), 254);
+        assert_eq!(safe_domain(Some(&over)), None);
+        let punycode_ok = format!("xn--{}.example", "a".repeat(59));
+        assert_eq!(safe_domain(Some(&punycode_ok)), Some(punycode_ok.as_str()));
+        assert_eq!(
+            safe_domain(Some("xn--bcher-kva.example")),
+            Some("xn--bcher-kva.example")
+        );
+        assert_eq!(
+            safe_domain(Some("WWW.Example.COM")),
+            Some("WWW.Example.COM")
+        );
+        let upper_ok = format!("{}.COM", "A".repeat(63));
+        assert_eq!(safe_domain(Some(&upper_ok)), Some(upper_ok.as_str()));
+        for rejected in [
+            format!("{l64}.com"),
+            format!("www.{l64}.example.com"),
+            format!("{l63}.{l64}.com"),
+            format!("example.{l64}"),
+            format!("{}.com", "A".repeat(64)),
+            format!("xn--{}.example", "a".repeat(60)),
+            format!("{}.com", "a".repeat(300)),
+            format!("{l63}.com."),
+            "example.com.".to_string(),
+            format!("{l63}.com\n"),
+            format!("{l63}.com\r"),
+            format!("{l63}\t.com"),
+            " example.com".to_string(),
+            "bücher.example".to_string(),
+            format!("{}é.com", "a".repeat(62)),
+            "例え.jp".to_string(),
+            "a..com".to_string(),
+        ] {
+            assert_eq!(safe_domain(Some(&rejected)), None, "{rejected}");
         }
         assert_eq!(safe_domain(None), None);
     }

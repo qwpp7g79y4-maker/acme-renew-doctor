@@ -9,6 +9,9 @@ All notable changes to this project are documented in this file.
 - The README lists the supported systems: glibc 2.34 or newer for the Linux gnu build, macOS 10.12 (Intel) and 11.0 (Apple Silicon), and Windows 10.
 - CI checks the highest glibc symbol of the Linux gnu binary and runs the tests in release mode too.
 - Release archives contain `QUALITY.md` and `QUALITY.nl.md`, and the archive smoke test checks for them.
+- A domain label over 63 bytes is rejected, not only a name over 253 bytes. The `--json` and text notes now say when a domain was rejected for its shape (too long, a label with a leading or trailing `-`, a trailing dot) separately from when it was rejected for a character unsafe in a shell command.
+- A `fuzz/` crate (cargo-fuzz, nightly-only, outside the main build) with one target each for the Certbot log parser, the saved `systemctl show` parser, the saved certificate-date parser, `safe::safe_domain` plus the anti-force gate, and the full report-build-and-render pipeline. CI builds the targets on nightly Linux; it does not run them.
+- `tests/proptest.rs` gained property tests: an accepted domain always has the shape the SAFE checks rely on, a generated shape-valid name is always accepted, and the three parsers above do not panic on arbitrary text.
 
 ### Fixed
 

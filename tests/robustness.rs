@@ -1166,6 +1166,17 @@ fn violations_empty(stdout: &str) {
     assert!(violations.is_empty(), "{violations:?}\n{stdout}");
 }
 
+/// Mirrors the shape check in `render::report_notes`: a domain made only of
+/// hostname bytes (ASCII alnum, '-', '.') is invalid in shape, not unsafe for
+/// a shell; anything else (shell metacharacters, control bytes, non-ASCII) is
+/// the unsafe-characters case.
+fn expects_invalid_domain_note(raw: &str) -> bool {
+    !raw.is_empty()
+        && raw
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'.')
+}
+
 fn assert_your_domain(stdout: &str, raw: &str) {
     let commands = command_lines(stdout);
     assert!(
@@ -1178,12 +1189,19 @@ fn assert_your_domain(stdout: &str, raw: &str) {
             "raw domain name in a SAFE check: {line}"
         );
     }
-    assert!(
-        stdout.contains(
-            "note: the domain contains characters that are unsafe in a shell command; replace YOUR_DOMAIN yourself."
-        ),
-        "{stdout}"
-    );
+    let (expected, other) = if expects_invalid_domain_note(raw) {
+        (
+            "note: the domain is not a valid hostname",
+            "note: the domain contains characters that are unsafe in a shell command",
+        )
+    } else {
+        (
+            "note: the domain contains characters that are unsafe in a shell command",
+            "note: the domain is not a valid hostname",
+        )
+    };
+    assert!(stdout.contains(expected), "{stdout}");
+    assert!(!stdout.contains(other), "{stdout}");
     assert!(
         !stdout.contains(raw),
         "raw domain name leaks in the output\n{stdout}"

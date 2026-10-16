@@ -1,0 +1,54 @@
+[package]
+name = "acme-renew-doctor-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+# Kept out of any parent workspace: this crate needs nightly and
+# libfuzzer-sys, neither of which the stable CI matrix should see.
+[workspace]
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = "1"
+
+[dependencies.acme-renew-doctor]
+path = ".."
+
+[[bin]]
+name = "safe_domain"
+path = "fuzz_targets/safe_domain.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "certbot_log"
+path = "fuzz_targets/certbot_log.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "timer_show"
+path = "fuzz_targets/timer_show.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "cert_enddate"
+path = "fuzz_targets/cert_enddate.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "report_render"
+path = "fuzz_targets/report_render.rs"
+test = false
+doc = false
+bench = false

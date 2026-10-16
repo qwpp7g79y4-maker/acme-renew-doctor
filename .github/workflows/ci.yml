@@ -72,3 +72,19 @@ jobs:
         with:
           tool: cargo-audit
       - run: cargo audit
+
+  fuzz-build:
+    name: Fuzz targets build (ubuntu-latest, nightly)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fuzz
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+      # Build only: this checks the fuzz targets still compile against the
+      # library, not run them. Long fuzzing runs are done separately.
+      - run: cargo fuzz build
