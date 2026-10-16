@@ -1,6 +1,14 @@
 //! CLI-level regression tests for the label (<=63 bytes) and name (<=253
 //! bytes) length rules in `safe::safe_domain`, and for the shape-vs-shell
 //! split of the domain note in `render::report_notes`.
+//!
+//! A `*` is rejected by its own early check in `safe_domain`, next to the
+//! length and dot checks, but it is still treated as a shell-unsafe
+//! character rather than an invalid-shape one: an unquoted `*` glob-expands
+//! in a shell, which is exactly what the unsafe-characters note warns
+//! about. `*.example.com` is otherwise a plausible wildcard-looking
+//! hostname, so it gets the unsafe-characters note, not the
+//! invalid-hostname one.
 
 use std::process::Command;
 
@@ -109,6 +117,13 @@ fn whitespace_in_domain_is_rejected_as_unsafe() {
 #[test]
 fn unicode_labels_are_rejected_as_unsafe() {
     for domain in ["bücher.example", "例え.jp"] {
+        assert_rejected(domain, false);
+    }
+}
+
+#[test]
+fn a_star_in_the_domain_is_rejected_as_unsafe_not_as_invalid_shape() {
+    for domain in ["*.example.com", "a*.example.com", "*.a.com"] {
         assert_rejected(domain, false);
     }
 }

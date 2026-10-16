@@ -360,6 +360,41 @@ fn sources_are_quoted_verbatim() {
     }
 }
 
+/// The literal value of a `const NAME: &str = "..."` in `src/render.rs`.
+/// Read straight from the source so the reference pages are checked
+/// against the text the binary actually prints, not a copy that could
+/// drift from it.
+fn render_const(name: &str) -> String {
+    let source = include_str!("../src/render.rs");
+    let needle = format!("const {name}: &str = \"");
+    let start = source
+        .find(&needle)
+        .unwrap_or_else(|| panic!("missing {name} in render.rs"))
+        + needle.len();
+    let rest = &source[start..];
+    let end = rest
+        .find('"')
+        .unwrap_or_else(|| panic!("unterminated {name} in render.rs"));
+    rest[..end].to_string()
+}
+
+#[test]
+fn reference_pages_quote_the_domain_notes_verbatim() {
+    let invalid_note = render_const("INVALID_DOMAIN_NOTE");
+    let unsafe_note = render_const("UNSAFE_DOMAIN_NOTE");
+    for rel in [REF, REF_DUTCH] {
+        let doc = read(rel);
+        assert!(
+            doc.contains(&invalid_note),
+            "{rel} is missing the invalid-hostname note\n{invalid_note}"
+        );
+        assert!(
+            doc.contains(&unsafe_note),
+            "{rel} is missing the unsafe-characters note\n{unsafe_note}"
+        );
+    }
+}
+
 #[test]
 fn examples_match_the_binary() {
     for rel in [README, README_DUTCH] {

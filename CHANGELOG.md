@@ -16,6 +16,9 @@ All notable changes to this project are documented in this file.
 ### Fixed
 
 - `--json` now writes DEL, C1 controls (U+0080 through U+009F) and bidirectional controls as `\uXXXX` in evidence text and paths. Before, they were written raw and could move the cursor or reorder a line when the JSON was shown in a terminal. U+2028 and U+2029 still stay the character.
+- CI builds the fuzz targets with `--target x86_64-unknown-linux-gnu`. Without it, the prebuilt `cargo-fuzz` defaulted to the musl target, and the sanitizer does not support a statically linked libc.
+- The reference pages now say a label is at most 63 characters, and quote the invalid-hostname note next to the unsafe-characters note. `tests/readme.rs` checks both note texts against `src/render.rs` verbatim.
+- A domain containing `*`, such as `*.example.com`, keeps the unsafe-characters note, not the invalid-hostname one: an unquoted `*` glob-expands in a shell, which is what that note warns about. This is now documented and has a regression test.
 
 ## [0.1.0] - 2026-10-14
 
