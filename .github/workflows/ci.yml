@@ -35,6 +35,18 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --locked -- -D warnings
       - run: cargo test --locked --no-fail-fast
+      # Overflow checks differ between debug and release builds.
+      - run: cargo test --locked --no-fail-fast --release
+
+  glibc:
+    name: glibc baseline (ubuntu-22.04)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked
+      - run: bash scripts/check-glibc.sh target/release/acme-renew-doctor 2.34
 
   msrv:
     name: Test (ubuntu-latest, Rust 1.85)

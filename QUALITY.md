@@ -2,6 +2,18 @@
 
 This page shows how acme-renew-doctor was checked before its first public release, and what was fixed. It describes checks we did. It is not a guarantee that the software is free of bugs or secure.
 
+## main after v0.1.0
+
+| | |
+|---|---|
+| Commit reviewed | [`1a5c3a6`](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/commit/1a5c3a6) |
+| Date | 2026-10-16 |
+| Tests | 323 automated tests |
+
+- An external review of the code. Its confirmed findings are fixed, each with a regression test.
+- A fresh independent final review of commit `1a5c3a6`, against the same fixed edge-case checklist and the nine questions, every item tried with a concrete bad input. It ended DONE, with no blocking findings. Before that, a fresh final review of the previous commit found one blocking issue: `--json` wrote DEL, C1 controls and bidirectional controls raw. That is fixed in `1a5c3a6`, with regression tests.
+- That final review reported three non-blocking points. They are addressed in the commit after it: release archives now contain this report, the README lists the supported systems (glibc 2.34, macOS 10.12/11.0, Windows 10), CI checks the highest glibc symbol of the Linux gnu binary, and CI runs the tests in release mode too. That commit changed only the workflows, the documentation and a check script, not the tool's code. It has not had its own final review yet.
+
 ## v0.1.0
 
 | | |

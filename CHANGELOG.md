@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- The README lists the supported systems: glibc 2.34 or newer for the Linux gnu build, macOS 10.12 (Intel) and 11.0 (Apple Silicon), and Windows 10.
+- CI checks the highest glibc symbol of the Linux gnu binary and runs the tests in release mode too.
+- Release archives contain `QUALITY.md` and `QUALITY.nl.md`, and the archive smoke test checks for them.
+
 ### Fixed
 
 - `--json` now writes DEL, C1 controls (U+0080 through U+009F) and bidirectional controls as `\uXXXX` in evidence text and paths. Before, they were written raw and could move the cursor or reorder a line when the JSON was shown in a terminal. U+2028 and U+2029 still stay the character.

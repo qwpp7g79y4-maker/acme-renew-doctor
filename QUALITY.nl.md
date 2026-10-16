@@ -2,6 +2,18 @@
 
 Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste openbare release, en wat er is opgelost. Ze beschrijft de controles die we deden. Het is geen garantie dat de software vrij is van fouten of veilig is.
 
+## main na v0.1.0
+
+| | |
+|---|---|
+| Gecontroleerde commit | [`1a5c3a6`](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/commit/1a5c3a6) |
+| Datum | 2026-10-16 |
+| Tests | 323 geautomatiseerde tests |
+
+- Een externe review van de code. De bevestigde bevindingen zijn opgelost, elk met een regressietest.
+- Een verse onafhankelijke eindreview van commit `1a5c3a6`, tegen dezelfde vaste edge-case-checklist en de negen vragen, elk punt geprobeerd met een concrete kwade invoer. Die eindigde met AF, zonder blokkerende bevindingen. Daarvoor vond een verse eindreview van de vorige commit één blokkerend probleem: `--json` schreef DEL, C1-stuurtekens en bidirectionele stuurtekens rauw. Dat is opgelost in `1a5c3a6`, met regressietests.
+- Die eindreview meldde drie niet-blokkerende punten. Die zijn aangepakt in de commit erna: release-archieven bevatten nu dit rapport, de README noemt de ondersteunde systemen (glibc 2.34, macOS 10.12/11.0, Windows 10), CI controleert het hoogste glibc-symbool van de Linux-gnu-binary, en CI draait de tests ook in releasemodus. Die commit veranderde alleen de workflows, de documentatie en een controlescript, niet de code van de tool. Hij heeft nog geen eigen eindreview gehad.
+
 ## v0.1.0
 
 | | |

@@ -42,6 +42,12 @@ install -m 755 acme-renew-doctor "$HOME/.local/bin/"
 
 `$HOME/.local/bin` moet op je `PATH` staan.
 
+### Ondersteunde systemen
+
+- Linux x86_64 (`x86_64-unknown-linux-gnu`): glibc 2.34 of nieuwer. CI controleert bij elke wijziging en voor elke release het hoogste glibc-symbool dat de binary nodig heeft. Gebruik voor een oudere distributie of Alpine het statisch gelinkte archief `x86_64-unknown-linux-musl`; dat heeft geen glibc nodig.
+- macOS: 10.12 of nieuwer op Intel, 11.0 of nieuwer op Apple Silicon.
+- Windows: Windows 10 of nieuwer, x86_64.
+
 ## Snel aan de slag
 
 Dit is de echte uitvoer van de binary op de synthetische fixtures in `tests/fixtures`. Een test draait elk voorbeeld en vergelijkt de uitvoer. Elk `--from-*`-bestand maak je zelf. De tool voert de opdrachten die hij afdrukt niet uit.
