@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- `--json` now writes DEL, C1 controls (U+0080 through U+009F) and bidirectional controls as `\uXXXX` in evidence text and paths. Before, they were written raw and could move the cursor or reorder a line when the JSON was shown in a terminal. U+2028 and U+2029 still stay the character.
+
 ## [0.1.0] - 2026-10-14
 
 ### Added

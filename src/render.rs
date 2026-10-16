@@ -314,13 +314,22 @@ fn push_json_string(out: &mut String, text: &str) {
             '\\' => out.push_str("\\\\"),
             '\n' => out.push_str("\\n"),
             '\t' => out.push_str("\\t"),
-            c if (c as u32) < 0x20 => {
+            c if json_escaped(c) => {
                 out.push_str(&format!("\\u{code:04x}", code = c as u32));
             }
             c => out.push(c),
         }
     }
     out.push('"');
+}
+
+/// Characters that `--json` writes as a `\uXXXX` escape: C0 controls, DEL,
+/// C1 controls and bidirectional marks. Raw, they can move the cursor or
+/// reorder the line when the JSON is shown in a terminal. U+2028 and U+2029
+/// stay the character.
+fn json_escaped(ch: char) -> bool {
+    let code = u32::from(ch);
+    code < 0x20 || code == 0x7f || (0x80..=0x9f).contains(&code) || bidi_control(code)
 }
 
 /// File text on one line. A backslash is escaped so a newline and the two
@@ -625,7 +634,7 @@ mod tests {
 
         let mixed_json = json(&report_with_log(mixed), &[]);
         assert!(
-            mixed_json.contains("\"from_log\": \"C:\\\\Users\\\\certbot\\\\\u{202e}log\\n.txt\""),
+            mixed_json.contains(r#""from_log": "C:\\Users\\certbot\\\u202elog\n.txt""#),
             "{mixed_json}"
         );
         assert!(
