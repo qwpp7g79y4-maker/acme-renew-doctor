@@ -724,24 +724,58 @@ fn fifo_swapped_over_a_regular_file_does_not_block() {
 #[test]
 fn escaped_json_keys_are_still_recognised_as_type_and_detail() {
     // The key is matched after JSON-string decoding, not against the raw
-    // bytes, so an obfuscated key spelled entirely in \uXXXX escapes must
-    // still be read as "type"/"detail".
-    let text = r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "x"}"#;
-    let problems = certbot_log::parse(text);
-    assert_eq!(problems.len(), 1, "{problems:?}");
-    assert_eq!(problems[0].short_type(), "connection");
-    assert_eq!(problems[0].detail, "x");
+    // bytes, so a key spelled entirely in \uXXXX escapes must still be
+    // read as "type"/"detail": \u0074\u0079\u0070\u0065 decodes to "type"
+    // and \u0064\u0065\u0074\u0061\u0069\u006c decodes to "detail".
+    let variants = [
+        // Plain escaped keys, ordinary single-space whitespace.
+        r#"{"\u0074\u0079\u0070\u0065": "urn:ietf:params:acme:error:connection", "\u0064\u0065\u0074\u0061\u0069\u006c": "x"}"#,
+        // Uppercase hex digit in the trailing "l" (0x6C) of "detail".
+        r#"{"\u0074\u0079\u0070\u0065": "urn:ietf:params:acme:error:connection", "\u0064\u0065\u0074\u0061\u0069\u006C": "x"}"#,
+        // Tab before the colon, CR after it, and a bare LF before the value.
+        "{\"\\u0074\\u0079\\u0070\\u0065\"\t:\t\"urn:ietf:params:acme:error:connection\", \"\\u0064\\u0065\\u0074\\u0061\\u0069\\u006c\"\r:\n\"x\"}",
+        // "detail"'s escaped key written before "type"'s escaped key.
+        r#"{"\u0064\u0065\u0074\u0061\u0069\u006c": "x", "\u0074\u0079\u0070\u0065": "urn:ietf:params:acme:error:connection"}"#,
+    ];
+    for text in variants {
+        let problems = certbot_log::parse(text);
+        assert_eq!(problems.len(), 1, "{text}: {problems:?}");
+        assert_eq!(problems[0].short_type(), "connection");
+        assert_eq!(problems[0].detail, "x");
+    }
 }
 
 #[test]
 fn uppercase_and_lowercase_hex_escapes_decode_to_the_same_character() {
-    let lower = r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "aéb"}"#;
-    let upper = r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "aéb"}"#;
+    // `read_hex4` reads each digit with `char::to_digit(16)`, which treats
+    // 'a'-'f' and 'A'-'F' alike, so the same character must come out no
+    // matter which case the log happens to use for its hex digits -
+    // including across the two halves of a surrogate pair.
+    let lower = r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "a\u00e9b"}"#;
+    let upper = r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "a\u00E9b"}"#;
     for text in [lower, upper] {
         let problems = certbot_log::parse(text);
         assert_eq!(problems.len(), 1, "{text}: {problems:?}");
         assert_eq!(problems[0].detail, "a\u{e9}b", "{text}");
     }
+
+    let surrogate_upper =
+        r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "a\u00E9b\uD83D\uDE00c"}"#;
+    let surrogate_lower =
+        r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "a\u00e9b\ud83d\ude00c"}"#;
+    for text in [surrogate_upper, surrogate_lower] {
+        let problems = certbot_log::parse(text);
+        assert_eq!(problems.len(), 1, "{text}: {problems:?}");
+        assert_eq!(problems[0].detail, "a\u{e9}b\u{1F600}c", "{text}");
+    }
+
+    // Key order and a tab around the colon must not change the decode.
+    let reordered =
+        "{\"detail\": \"a\\u00E9b\", \"type\":\t\"urn:ietf:params:acme:error:connection\"}";
+    let problems = certbot_log::parse(reordered);
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert_eq!(problems[0].short_type(), "connection");
+    assert_eq!(problems[0].detail, "a\u{e9}b");
 }
 
 #[test]

@@ -19,6 +19,10 @@ All notable changes to this project are documented in this file.
 - CI builds the fuzz targets with `--target x86_64-unknown-linux-gnu`. Without it, the prebuilt `cargo-fuzz` defaulted to the musl target, and the sanitizer does not support a statically linked libc.
 - The reference pages now say a label is at most 63 characters, and quote the invalid-hostname note next to the unsafe-characters note. `tests/readme.rs` checks both note texts against `src/render.rs` verbatim.
 - A domain containing `*`, such as `*.example.com`, keeps the unsafe-characters note, not the invalid-hostname one: an unquoted `*` glob-expands in a shell, which is what that note warns about. This is now documented and has a regression test.
+- Two `tests/regressions.rs` tests did not exercise what their names and comments claimed: one compared a byte-identical string to itself instead of an uppercase and a lowercase `\uXXXX` hex escape, and the other used a plain `"type"`/`"detail"` key instead of a key spelled entirely in `\uXXXX` escapes. Both are rewritten to use real escapes, with key-order and whitespace (space, tab, CR, LF) variants, plus a mixed-case surrogate-pair case.
+- CI now runs `cargo clippy` on the `fuzz/` crate and runs `cargo test --release` on the MSRV toolchain, matching the stable job.
+- `tests/ROBUSTHEID.md` said opening a path that is a fifo only does not block "on Linux"; it now says Linux, macOS and the BSDs, matching README.md and CHANGELOG.md.
+- The README and README.nl.md source for the 30-day `OK_NOT_DUE` threshold now says when the linked Let's Encrypt FAQ text was last checked.
 
 ## [0.1.0] - 2026-10-14
 
