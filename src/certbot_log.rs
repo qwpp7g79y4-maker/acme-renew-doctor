@@ -1651,6 +1651,14 @@ mod tests {
     }
 
     #[test]
+    fn json_value_end_skips_a_brace_hidden_inside_a_nested_string() {
+        // Without its own quote-skipping, the brace/bracket depth counter
+        // would count the `{` inside the string value as real nesting and
+        // never see the object close.
+        assert_eq!(json_value_end("{\"a\":\"x{y\"}rest", 0), Some(11));
+    }
+
+    #[test]
     fn json_value_end_is_none_for_an_unterminated_object() {
         assert_eq!(json_value_end("{\"a\":1", 0), None);
     }
