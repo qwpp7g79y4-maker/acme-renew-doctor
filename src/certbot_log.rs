@@ -1670,6 +1670,13 @@ mod tests {
     }
 
     #[test]
+    fn json_value_end_bare_token_running_to_the_end_of_text_is_its_length() {
+        // No breaker character at all: the loop bound itself, not a match
+        // arm, is what ends the scan.
+        assert_eq!(json_value_end("true", 0), Some(4));
+    }
+
+    #[test]
     fn is_log_line_requires_every_field_not_just_one() {
         // All fields but the year are valid; a chain of `&&` mutated to `||`
         // anywhere after the corrupted year would still accept this line.
