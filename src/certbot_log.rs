@@ -1632,6 +1632,202 @@ mod tests {
     }
 
     #[test]
+    fn json_value_end_reads_a_quoted_string_past_an_embedded_comma() {
+        // The `_` (bare-token) branch would stop at the first comma; only
+        // the dedicated `"` arm knows a comma inside quotes is not a break.
+        assert_eq!(json_value_end(r#""a, b" rest"#, 0), Some(6));
+    }
+
+    #[test]
+    fn json_value_end_reads_a_nested_object_past_an_embedded_brace_breaker() {
+        assert_eq!(json_value_end("{\"a\":1} rest", 0), Some(7));
+        assert_eq!(json_value_end("[1,[2,3],4] rest", 0), Some(11));
+    }
+
+    #[test]
+    fn json_value_end_is_none_at_or_past_the_end_of_text() {
+        assert_eq!(json_value_end("abc", 3), None);
+        assert_eq!(json_value_end("abc", 4), None);
+    }
+
+    #[test]
+    fn json_value_end_is_none_for_an_unterminated_object() {
+        assert_eq!(json_value_end("{\"a\":1", 0), None);
+    }
+
+    #[test]
+    fn json_value_end_bare_token_breaking_immediately_is_none() {
+        assert_eq!(json_value_end(",x", 0), None);
+        assert_eq!(json_value_end("true, more", 0), Some(4));
+    }
+
+    #[test]
+    fn is_log_line_requires_every_field_not_just_one() {
+        // All fields but the year are valid; a chain of `&&` mutated to `||`
+        // anywhere after the corrupted year would still accept this line.
+        assert!(!is_log_line("202X-09-28 03:12:44,512:"));
+        // Exactly 24 bytes and otherwise well-formed must be accepted (a
+        // `<` to `<=` mutant on the length guard would reject it outright).
+        assert!(is_log_line("2026-09-28 03:12:44,512:"));
+        assert!(!is_log_line(&"2026-09-28 03:12:44,512:"[..23]));
+    }
+
+    #[test]
+    fn is_earlier_breaks_ties_by_line_not_by_defaulting_to_either_answer() {
+        let a = Some("x".to_string());
+        let b = Some("y".to_string());
+        assert!(is_earlier(&a, 1, &b, 1));
+        assert!(!is_earlier(&b, 1, &a, 1));
+        // Equal timestamps: the lower line is earlier, and a tie (same
+        // line) is not earlier than itself.
+        assert!(is_earlier(&a, 1, &a, 2));
+        assert!(!is_earlier(&a, 2, &a, 1));
+        assert!(!is_earlier(&a, 2, &a, 2));
+    }
+
+    #[test]
+    fn problem_set_add_keeps_the_deeper_depth_regardless_of_arrival_order() {
+        fn problem(depth: u32, line: usize) -> AcmeProblem {
+            AcmeProblem {
+                problem_type: "urn:ietf:params:acme:error:connection".to_string(),
+                detail: "same".to_string(),
+                identifier: None,
+                line,
+                first_line: line,
+                depth,
+                logged_at: None,
+                occurrences: 1,
+                json_hits: 1,
+                summary_hits: 0,
+            }
+        }
+        let mut shallow_first = ProblemSet::default();
+        shallow_first.add(problem(0, 1));
+        shallow_first.add(problem(3, 2));
+        assert_eq!(shallow_first.problems[0].depth, 3);
+
+        let mut deep_first = ProblemSet::default();
+        deep_first.add(problem(3, 1));
+        deep_first.add(problem(0, 2));
+        assert_eq!(
+            deep_first.problems[0].depth, 3,
+            "a later, shallower duplicate must not erase the deeper depth"
+        );
+    }
+
+    #[test]
+    fn skip_hits_through_advances_past_every_hit_at_or_before_the_line() {
+        let hits = vec![
+            AcmeProblem {
+                line: 1,
+                ..Default::default()
+            },
+            AcmeProblem {
+                line: 2,
+                ..Default::default()
+            },
+            AcmeProblem {
+                line: 5,
+                ..Default::default()
+            },
+        ];
+        let mut hit_at = 0;
+        skip_hits_through(&hits, &mut hit_at, 3);
+        assert_eq!(hit_at, 2);
+    }
+
+    #[test]
+    fn read_regular_bytes_accepts_a_file_exactly_at_the_byte_limit() {
+        let dir = std::env::temp_dir().join(format!(
+            "acme-renew-doctor-exact-limit-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        let path = dir.join("exact.txt");
+        std::fs::write(&path, vec![b'x'; 10]).expect("write");
+        let ok = read_regular_bytes(&path, 10, EvidenceSource::Log);
+        assert!(ok.is_ok(), "{ok:?}");
+        assert_eq!(ok.unwrap().len(), 10);
+        let over = read_regular_bytes(&path, 9, EvidenceSource::Log).unwrap_err();
+        assert!(over.evidence[0].text.contains("over the 9 byte limit"));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn finding_for_failed_open_names_a_fifo_as_not_a_regular_file() {
+        let dir = std::env::temp_dir().join(format!(
+            "acme-renew-doctor-fifo-open-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        let path = dir.join("fifo");
+        assert!(std::process::Command::new("mkfifo")
+            .arg(&path)
+            .status()
+            .expect("mkfifo")
+            .success());
+        let err = std::io::Error::other("stand-in");
+        let finding = finding_for_failed_open(&path, EvidenceSource::Log, &err);
+        assert!(
+            finding.evidence[0]
+                .text
+                .contains("not a regular file, save the output to a file first"),
+            "{}",
+            finding.evidence[0].text
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn wide_text_encoding_checks_the_whole_rounded_window_not_a_shorter_one() {
+        // 14 clean UTF-16LE pairs (28 bytes), then 8 bytes that break the
+        // pattern, then one more byte (37 total, matching the window the
+        // 32-byte minimum and `window - (window % 4)` rounding would use).
+        // A window computed with `/` instead of `%` would stop short of the
+        // break and misread this as UTF-16LE.
+        let mut bytes = Vec::new();
+        for _ in 0..14 {
+            bytes.extend_from_slice(&[0x41, 0x00]);
+        }
+        bytes.extend_from_slice(&[0, 0, 0, 0, 0, 0, 0, 0]);
+        bytes.push(0);
+        assert_eq!(bytes.len(), 37);
+        assert_eq!(wide_text_encoding(&bytes), None);
+    }
+
+    #[test]
+    fn backspace_and_form_feed_escapes_are_decoded() {
+        assert_eq!(
+            parse_json_string(r#""a\bc""#, 0),
+            Some(("a\u{0008}c".to_string(), 6))
+        );
+        assert_eq!(
+            parse_json_string(r#""a\fc""#, 0),
+            Some(("a\u{000c}c".to_string(), 6))
+        );
+    }
+
+    #[test]
+    fn count_newlines_counts_only_within_the_given_range() {
+        assert_eq!(count_newlines("a\nb\nc", 0, 5), 2);
+        assert_eq!(count_newlines("a\nb\nc", 2, 5), 1);
+        assert_eq!(count_newlines("a\nb\nc", 0, 0), 0);
+    }
+
+    #[test]
+    fn skip_ws_nl_counts_newlines_and_stops_at_the_first_non_space() {
+        let mut line = 1usize;
+        let index = skip_ws_nl("\n\n  x", 0, &mut line);
+        assert_eq!(line, 3);
+        assert_eq!(index, 4);
+        let mut line_at_end = 1usize;
+        let index_at_end = skip_ws_nl("   ", 0, &mut line_at_end);
+        assert_eq!(index_at_end, 3);
+        assert_eq!(line_at_end, 1);
+    }
+
+    #[test]
     fn utf8_bom_is_skipped_and_one_bad_byte_is_counted() {
         let path = Path::new("log");
         let decoded = decode_log_bytes(path, b"\xEF\xBB\xBFhello").expect("utf-8 bom");

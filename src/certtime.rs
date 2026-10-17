@@ -290,6 +290,91 @@ notAfter=Dec 31 09:37:37 2030 GMT
     }
 
     #[test]
+    fn hour_minute_or_second_out_of_range_alone_is_rejected() {
+        // Each case is invalid in exactly one field, so an `||` mutated to
+        // `&&` (which would require all three fields to be out of range at
+        // once) lets it through.
+        assert!(parse_openssl_enddate("notAfter=Jan  1 24:00:00 2026 GMT\n").is_none());
+        assert!(parse_openssl_enddate("notAfter=Jan  1 00:60:00 2026 GMT\n").is_none());
+        assert!(parse_openssl_enddate("notAfter=Jan  1 00:00:60 2026 GMT\n").is_none());
+        assert_eq!(
+            parse_openssl_enddate("notAfter=Jan  1 23:59:59 2026 GMT\n"),
+            Some(at(2026, 1, 1, 23, 59, 59))
+        );
+    }
+
+    #[test]
+    fn is_leap_follows_the_4_100_400_rule() {
+        // Picked to separate `%` from `/` and `+` at each operator in
+        // `is_leap`: a single-digit year isolates the `% 4` and `% 100`
+        // checks from the `% 400` branch, and 1900/2100 (divisible by 100,
+        // not 400) separate the century rule from "divisible by 4".
+        for year in [8, 2000, 2004, 2024, 1600, 2400] {
+            assert!(is_leap(year), "{year} is a leap year");
+        }
+        for year in [1900, 2100, 2200, 2300, 2023, 1] {
+            assert!(!is_leap(year), "{year} is not a leap year");
+        }
+    }
+
+    #[test]
+    fn february_29_is_only_valid_in_a_leap_year() {
+        assert_eq!(
+            parse_openssl_enddate("notAfter=Feb 29 00:00:00 2024 GMT\n"),
+            Some(at(2024, 2, 29, 0, 0, 0))
+        );
+        assert!(parse_openssl_enddate("notAfter=Feb 29 00:00:00 2023 GMT\n").is_none());
+        assert!(parse_openssl_enddate("notAfter=Feb 29 00:00:00 1900 GMT\n").is_none());
+        assert_eq!(
+            parse_openssl_enddate("notAfter=Feb 29 00:00:00 2000 GMT\n"),
+            Some(at(2000, 2, 29, 0, 0, 0))
+        );
+        assert!(parse_openssl_enddate("notAfter=Apr 31 00:00:00 2026 GMT\n").is_none());
+        assert!(parse_openssl_enddate("notAfter=Jan  0 00:00:00 2026 GMT\n").is_none());
+        assert!(parse_openssl_enddate("notAfter=Jan 32 00:00:00 2026 GMT\n").is_none());
+    }
+
+    #[test]
+    fn minute_and_second_split_the_remainder_correctly() {
+        // tod % 3600 = 125 for this instant; minute must be 125 / 60 = 2 and
+        // second 125 % 60 = 5. A `/` <-> `%` swap at either operator would
+        // print 5 minutes 2 seconds, or fold the minutes into the hour.
+        assert_eq!(from_unix_seconds(3_600 + 125), at(1970, 1, 1, 1, 2, 5));
+    }
+
+    #[test]
+    fn days_from_civil_and_civil_from_days_round_trip_across_eras() {
+        // Howard Hinnant's day-count conversion is each other's inverse.
+        // Sweeping dates across every kind of boundary the formula has to
+        // special-case (the 400-year era, the 100-year non-leap century, the
+        // 4-year leap rule and the March-based month renumbering) means a
+        // wrong divisor or sign on either side almost always breaks some
+        // date's round trip, even though the two functions are never
+        // mutated together.
+        for year in [
+            1970, 1999, 2000, 2001, 2099, 2100, 2101, 2399, 2400, 2401, 9999,
+        ] {
+            for (month, day) in [(1u32, 1u32), (2, 28), (2, 29), (3, 1), (12, 31)] {
+                if month == 2 && day == 29 && !is_leap(year) {
+                    continue;
+                }
+                let days = days_from_civil(year, month, day);
+                assert_eq!(
+                    civil_from_days(days),
+                    Some((year, month, day)),
+                    "{year}-{month:02}-{day:02}"
+                );
+            }
+        }
+        for days in [
+            -1_i64, 0, 1, 146_096, 146_097, 146_098, 719_468, 719_469, 2_932_896, 2_932_897,
+        ] {
+            let (year, month, day) = civil_from_days(days).unwrap_or_else(|| panic!("{days}"));
+            assert_eq!(days_from_civil(year, month, day), days, "{days}");
+        }
+    }
+
+    #[test]
     fn contradictory_not_after_lines_are_not_a_date() {
         assert!(parse_openssl_enddate(
             "notAfter=Jan  1 00:00:00 2030 GMT\nnotAfter=Jun  1 00:00:00 2031 GMT\n"

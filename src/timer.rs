@@ -528,6 +528,87 @@ UnitFileState=disabled
     }
 
     #[test]
+    fn same_unit_state_requires_every_field_to_match() {
+        let base = TimerStatus {
+            id: "certbot.timer".to_string(),
+            load_state: "loaded".to_string(),
+            active_state: "active".to_string(),
+            sub_state: "running".to_string(),
+            unit_file_state: "enabled".to_string(),
+            result: "success".to_string(),
+            condition_result: "yes".to_string(),
+        };
+        assert!(same_unit_state(&base, &base.clone()));
+        let variants = [
+            TimerStatus {
+                load_state: "masked".to_string(),
+                ..base.clone()
+            },
+            TimerStatus {
+                active_state: "inactive".to_string(),
+                ..base.clone()
+            },
+            TimerStatus {
+                sub_state: "dead".to_string(),
+                ..base.clone()
+            },
+            TimerStatus {
+                unit_file_state: "disabled".to_string(),
+                ..base.clone()
+            },
+            TimerStatus {
+                result: "exit-code".to_string(),
+                ..base.clone()
+            },
+            TimerStatus {
+                condition_result: "no".to_string(),
+                ..base.clone()
+            },
+        ];
+        for (index, other) in variants.iter().enumerate() {
+            assert!(
+                !same_unit_state(&base, other),
+                "variant {index} differs by exactly one field and must not count as the same state"
+            );
+        }
+    }
+
+    /// A block whose first `Id=` is unrelated but whose conflicting second
+    /// `Id=` names a supported unit (no blank line separates them, so it is
+    /// one block) must still be ambiguous: `one_unit` only ever sees blocks
+    /// filed under their *first* `Id=` value, so this case is caught earlier,
+    /// by `supported_id`, not by the per-unit conflict check.
+    #[test]
+    fn conflicting_id_naming_a_supported_unit_second_is_ambiguous() {
+        let text = "\
+Id=apt-daily.timer
+Id=certbot.timer
+LoadState=loaded
+ActiveState=active
+UnitFileState=enabled
+";
+        assert_eq!(classify_show(text), ShowParse::Ambiguous);
+
+        let service_second = "\
+Id=apt-daily.timer
+Id=certbot.service
+LoadState=loaded
+ActiveState=failed
+UnitFileState=enabled
+";
+        assert_eq!(classify_show(service_second), ShowParse::Ambiguous);
+
+        let snap_second = "\
+Id=apt-daily.timer
+Id=snap.certbot.renew.timer
+LoadState=loaded
+ActiveState=active
+UnitFileState=enabled
+";
+        assert_eq!(classify_show(snap_second), ShowParse::Ambiguous);
+    }
+
+    #[test]
     fn unrelated_service_does_not_hide_certbot_service() {
         let text = "\
 Id=force-ryzen-performance.service

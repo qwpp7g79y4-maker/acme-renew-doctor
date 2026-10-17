@@ -1233,6 +1233,94 @@ acme-renew-doctor\n\
     }
 
     #[test]
+    fn service_reload_or_restart_alone_is_already_a_violation() {
+        // Neither word alone matches any FORBIDDEN_TEXT phrase (those need
+        // "systemctl reload"/"systemctl restart"), so this line only trips
+        // the generic "service " + reload-or-restart check.
+        assert!(!output_violations("service ssh reload\n").is_empty());
+        assert!(!output_violations("service ssh restart\n").is_empty());
+        assert!(output_violations("service ssh status\n").is_empty());
+    }
+
+    #[test]
+    fn is_failed_service_note_requires_the_hit_and_the_exact_suffix() {
+        let hit_wrong_suffix = Evidence {
+            source: EvidenceSource::Timer,
+            text: "certbot.service failed (Result=exit-code) but the suffix is different"
+                .to_string(),
+        };
+        assert!(!is_failed_service_note(&hit_wrong_suffix));
+        let suffix_no_hit = Evidence {
+            source: EvidenceSource::Timer,
+            text: format!("certbot.service is unwell{FAILED_SERVICE_NOTE_SUFFIX}"),
+        };
+        assert!(!is_failed_service_note(&suffix_no_hit));
+    }
+
+    #[test]
+    fn forbidden_syntax_catches_a_lone_cr_or_a_lone_quote() {
+        assert_eq!(forbidden_syntax("a\nb"), Some("newline"));
+        assert_eq!(forbidden_syntax("a\rb"), Some("newline"));
+        assert_eq!(forbidden_syntax("it's fine"), Some("quote"));
+        assert_eq!(forbidden_syntax("say \"hi\""), Some("quote"));
+    }
+
+    #[test]
+    fn curl_without_i_or_si_is_rejected_even_with_other_flags_present() {
+        let err = allow_curl(&["curl", "-q", "http://example.com/"]).unwrap_err();
+        assert!(err.contains("needs -I or -sI"), "{err}");
+    }
+
+    #[test]
+    fn curl_long_forbidden_flags_are_rejected_with_the_required_dash_q_prefix() {
+        // Every fixture above that exercises these flags omits `-q`, so it
+        // never reaches this check: `allow_curl` rejects on the missing
+        // `-q` first. These commands keep `-q -sI` so the flag check itself
+        // runs.
+        for flag in [
+            "--config=/tmp/x",
+            "--dump-header=/tmp/x",
+            "--cookie-jar=/tmp/x",
+            "--upload-file=/tmp/x",
+            "--form=x",
+            "--json=x",
+        ] {
+            let command = format!("curl -q -sI {flag} http://example.com/");
+            assert!(
+                check_command(&command).is_err(),
+                "expected the gate to reject {command}"
+            );
+        }
+        assert!(check_command("curl -q -sI http://example.com/").is_ok());
+    }
+
+    #[test]
+    fn openssl_x509_rejects_an_out_prefixed_flag_not_only_the_exact_flag() {
+        let err = allow_openssl(&["openssl", "x509", "-noout", "-outfile=cert.pem"]).unwrap_err();
+        assert!(err.contains("must not use -out"), "{err}");
+    }
+
+    #[test]
+    fn timeout_before_openssl_x509_is_rejected_not_only_before_other_programs() {
+        assert!(check_command("timeout 10 openssl x509 -noout -in /tmp/x").is_err());
+    }
+
+    #[test]
+    fn timeout_duration_boundaries() {
+        // 3-digit durations are allowed and 4-digit ones are not, even when
+        // leading zeros would otherwise parse into range.
+        assert!(timeout_duration_allowed("100"));
+        assert!(timeout_duration_allowed("120"));
+        assert!(timeout_duration_allowed("1"));
+        assert!(!timeout_duration_allowed("0"));
+        assert!(!timeout_duration_allowed("121"));
+        assert!(!timeout_duration_allowed("0001"));
+        assert!(!timeout_duration_allowed(""));
+        assert!(!timeout_duration_allowed("abc"));
+        assert!(!timeout_duration_allowed("1s0"));
+    }
+
+    #[test]
     fn read_only_forms_pass_the_gate() {
         for command in [
             "ss -ltn",

@@ -525,7 +525,172 @@ fn note(source: EvidenceSource, text: &str) -> Evidence {
 
 #[cfg(test)]
 mod tests {
-    use super::{counts_as_diagnosis, Code};
+    use super::*;
+    use crate::certtime::from_unix_seconds;
+
+    fn timer(load: &str, active: &str, unit_file: &str, result: &str) -> TimerStatus {
+        TimerStatus {
+            id: "certbot.timer".to_string(),
+            load_state: load.to_string(),
+            active_state: active.to_string(),
+            sub_state: "waiting".to_string(),
+            unit_file_state: unit_file.to_string(),
+            result: result.to_string(),
+            condition_result: "yes".to_string(),
+        }
+    }
+
+    fn bare_observations() -> Observations {
+        Observations {
+            timer: None,
+            service: None,
+            snap_timer: None,
+            problems: Vec::new(),
+            disk_not_after: None,
+            live_not_after: None,
+            now: from_unix_seconds(1_791_273_600),
+            read_errors: Vec::new(),
+            log_read: false,
+            log_has_replacement_char: false,
+        }
+    }
+
+    #[test]
+    fn timer_not_firing_ignores_a_disabled_unit_file_state() {
+        // This guard is normally unreachable through `timer_code` (which
+        // tries `timer_disabled` first), so call it directly with a
+        // disabled/failed combination that would otherwise read as a
+        // not-firing timer.
+        let mut status = timer("loaded", "failed", "disabled", "exit-code");
+        status.id = "certbot.timer".to_string();
+        assert!(timer_not_firing(&bare_observations_with_timer(status)).is_none());
+    }
+
+    fn bare_observations_with_timer(status: TimerStatus) -> Observations {
+        let mut obs = bare_observations();
+        obs.timer = Some(status);
+        obs
+    }
+
+    #[test]
+    fn timer_not_firing_treats_an_empty_result_as_not_a_failure() {
+        let status = timer("loaded", "active", "enabled", "");
+        assert!(
+            timer_not_firing(&bare_observations_with_timer(status)).is_none(),
+            "an active timer with no Result= value must not be flagged"
+        );
+    }
+
+    #[test]
+    fn is_ip_address_accepts_ipv4_and_ipv6_forms_only() {
+        assert!(is_ip_address("192.0.2.1"));
+        assert!(is_ip_address("fe80::1"));
+        assert!(is_ip_address("::ffff:192.0.2.1"));
+        assert!(!is_ip_address("."));
+        assert!(!is_ip_address("12345"));
+        assert!(!is_ip_address("hello"));
+        assert!(!is_ip_address(""));
+    }
+
+    #[test]
+    fn timeout_during_other_operation_excludes_connect_and_whitespace() {
+        assert!(!timeout_during_other_operation(
+            "Timeout during connect (your server may be slow or overloaded)"
+        ));
+        assert!(timeout_during_other_operation(
+            "Timeout during fetch (your server may be slow or overloaded)"
+        ));
+        assert!(!timeout_during_other_operation(
+            "Timeout during  (your server may be slow or overloaded)"
+        ));
+        assert!(!timeout_during_other_operation(
+            "Timeout during foo bar (your server may be slow or overloaded)"
+        ));
+    }
+
+    #[test]
+    fn colon_inside_clock_looks_after_the_colon_not_before_it() {
+        assert!(colon_inside_clock("12:34", 2));
+        assert!(
+            !colon_inside_clock("a1:b", 2),
+            "the digit before the colon must not be reused as the digit after it"
+        );
+    }
+
+    #[test]
+    fn ok_not_due_requires_every_timer_field_not_only_one_mismatch() {
+        let now = from_unix_seconds(1_791_273_600);
+        let later = from_unix_seconds(1_791_273_600 + 100 * 86_400);
+        let mut obs = bare_observations();
+        obs.now = now;
+        obs.disk_not_after = Some(later);
+        obs.live_not_after = Some(later);
+        obs.timer = Some(timer("masked", "active", "enabled", "success"));
+        assert!(
+            ok_not_due(&obs).is_none(),
+            "a masked timer must not count as ok-not-due even when unit_file_state and active_state look right"
+        );
+    }
+
+    #[test]
+    fn off_state_word_reports_a_masked_unit_file_state() {
+        let status = timer("loaded", "inactive", "masked", "success");
+        assert_eq!(off_state_word(&status), Some("masked"));
+        let disabled = timer("loaded", "inactive", "disabled", "success");
+        assert_eq!(off_state_word(&disabled), Some("disabled"));
+        assert_eq!(off_state_word(&timer("masked", "", "", "")), Some("masked"));
+    }
+
+    #[test]
+    fn snap_install_note_requires_the_snap_timer_to_be_active() {
+        let mut obs = bare_observations();
+        obs.snap_timer = Some(timer("loaded", "inactive", "enabled", "success"));
+        assert!(
+            snap_install_note(&obs).is_none(),
+            "a loaded but inactive snap timer is not an active snap install"
+        );
+        obs.snap_timer = Some(timer("loaded", "active", "enabled", "success"));
+        assert!(snap_install_note(&obs).is_some());
+    }
+
+    #[test]
+    fn snap_only_note_is_silent_for_a_healthy_running_snap_timer() {
+        let mut obs = bare_observations();
+        obs.snap_timer = Some(timer("loaded", "active", "enabled", "success"));
+        assert!(
+            snap_only_note(&obs).is_none(),
+            "an active, loaded snap timer must not be reported as not running"
+        );
+        obs.snap_timer = Some(timer("loaded", "inactive", "disabled", "success"));
+        assert!(snap_only_note(&obs).is_some());
+    }
+
+    #[test]
+    fn insufficient_adds_the_failed_note_only_for_a_failed_service() {
+        let mut obs = bare_observations();
+        obs.service = Some(timer("loaded", "failed", "enabled", "exit-code"));
+        let finding = insufficient(&obs);
+        assert!(
+            finding
+                .evidence
+                .iter()
+                .any(|item| item.text.contains("failed (Result=exit-code)")),
+            "{:?}",
+            finding.evidence
+        );
+
+        let mut healthy = bare_observations();
+        healthy.service = Some(timer("loaded", "active", "enabled", "success"));
+        let finding = insufficient(&healthy);
+        assert!(
+            finding
+                .evidence
+                .iter()
+                .all(|item| !item.text.contains("failed (Result=")),
+            "{:?}",
+            finding.evidence
+        );
+    }
 
     #[test]
     fn every_code_with_a_layer_counts_as_a_diagnosis() {

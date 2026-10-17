@@ -720,3 +720,46 @@ fn fifo_swapped_over_a_regular_file_does_not_block() {
     let _ = std::fs::remove_dir_all(&dir);
     assert!(!blocked, "read blocked on a fifo swapped onto the path");
 }
+
+#[test]
+fn escaped_json_keys_are_still_recognised_as_type_and_detail() {
+    // The key is matched after JSON-string decoding, not against the raw
+    // bytes, so an obfuscated key spelled entirely in \uXXXX escapes must
+    // still be read as "type"/"detail".
+    let text = r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "x"}"#;
+    let problems = certbot_log::parse(text);
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert_eq!(problems[0].short_type(), "connection");
+    assert_eq!(problems[0].detail, "x");
+}
+
+#[test]
+fn uppercase_and_lowercase_hex_escapes_decode_to_the_same_character() {
+    let lower = r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "aéb"}"#;
+    let upper = r#"{"type": "urn:ietf:params:acme:error:connection", "detail": "aéb"}"#;
+    for text in [lower, upper] {
+        let problems = certbot_log::parse(text);
+        assert_eq!(problems.len(), 1, "{text}: {problems:?}");
+        assert_eq!(problems[0].detail, "a\u{e9}b", "{text}");
+    }
+}
+
+#[test]
+fn bare_cr_line_endings_with_no_lf_are_one_line_not_a_crash() {
+    // Classic Mac OS used a lone `\r` as the line terminator. `split_line`
+    // only looks for `\n`, so a log written that way is read as a single
+    // (very long) line rather than being split into its intended lines.
+    // That must stay a graceful "nothing recognised" outcome, never a panic
+    // or an out-of-bounds read.
+    let text = format!(
+        "2026-09-28 03:12:44,512:DEBUG:acme.client:Received response:\r{{\"type\": \"urn:ietf:params:acme:error:connection\", \"detail\": \"{TIMEOUT_DETAIL}\"}}\r"
+    );
+    assert!(!text.contains('\n'));
+    let parsed = parse_log(&text);
+    assert!(!parsed.ambiguous_json);
+    // The JSON scanner works byte-by-byte regardless of line endings, so
+    // the object is still found even though the line-oriented summary scan
+    // sees it all as one line.
+    assert_eq!(parsed.problems.len(), 1, "{:?}", parsed.problems);
+    assert_eq!(parsed.problems[0].short_type(), "connection");
+}

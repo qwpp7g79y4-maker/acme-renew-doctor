@@ -1,6 +1,6 @@
 #![no_main]
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 use libfuzzer_sys::fuzz_target;
@@ -29,7 +29,11 @@ fuzz_target!(|data: &[u8]| {
         .collect::<String>();
 
     let snapshot = Snapshot {
-        domain: if domain.is_empty() { None } else { Some(domain) },
+        domain: if domain.is_empty() {
+            None
+        } else {
+            Some(domain)
+        },
         all: false,
         client: ClientKind::Auto,
         from_log: Some(write(dir, "log", log_bytes)),
@@ -53,13 +57,13 @@ fuzz_target!(|data: &[u8]| {
         !human.as_bytes().contains(&0x1b),
         "raw ESC in the human report\n{human}"
     );
-    assert!(!json.as_bytes().contains(&0x1b), "raw ESC in the JSON\n{json}");
+    assert!(
+        !json.as_bytes().contains(&0x1b),
+        "raw ESC in the JSON\n{json}"
+    );
 
     let human_violations = safe::output_violations(&human);
-    assert!(
-        human_violations.is_empty(),
-        "{human_violations:?}\n{human}"
-    );
+    assert!(human_violations.is_empty(), "{human_violations:?}\n{human}");
     let json_violations = safe::output_violations(&json);
     assert!(json_violations.is_empty(), "{json_violations:?}\n{json}");
 
@@ -80,7 +84,7 @@ fn fuzz_dir() -> &'static PathBuf {
     })
 }
 
-fn write(dir: &PathBuf, name: &str, bytes: &[u8]) -> PathBuf {
+fn write(dir: &Path, name: &str, bytes: &[u8]) -> PathBuf {
     let path = dir.join(name);
     std::fs::write(&path, bytes).expect("write fuzz temp file");
     path

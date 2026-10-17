@@ -580,6 +580,35 @@ mod tests {
         assert!(!clean.contains("\"notes\""), "{clean}");
     }
 
+    #[test]
+    fn two_notes_in_the_json_array_are_comma_separated() {
+        // One report that carries both the UTF-8 replacement note and the
+        // unsafe-domain note at once, so the `notes` array has to join two
+        // entries. A missing comma before the second entry (an `index > 0`
+        // check that never fires) would still look like valid-ish text but
+        // is not valid JSON.
+        let report = Report {
+            snapshot: Snapshot {
+                domain: Some("exa mple.com".to_string()),
+                all: false,
+                client: ClientKind::Auto,
+                from_log: None,
+                from_timer_status: None,
+                from_cert_disk: None,
+                from_cert_live: None,
+            },
+            findings: Vec::new(),
+            replaced_invalid_utf8_bytes: 1,
+        };
+        let text = json(&report, &[]);
+        assert!(
+            text.contains(
+                r#""notes": ["note: replaced 1 invalid UTF-8 byte", "note: the domain contains characters that are unsafe in a shell command; replace YOUR_DOMAIN yourself."],"#
+            ),
+            "{text}"
+        );
+    }
+
     fn report_with_log(path: &str) -> Report {
         Report {
             snapshot: Snapshot {
