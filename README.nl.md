@@ -4,7 +4,7 @@
 
 Leg uit waarom een Certbot-vernieuwing faalde, of stilletjes nooit draaide, aan de hand van bestanden die je meegeeft.
 
-[![PEPAI gecontroleerd](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.nl.md)
+[![crates.io](https://img.shields.io/crates/v/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![CI](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml) [![PEPAI gecontroleerd](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.nl.md)
 
 [Installatie](#installatie) • [Snel aan de slag](#snel-aan-de-slag) • [Hoe het werkt](#hoe-het-werkt) • [Alternatieven](#vergelijking-met-alternatieven) • [Beperkingen](#beperkingen) • [Referentie](docs/reference.nl.md)
 
