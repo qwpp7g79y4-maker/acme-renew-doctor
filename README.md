@@ -16,29 +16,40 @@ Let's Encrypt stopped expiration-notification emails on 4 June 2025 (https://let
 
 ## Installation
 
-### From source
+### From crates.io
 
-Requires a Rust toolchain (Rust 2021 edition).
+With Rust 1.85 or newer, install from [crates.io](https://crates.io/crates/acme-renew-doctor):
 
 ```sh
-cargo install --path .
+cargo install --locked acme-renew-doctor
 acme-renew-doctor --help
 ```
 
-Or build it with `cargo build --release`; the binary is `target/release/acme-renew-doctor`.
-
 ### Binary archive
 
-A release archive contains the binary and a checksum file. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive, check the sha256 checksum, extract it, and put the binary on your `PATH`:
+The [v0.1.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.1.0) has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
 
 ```sh
-curl -q -fsSL -o acme-renew-doctor.tar.gz "$ARCHIVE_URL"
-sha256sum -c acme-renew-doctor.tar.gz.sha256
-tar -xzf acme-renew-doctor.tar.gz
-install -m 755 acme-renew-doctor "$HOME/.local/bin/"
+name=acme-renew-doctor-v0.1.0-x86_64-unknown-linux-gnu
+base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v0.1.0
+curl -q -fsSL -O "$base/$name.tar.gz" -O "$base/$name.tar.gz.sha256"
+sha256sum -c "$name.tar.gz.sha256"
+tar -xzf "$name.tar.gz"
+install -m 755 "$name/acme-renew-doctor" "$HOME/.local/bin/"
 ```
 
-`$HOME/.local/bin` must be on your `PATH`.
+`$HOME/.local/bin` must be on your `PATH`. On macOS, check the checksum with `shasum -a 256 -c` instead of `sha256sum -c`.
+
+### From source
+
+Requires Rust 1.85 or newer. In a clone of this repository:
+
+```sh
+cargo install --locked --path .
+acme-renew-doctor --help
+```
+
+`cargo install --path .` needs the `Cargo.toml` of the source tree. Or build it with `cargo build --release`; the binary is `target/release/acme-renew-doctor`.
 
 ### Supported systems
 

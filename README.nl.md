@@ -18,29 +18,40 @@ Let's Encrypt stopte op 4 juni 2025 met e-mails over verlopende certificaten (ht
 
 ## Installatie
 
-### Vanuit de bron
+### Vanaf crates.io
 
-Je hebt een Rust-toolchain nodig (Rust 2021 edition).
+Met Rust 1.85 of nieuwer installeer je vanaf [crates.io](https://crates.io/crates/acme-renew-doctor):
 
 ```sh
-cargo install --path .
+cargo install --locked acme-renew-doctor
 acme-renew-doctor --help
 ```
 
-Of bouw met `cargo build --release`; de binary staat dan in `target/release/acme-renew-doctor`.
-
 ### Binary-archief
 
-Een release-archief bevat de binary en een checksum. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`:
+De [release v0.1.0](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.1.0) heeft archieven voor Linux x86_64 (`x86_64-unknown-linux-gnu` en `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` en `aarch64-apple-darwin`) en Windows (`x86_64-pc-windows-msvc`, een `.zip`), elk met een `.sha256`-checksumbestand. Een archief bevat de binary, de documentatie en de voorbeeldbestanden. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief en de checksum, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`. Voor Linux x86_64:
 
 ```sh
-curl -q -fsSL -o acme-renew-doctor.tar.gz "$ARCHIVE_URL"
-sha256sum -c acme-renew-doctor.tar.gz.sha256
-tar -xzf acme-renew-doctor.tar.gz
-install -m 755 acme-renew-doctor "$HOME/.local/bin/"
+name=acme-renew-doctor-v0.1.0-x86_64-unknown-linux-gnu
+base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v0.1.0
+curl -q -fsSL -O "$base/$name.tar.gz" -O "$base/$name.tar.gz.sha256"
+sha256sum -c "$name.tar.gz.sha256"
+tar -xzf "$name.tar.gz"
+install -m 755 "$name/acme-renew-doctor" "$HOME/.local/bin/"
 ```
 
-`$HOME/.local/bin` moet op je `PATH` staan.
+`$HOME/.local/bin` moet op je `PATH` staan. Controleer de checksum op macOS met `shasum -a 256 -c` in plaats van `sha256sum -c`.
+
+### Vanuit de bron
+
+Je hebt Rust 1.85 of nieuwer nodig. In een clone van deze repository:
+
+```sh
+cargo install --locked --path .
+acme-renew-doctor --help
+```
+
+`cargo install --path .` heeft de `Cargo.toml` van de broncode nodig. Of bouw met `cargo build --release`; de binary staat dan in `target/release/acme-renew-doctor`.
 
 ### Ondersteunde systemen
 
