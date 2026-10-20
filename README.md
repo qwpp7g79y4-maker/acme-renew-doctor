@@ -231,6 +231,8 @@ Licensed under either of
 
 at your option. Copyright 2026 PEPAI.
 
+Release archives include THIRD-PARTY-LICENSES.html with the licenses of the third-party crates in the binary.
+
 ## Contact
 
 PEPAI, pep_ai@icloud.com
