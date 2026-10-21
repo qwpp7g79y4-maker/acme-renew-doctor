@@ -19,6 +19,7 @@ pub fn build_report(snapshot: Snapshot, now: CertTime) -> Report {
     let mut snap_timer = None;
     let mut disk_not_after = None;
     let mut live_not_after = None;
+    let mut disk_not_before = None;
 
     if let Some(path) = &snapshot.from_log {
         match read_log(path) {
@@ -55,13 +56,16 @@ pub fn build_report(snapshot: Snapshot, now: CertTime) -> Report {
 
     if let Some(path) = &snapshot.from_cert_disk {
         match read_cert_dates(path, EvidenceSource::Disk) {
-            Ok(time) => disk_not_after = Some(time),
+            Ok((not_after, not_before)) => {
+                disk_not_after = Some(not_after);
+                disk_not_before = not_before;
+            }
             Err(finding) => read_errors.push(finding),
         }
     }
     if let Some(path) = &snapshot.from_cert_live {
         match read_cert_dates(path, EvidenceSource::Handshake) {
-            Ok(time) => live_not_after = Some(time),
+            Ok((not_after, _)) => live_not_after = Some(not_after),
             Err(finding) => read_errors.push(finding),
         }
     }
@@ -73,6 +77,7 @@ pub fn build_report(snapshot: Snapshot, now: CertTime) -> Report {
         problems,
         disk_not_after,
         live_not_after,
+        disk_not_before,
         now,
         read_errors,
         log_read,
@@ -122,9 +127,18 @@ fn timer_note(text: &str) -> Finding {
     )
 }
 
-fn read_cert_dates(path: &Path, source: EvidenceSource) -> Result<CertTime, Finding> {
+/// The `Option` is the same text's `notBefore=` line, when it has one;
+/// `openssl x509 -noout -dates` always prints both, but `-enddate` alone
+/// (or a hand-edited file) does not.
+fn read_cert_dates(
+    path: &Path,
+    source: EvidenceSource,
+) -> Result<(CertTime, Option<CertTime>), Finding> {
     let text = certbot_log::read_strict_text(path, certbot_log::SHORT_TEXT_MAX_BYTES, source)?;
-    certtime::parse_openssl_enddate(&text).ok_or_else(|| cert_not_recognised(source))
+    let not_after =
+        certtime::parse_openssl_enddate(&text).ok_or_else(|| cert_not_recognised(source))?;
+    let not_before = certtime::parse_openssl_startdate(&text);
+    Ok((not_after, not_before))
 }
 
 fn cert_not_recognised(source: EvidenceSource) -> Finding {
@@ -338,6 +352,32 @@ mod tests {
                 Some("tests/fixtures/certs/dates-current.txt"),
             ),
             from_unix_seconds(1_791_273_600),
+        );
+        assert_eq!(
+            report
+                .findings
+                .iter()
+                .map(|finding| finding.code)
+                .collect::<Vec<_>>(),
+            vec![Code::OkNotDue]
+        );
+        assert_eq!(report.exit_status().code(), 0);
+    }
+
+    #[test]
+    fn short_lived_cert_still_reaches_ok_not_due() {
+        // dates-short-lived.txt: notBefore 2026-10-01, notAfter 2026-10-07 (6 days).
+        // Two days after issuance, 4 days remain: more than a third of the
+        // lifetime, so this is healthy. The old fixed 30-day threshold could
+        // never be satisfied by a 6-day certificate.
+        let two_days_in = certtime::from_unix_seconds(1_790_985_600);
+        let report = build_report(
+            with_certs(
+                Some("tests/fixtures/timer/certbot-timer-enabled.txt"),
+                Some("tests/fixtures/certs/dates-short-lived.txt"),
+                Some("tests/fixtures/certs/dates-short-lived.txt"),
+            ),
+            two_days_in,
         );
         assert_eq!(
             report

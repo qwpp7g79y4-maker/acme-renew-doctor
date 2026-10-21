@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- `OK_NOT_DUE` now requires a third of the disk certificate's own lifetime (notAfter minus notBefore) to remain, capped at 30 days, instead of a fixed 30 days. The fixed threshold is longer than Let's Encrypt's 6-day short-lived certificate option, so `OK_NOT_DUE` could never be reached for one. The cap keeps a 90-day Certbot default certificate's behaviour unchanged, and falls back to the fixed 30 days when the saved `-dates` output has no `notBefore=` line.
+- `OK_NOT_DUE` now also requires the disk certificate's notBefore, when known, to not be after `now`. Before, a not-yet-valid certificate (clock skew, or a misdeployed certificate) with a far-off notAfter could be reported `OK_NOT_DUE`.
+
 ### Added
 
 - The README lists the supported systems: glibc 2.34 or newer for the Linux gnu build, macOS 10.12 (Intel) and 11.0 (Apple Silicon), and Windows 10.

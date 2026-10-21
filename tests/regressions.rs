@@ -64,6 +64,7 @@ fn observations(problems: Vec<certbot_log::AcmeProblem>) -> Observations {
         problems,
         disk_not_after: Some(later()),
         live_not_after: Some(later()),
+        disk_not_before: None,
         now: now(),
         read_errors: Vec::new(),
         log_read: true,

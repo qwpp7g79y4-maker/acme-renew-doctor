@@ -46,13 +46,23 @@ const MIN_YEAR: i32 = 1970;
 const MAX_YEAR: i32 = 9999;
 
 pub fn parse_openssl_enddate(text: &str) -> Option<CertTime> {
+    parse_openssl_date(text, "notAfter=")
+}
+
+/// `openssl x509 -noout -dates` prints both lines; this one is used only to
+/// relate a certificate's total lifetime to the renewal threshold.
+pub fn parse_openssl_startdate(text: &str) -> Option<CertTime> {
+    parse_openssl_date(text, "notBefore=")
+}
+
+fn parse_openssl_date(text: &str, prefix: &str) -> Option<CertTime> {
     let mut found = None;
     for line in text.lines() {
         let line = line.trim();
-        if !line.starts_with("notAfter=") {
+        if !line.starts_with(prefix) {
             continue;
         }
-        let parsed = parse_enddate_line(line)?;
+        let parsed = parse_date_line(line, prefix)?;
         match found {
             None => found = Some(parsed),
             Some(previous) if previous == parsed => {}
@@ -62,8 +72,8 @@ pub fn parse_openssl_enddate(text: &str) -> Option<CertTime> {
     found
 }
 
-fn parse_enddate_line(line: &str) -> Option<CertTime> {
-    let rest = line.strip_prefix("notAfter=")?;
+fn parse_date_line(line: &str, prefix: &str) -> Option<CertTime> {
+    let rest = line.strip_prefix(prefix)?;
     let month_name = rest.get(0..3)?;
     let month = month_number(month_name)?;
     if rest.as_bytes().get(3) != Some(&b' ') {
@@ -260,6 +270,23 @@ notAfter=Dec 31 09:37:37 2030 GMT
             parse_openssl_enddate("notAfter=Jun  4 11:04:38 2035 GMT\n"),
             Some(at(2035, 6, 4, 11, 4, 38))
         );
+    }
+
+    #[test]
+    fn parse_openssl_startdate_reads_notbefore_and_ignores_notafter() {
+        let dates = "\
+notBefore=Jun  4 11:04:38 2015 GMT
+notAfter=Jun  4 11:04:38 2035 GMT
+";
+        assert_eq!(
+            parse_openssl_startdate(dates),
+            Some(at(2015, 6, 4, 11, 4, 38))
+        );
+        assert_eq!(
+            parse_openssl_startdate("notAfter=Jun  4 11:04:38 2035 GMT\n"),
+            None
+        );
+        assert!(parse_openssl_startdate("").is_none());
     }
 
     #[test]

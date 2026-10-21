@@ -54,6 +54,10 @@ Synthetic `openssl x509 -noout -enddate` line. The date is after `live-enddate-o
 
 Synthetic `openssl x509 -noout -enddate` line. The date is more than 30 days after 2026-10-06.
 
+## certs/dates-short-lived.txt
+
+Synthetic `openssl x509 -noout -dates` output. The span is exactly 6 days, Let's Encrypt's short-lived option, used to check that `OK_NOT_DUE` scales its threshold to the certificate's own lifetime instead of a fixed number of days.
+
 ## certs/live-enddate-old.txt
 
 Synthetic `openssl x509 -noout -enddate` line. The date is before `disk-enddate-new.txt`.

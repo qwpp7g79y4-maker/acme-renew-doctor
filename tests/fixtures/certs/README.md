@@ -17,3 +17,5 @@ Shape of `openssl x509 -noout -dates`: two lines, the day right-aligned in 2 cha
 - `/etc/hostname` is not a certificate. Both lines go to stderr and openssl exits 1: `Could not read certificate from /etc/hostname` and `Unable to load certificate`. `not-a-cert.txt` is that text with the path replaced by `/etc/letsencrypt/live/example.com/fullchain.pem`, as when someone saved stderr with the output.
 
 `dates-disk-renewed.txt`, `dates-live-old.txt` and `dates-current.txt` use that shape. The dates themselves are illustrative. Each pair is 90 days minus 1 second: that is the lifetime of a Let's Encrypt certificate (https://letsencrypt.org/docs/faq/: "Our default certificates are valid for 90 days."). The same page says: "Subscribers can opt in to short-lived certificates which are valid for six days." The fixtures follow the default of 90 days.
+
+`dates-short-lived.txt` is exactly 6 days, the short-lived option on the same page. It exists to test that `OK_NOT_DUE` scales its threshold to the certificate's own lifetime instead of a fixed number of days: a fixed 30-day threshold is longer than this certificate's entire lifetime, so it would never be `OK_NOT_DUE`.

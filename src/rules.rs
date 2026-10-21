@@ -10,6 +10,10 @@ pub struct Observations {
     pub problems: Vec<AcmeProblem>,
     pub disk_not_after: Option<CertTime>,
     pub live_not_after: Option<CertTime>,
+    /// From the same saved `-dates` output as `disk_not_after`, when that
+    /// output has a `notBefore=` line. Used only to scale the `OK_NOT_DUE`
+    /// threshold to the certificate's own lifetime.
+    pub disk_not_before: Option<CertTime>,
     pub now: CertTime,
     pub read_errors: Vec<Finding>,
     /// True when a log was passed and read.
@@ -18,7 +22,33 @@ pub struct Observations {
     pub log_has_replacement_char: bool,
 }
 
+/// Fallback threshold when the certificate's own lifetime is not known
+/// (`disk_not_before` missing or not earlier than `disk_not_after`). Also
+/// the value `not_due_threshold` computes for a 90-day certificate, so a
+/// certbot-default certificate sees the same behaviour as before.
 pub const NOT_DUE_DAYS: i64 = 30;
+
+/// Days of validity that must remain for `OK_NOT_DUE`: one third of the
+/// certificate's total lifetime, the window ACME Renewal Info (ARI) and
+/// Certbot's `renew_before_expiry` advise renewing in. A fixed 30 days
+/// approximated this for Certbot's 90-day default, but Let's Encrypt also
+/// issues 6-day short-lived certificates, for which 30 days is longer than
+/// the certificate's entire lifetime; scaling to the real lifetime keeps
+/// `OK_NOT_DUE` reachable for those. Capped at `NOT_DUE_DAYS`: no publicly
+/// trusted certificate is longer-lived than Certbot's 90-day default, so a
+/// lifetime that implies a bigger threshold (a placeholder or malformed
+/// notBefore) must not make `OK_NOT_DUE` more lenient than the old fixed
+/// threshold. Falls back to `NOT_DUE_DAYS` when the lifetime is not known.
+fn not_due_threshold(not_before: Option<CertTime>, not_after: CertTime) -> i64 {
+    let Some(not_before) = not_before else {
+        return NOT_DUE_DAYS;
+    };
+    let lifetime_days = not_after.days_until(&not_before);
+    if lifetime_days <= 0 {
+        return NOT_DUE_DAYS;
+    }
+    (lifetime_days / 3).min(NOT_DUE_DAYS)
+}
 
 pub const FAILED_SERVICE_NOTE_SUFFIX: &str = "; the renewal ran and failed, check the Certbot log";
 
@@ -336,7 +366,16 @@ fn ok_not_due(obs: &Observations) -> Option<Finding> {
     }
     let disk = obs.disk_not_after?;
     let live = obs.live_not_after?;
-    if disk != live || disk.days_until(&obs.now) <= NOT_DUE_DAYS || !obs.problems.is_empty() {
+    let threshold = not_due_threshold(obs.disk_not_before, disk);
+    if disk != live || disk.days_until(&obs.now) <= threshold || !obs.problems.is_empty() {
+        return None;
+    }
+    // A not-yet-valid certificate (clock skew, or a misdeployed cert) is not
+    // OK_NOT_DUE even when notAfter is comfortably far away.
+    if obs
+        .disk_not_before
+        .is_some_and(|not_before| obs.now < not_before)
+    {
         return None;
     }
     if let Some(timer) = &obs.timer {
@@ -548,6 +587,7 @@ mod tests {
             problems: Vec::new(),
             disk_not_after: None,
             live_not_after: None,
+            disk_not_before: None,
             now: from_unix_seconds(1_791_273_600),
             read_errors: Vec::new(),
             log_read: false,
@@ -629,6 +669,85 @@ mod tests {
         assert!(
             ok_not_due(&obs).is_none(),
             "a masked timer must not count as ok-not-due even when unit_file_state and active_state look right"
+        );
+    }
+
+    #[test]
+    fn not_due_threshold_is_one_third_of_the_known_lifetime() {
+        let not_before = from_unix_seconds(0);
+        let ninety_days = from_unix_seconds(90 * 86_400);
+        assert_eq!(not_due_threshold(Some(not_before), ninety_days), 30);
+        let six_days = from_unix_seconds(6 * 86_400);
+        assert_eq!(not_due_threshold(Some(not_before), six_days), 2);
+    }
+
+    #[test]
+    fn not_due_threshold_is_capped_at_the_fixed_days_for_an_implausibly_long_lifetime() {
+        // No publicly trusted certificate is longer-lived than 90 days; a
+        // notBefore implying a much longer lifetime (a placeholder value or
+        // a malformed date) must not relax OK_NOT_DUE beyond the old fixed
+        // threshold.
+        let not_before = from_unix_seconds(0);
+        let nine_years = from_unix_seconds(9 * 365 * 86_400);
+        assert_eq!(
+            not_due_threshold(Some(not_before), nine_years),
+            NOT_DUE_DAYS
+        );
+    }
+
+    #[test]
+    fn not_due_threshold_falls_back_to_the_fixed_days_without_a_usable_lifetime() {
+        let not_after = from_unix_seconds(90 * 86_400);
+        assert_eq!(not_due_threshold(None, not_after), NOT_DUE_DAYS);
+        // notBefore not earlier than notAfter: a broken or swapped pair, not a lifetime.
+        assert_eq!(not_due_threshold(Some(not_after), not_after), NOT_DUE_DAYS);
+        let later_than_not_after = from_unix_seconds(91 * 86_400);
+        assert_eq!(
+            not_due_threshold(Some(later_than_not_after), not_after),
+            NOT_DUE_DAYS
+        );
+    }
+
+    #[test]
+    fn ok_not_due_scales_to_a_short_lived_certificate() {
+        let not_before = from_unix_seconds(0);
+        let not_after = from_unix_seconds(6 * 86_400);
+        let mut obs = bare_observations();
+        obs.disk_not_after = Some(not_after);
+        obs.live_not_after = Some(not_after);
+        obs.disk_not_before = Some(not_before);
+
+        // 5 days remain out of 6: healthy, well inside the first two thirds.
+        // The old fixed 30-day threshold could never recognise this: a
+        // 6-day certificate never has more than 30 days remaining.
+        obs.now = from_unix_seconds(86_400);
+        assert!(
+            ok_not_due(&obs).is_some(),
+            "a freshly issued short-lived certificate must be OK_NOT_DUE"
+        );
+
+        // 1 day remains out of 6: inside the last third, due for renewal.
+        obs.now = from_unix_seconds(5 * 86_400);
+        assert!(
+            ok_not_due(&obs).is_none(),
+            "a short-lived certificate in its last third must not be OK_NOT_DUE"
+        );
+    }
+
+    #[test]
+    fn ok_not_due_rejects_a_not_yet_valid_certificate() {
+        // notBefore is after now (clock skew, or a misdeployed certificate),
+        // even though notAfter is comfortably far away.
+        let not_before = from_unix_seconds(100 * 86_400);
+        let not_after = from_unix_seconds(190 * 86_400);
+        let mut obs = bare_observations();
+        obs.now = from_unix_seconds(50 * 86_400);
+        obs.disk_not_after = Some(not_after);
+        obs.live_not_after = Some(not_after);
+        obs.disk_not_before = Some(not_before);
+        assert!(
+            ok_not_due(&obs).is_none(),
+            "a not-yet-valid certificate must not be OK_NOT_DUE"
         );
     }
 

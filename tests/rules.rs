@@ -64,6 +64,7 @@ fn blank() -> Observations {
         problems: Vec::new(),
         disk_not_after: None,
         live_not_after: None,
+        disk_not_before: None,
         now: fixed_now(),
         read_errors: Vec::new(),
         log_read: false,
