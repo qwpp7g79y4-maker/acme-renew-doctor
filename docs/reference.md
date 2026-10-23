@@ -13,11 +13,12 @@ Run `acme-renew-doctor --help` for the built-in help. `--version` prints `acme-r
 | `[DOMAIN]` | Shown on the report. The log is not filtered by domain. Cannot be combined with `--all`. |
 | `--all` | Diagnose all certificates. Live collection is not built; pass `--from-*` files. Cannot be combined with `[DOMAIN]`. |
 | `--json` | One JSON object with `schema_version` 1, instead of text. |
-| `--from-log` | Certbot log file to analyse, for example a copy of `/var/log/letsencrypt/letsencrypt.log`. |
+| `--from-log` | Certbot log file to analyse, for example a copy of `/var/log/letsencrypt/letsencrypt.log`. `-` reads standard input instead, buffered up to the same byte limit. |
 | `--from-timer-status` | Saved output of `systemctl show certbot.timer` to analyse. |
 | `--from-cert-disk` | Saved output of `openssl x509 -noout -dates` for the certificate on disk. |
 | `--from-cert-live` | Saved output of `openssl x509 -noout -dates` for the certificate the server sends. |
 | `--client` | `certbot`, `acme.sh` or `auto`. Default `auto`. Only Certbot logs are parsed in 0.1.0. |
+| `--example` | Write a synthetic Certbot log to `example-log.txt` in the current directory and exit; lets the Quick start work without a clone of the repository. |
 | `--help` | Show help and exit 0 when that text is written. If standard output is closed or full, exit 3. |
 | `--version` | Show the version and exit 0 when that text is written. If standard output is closed or full, exit 3. |
 

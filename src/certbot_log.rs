@@ -146,9 +146,54 @@ impl WideEncoding {
     }
 }
 
+/// `-` means standard input, buffered fully (up to `LOG_MAX_BYTES`) and then
+/// decoded exactly like a file, so the same size and encoding checks apply.
 pub fn read_log(path: &Path) -> Result<DecodedLog, Finding> {
-    let bytes = read_regular_bytes(path, LOG_MAX_BYTES, EvidenceSource::Log)?;
+    let bytes = if path == Path::new("-") {
+        read_capped(
+            std::io::stdin().lock(),
+            LOG_MAX_BYTES,
+            EvidenceSource::Log,
+            "standard input",
+        )?
+    } else {
+        read_regular_bytes(path, LOG_MAX_BYTES, EvidenceSource::Log)?
+    };
     decode_log_bytes(path, &bytes)
+}
+
+/// Read at most `max_bytes` from `reader`, with the same over-the-limit
+/// message `read_regular_bytes` uses for a file.
+fn read_capped(
+    mut reader: impl Read,
+    max_bytes: u64,
+    source: EvidenceSource,
+    what: &str,
+) -> Result<Vec<u8>, Finding> {
+    let mut bytes = Vec::new();
+    if let Err(err) = reader
+        .by_ref()
+        .take(max_bytes.saturating_add(1))
+        .read_to_end(&mut bytes)
+    {
+        return Err(finding_for_io_kind(source, what, &err));
+    }
+    if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > max_bytes {
+        return Err(read_finding(
+            source,
+            format!("cannot read {what}: over the {max_bytes} byte limit"),
+        ));
+    }
+    Ok(bytes)
+}
+
+fn finding_for_io_kind(source: EvidenceSource, what: &str, err: &std::io::Error) -> Finding {
+    let kind = match err.kind() {
+        std::io::ErrorKind::PermissionDenied => "PermissionDenied",
+        std::io::ErrorKind::NotFound => "NotFound",
+        _ => "other kind",
+    };
+    read_finding(source, format!("cannot read {what}: {kind}"))
 }
 
 /// Read a regular file, at most `max_bytes`.
@@ -290,12 +335,7 @@ fn read_finding(source: EvidenceSource, text: String) -> Finding {
 }
 
 fn finding_for_io(path: &Path, source: EvidenceSource, err: &std::io::Error) -> Finding {
-    let kind = match err.kind() {
-        std::io::ErrorKind::PermissionDenied => "PermissionDenied",
-        std::io::ErrorKind::NotFound => "NotFound",
-        _ => "other kind",
-    };
-    read_finding(source, format!("cannot read {}: {kind}", path.display()))
+    finding_for_io_kind(source, &path.display().to_string(), err)
 }
 
 fn decode_log_bytes(path: &Path, bytes: &[u8]) -> Result<DecodedLog, Finding> {
@@ -1766,6 +1806,33 @@ mod tests {
         let over = read_regular_bytes(&path, 9, EvidenceSource::Log).unwrap_err();
         assert!(over.evidence[0].text.contains("over the 9 byte limit"));
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn read_capped_accepts_input_within_the_limit() {
+        let bytes = read_capped(
+            std::io::Cursor::new(b"hello".to_vec()),
+            10,
+            EvidenceSource::Log,
+            "standard input",
+        )
+        .expect("within the limit");
+        assert_eq!(bytes, b"hello");
+    }
+
+    #[test]
+    fn read_capped_rejects_input_over_the_limit() {
+        let err = read_capped(
+            std::io::Cursor::new(vec![0u8; 11]),
+            10,
+            EvidenceSource::Log,
+            "standard input",
+        )
+        .unwrap_err();
+        assert_eq!(
+            err.evidence[0].text,
+            "cannot read standard input: over the 10 byte limit"
+        );
     }
 
     #[cfg(unix)]

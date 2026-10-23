@@ -1,10 +1,32 @@
-use std::process::Command;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
 fn run(args: &[&str]) -> std::process::Output {
     Command::new(env!("CARGO_BIN_EXE_acme-renew-doctor"))
         .args(args)
         .output()
         .expect("run acme-renew-doctor")
+}
+
+fn run_with_stdin(args: &[&str], stdin: &[u8]) -> std::process::Output {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_acme-renew-doctor"))
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .args(args)
+        .env("ACME_RENEW_DOCTOR_NOW", "1791273600")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("spawn acme-renew-doctor");
+    child
+        .stdin
+        .take()
+        .expect("child stdin")
+        .write_all(stdin)
+        .expect("write to child stdin");
+    child
+        .wait_with_output()
+        .expect("wait for acme-renew-doctor")
 }
 
 #[test]
@@ -71,6 +93,109 @@ fn invalid_now_override_exits_three() {
 fn domain_with_all_exits_three() {
     let output = run(&["example.com", "--all"]);
     assert_eq!(output.status.code(), Some(3));
+}
+
+#[test]
+fn from_log_dash_reads_the_log_from_standard_input() {
+    let fixture =
+        std::fs::read("tests/fixtures/certbot/http01-timeout-repeated.log").expect("read fixture");
+    let output = run_with_stdin(&["example.com", "--from-log", "-"], &fixture);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(output.stderr.is_empty());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("LAYER2_HTTP01_TIMEOUT"),
+        "missing diagnosis\n{stdout}"
+    );
+    assert!(
+        stdout.contains("inputs: log=-"),
+        "inputs line should show the dash path\n{stdout}"
+    );
+}
+
+struct TempDir {
+    path: std::path::PathBuf,
+}
+
+impl TempDir {
+    fn new(label: &str) -> Self {
+        let path = std::env::temp_dir().join(format!(
+            "acme-renew-doctor-cli-{}-{label}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&path).expect("create tempdir");
+        Self { path }
+    }
+}
+
+impl Drop for TempDir {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.path);
+    }
+}
+
+fn run_in(dir: &std::path::Path, args: &[&str]) -> std::process::Output {
+    Command::new(env!("CARGO_BIN_EXE_acme-renew-doctor"))
+        .current_dir(dir)
+        .args(args)
+        .output()
+        .expect("run acme-renew-doctor")
+}
+
+#[test]
+fn example_writes_the_log_file_outside_a_repository_clone() {
+    let temp = TempDir::new("example");
+    let output = run_in(&temp.path, &["--example"]);
+    assert_eq!(output.status.code(), Some(0));
+    assert!(output.stderr.is_empty());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("wrote example-log.txt in the current directory"),
+        "{stdout}"
+    );
+    let written =
+        std::fs::read_to_string(temp.path.join("example-log.txt")).expect("read example-log.txt");
+    assert!(written.contains("Timeout during connect"), "{written}");
+
+    // Analysing it right away, with no repository clone, reproduces the
+    // Quick start's LAYER2_HTTP01_TIMEOUT example.
+    let analysed = run_in(
+        &temp.path,
+        &["example.com", "--from-log", "example-log.txt"],
+    );
+    assert_eq!(analysed.status.code(), Some(1));
+    assert!(
+        String::from_utf8_lossy(&analysed.stdout).contains("LAYER2_HTTP01_TIMEOUT"),
+        "{}",
+        String::from_utf8_lossy(&analysed.stdout)
+    );
+
+    // Running --example again is idempotent: same content, still exit 0.
+    let again = run_in(&temp.path, &["--example"]);
+    assert_eq!(again.status.code(), Some(0));
+}
+
+#[test]
+fn example_refuses_to_overwrite_an_unrelated_file() {
+    let temp = TempDir::new("example-conflict");
+    std::fs::write(
+        temp.path.join("example-log.txt"),
+        "not the example content\n",
+    )
+    .expect("write conflicting file");
+    let output = run_in(&temp.path, &["--example"]);
+    assert_eq!(output.status.code(), Some(3));
+    assert!(output.stdout.is_empty());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("example-log.txt already exists with different content"),
+        "{stderr}"
+    );
+    assert_eq!(
+        std::fs::read_to_string(temp.path.join("example-log.txt")).expect("read back"),
+        "not the example content\n",
+        "the unrelated file must be left untouched"
+    );
 }
 
 #[test]
