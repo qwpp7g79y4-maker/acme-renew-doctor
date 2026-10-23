@@ -15,11 +15,12 @@ Draai `acme-renew-doctor --help` voor de ingebouwde hulp. `--version` print `acm
 | `[DOMAIN]` | Staat op het rapport. De log wordt niet op domein gefilterd. Kan niet samen met `--all`. |
 | `--all` | Stel alle certificaten vast. Live verzamelen is niet gebouwd; geef `--from-*`-bestanden mee. Kan niet samen met `[DOMAIN]`. |
 | `--json` | Eén JSON-object met `schema_version` 1, in plaats van tekst. |
-| `--from-log` | Certbot-log om te analyseren, bijvoorbeeld een kopie van `/var/log/letsencrypt/letsencrypt.log`. |
+| `--from-log` | Certbot-log om te analyseren, bijvoorbeeld een kopie van `/var/log/letsencrypt/letsencrypt.log`. `-` leest in plaats daarvan standaardinvoer, gebufferd tot dezelfde bytelimiet. |
 | `--from-timer-status` | Opgeslagen uitvoer van `systemctl show certbot.timer` om te analyseren. |
 | `--from-cert-disk` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat op schijf. |
 | `--from-cert-live` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat dat de server stuurt. |
 | `--client` | `certbot`, `acme.sh` of `auto`. Standaard `auto`. In 0.1.0 worden alleen Certbot-logs gelezen. |
+| `--example` | Schrijf een synthetische Certbot-log naar `example-log.txt` in de huidige map en stop; zo werkt Snel aan de slag ook zonder kloon van de repository. |
 | `--help` | Toon hulp en eindig met 0 als die tekst geschreven is. Als de standaarduitvoer dicht of vol is, eindig met 3. |
 | `--version` | Toon de versie en eindig met 0 als die tekst geschreven is. Als de standaarduitvoer dicht of vol is, eindig met 3. |
 

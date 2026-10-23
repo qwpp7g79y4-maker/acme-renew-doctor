@@ -256,6 +256,47 @@ fn readme_has_the_sections_and_names() {
 }
 
 #[test]
+fn quick_start_explains_example_for_an_install_with_no_clone() {
+    for (page, heading) in [
+        (README, "## Quick start"),
+        (README_DUTCH, "## Snel aan de slag"),
+    ] {
+        let text = read(page);
+        let quick_start = section(&text, heading);
+        assert!(
+            quick_start.contains("--example"),
+            "{page}'s Quick start should explain --example for installs with no repository clone"
+        );
+        assert!(
+            quick_start.contains("example-log.txt"),
+            "{page}'s Quick start should name the file --example writes"
+        );
+    }
+}
+
+#[test]
+fn top_matter_warns_that_input_is_quoted_back_unredacted() {
+    for (page, heading, warning) in [
+        (README, "## Why", "does not redact"),
+        (README_DUTCH, "## Waarom", "redigeert niet"),
+    ] {
+        let text = read(page);
+        let top = text
+            .find(heading)
+            .unwrap_or_else(|| panic!("{page} is missing {heading}"));
+        let top_matter = &text[..top];
+        assert!(
+            top_matter.contains(warning),
+            "{page}'s top matter (before {heading}) is missing a warning containing {warning:?}\n{top_matter}"
+        );
+        assert!(
+            top_matter.contains("(#privacy)"),
+            "{page}'s top-matter warning should link to Privacy"
+        );
+    }
+}
+
+#[test]
 fn readme_separates_source_install_from_the_binary_archive() {
     for (page, heading) in [
         (README, "## Installation"),

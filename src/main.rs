@@ -11,6 +11,13 @@ use acme_renew_doctor::safe;
 use clap::builder::TypedValueParser;
 use clap::{Parser, ValueEnum};
 
+/// Written by `--example`. Embedded at compile time, so it exists even after
+/// `cargo install` from crates.io: the published crate includes `tests/`,
+/// but a plain install leaves no clone of the repository behind to read it
+/// from at runtime.
+const EXAMPLE_LOG_NAME: &str = "example-log.txt";
+const EXAMPLE_LOG: &str = include_str!("../tests/fixtures/certbot/http01-timeout-repeated.log");
+
 #[derive(Copy, Clone)]
 struct AnyPath;
 
@@ -48,7 +55,7 @@ struct Cli {
     #[arg(long)]
     json: bool,
 
-    /// Certbot log file to analyse, e.g. a copy of /var/log/letsencrypt/letsencrypt.log
+    /// Certbot log file to analyse, e.g. a copy of /var/log/letsencrypt/letsencrypt.log (- reads standard input)
     #[arg(long, value_name = "FILE", value_parser = AnyPath)]
     from_log: Option<PathBuf>,
 
@@ -67,6 +74,10 @@ struct Cli {
     /// ACME client that wrote the files (only Certbot logs are parsed in v0.1)
     #[arg(long, value_enum, default_value = "auto")]
     client: Client,
+
+    /// Write a synthetic Certbot log to example-log.txt in the current directory and exit (lets Quick start work without a clone of the repository)
+    #[arg(long)]
+    example: bool,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, ValueEnum)]
@@ -82,6 +93,10 @@ fn main() -> ExitCode {
         Ok(cli) => cli,
         Err(err) => finish_parse_error(err),
     };
+
+    if cli.example {
+        return write_example();
+    }
 
     let snapshot = Snapshot {
         domain: cli.domain,
@@ -115,6 +130,39 @@ fn main() -> ExitCode {
         return output_error(&err);
     }
     ExitCode::from(u8::try_from(report.exit_status().code()).expect("exit code fits in u8"))
+}
+
+/// Writes `EXAMPLE_LOG` to `EXAMPLE_LOG_NAME`, unless a file with that name
+/// already exists and does not already hold that exact content.
+fn write_example() -> ExitCode {
+    match write_example_log() {
+        Ok(()) => {
+            let message = format!(
+                "wrote {EXAMPLE_LOG_NAME} in the current directory (synthetic Certbot log for the Quick start)\n"
+            );
+            match write_stdout(message.as_bytes()) {
+                Ok(()) => ExitCode::from(0),
+                Err(err) => output_error(&err),
+            }
+        }
+        Err(message) => {
+            write_stderr_line(&format!("acme-renew-doctor: {message}"));
+            ExitCode::from(3)
+        }
+    }
+}
+
+fn write_example_log() -> Result<(), String> {
+    if let Ok(existing) = std::fs::read_to_string(EXAMPLE_LOG_NAME) {
+        if existing == EXAMPLE_LOG {
+            return Ok(());
+        }
+        return Err(format!(
+            "{EXAMPLE_LOG_NAME} already exists with different content; remove it or run --example in an empty directory"
+        ));
+    }
+    std::fs::write(EXAMPLE_LOG_NAME, EXAMPLE_LOG)
+        .map_err(|err| format!("cannot write {EXAMPLE_LOG_NAME}: {err}"))
 }
 
 fn write_stdout(bytes: &[u8]) -> io::Result<()> {
@@ -177,6 +225,24 @@ fn finish_parse_error(err: clap::Error) -> ! {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn example_flag_is_accepted() {
+        let cli = Cli::try_parse_from(["acme-renew-doctor", "--example"]).unwrap();
+        assert!(cli.example);
+    }
+
+    #[test]
+    fn example_log_matches_the_fixture_it_is_embedded_from() {
+        // Guards against the embedded copy drifting from the fixture on disk,
+        // which the README's Quick start also documents as the source.
+        let fixture = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/certbot/http01-timeout-repeated.log"),
+        )
+        .expect("read fixture");
+        assert_eq!(EXAMPLE_LOG, fixture);
+    }
 
     #[test]
     fn domain_only() {

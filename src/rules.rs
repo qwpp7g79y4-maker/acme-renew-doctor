@@ -350,7 +350,12 @@ fn no_reload(obs: &Observations) -> Option<Finding> {
     ))
 }
 
-fn ok_not_due(obs: &Observations) -> Option<Finding> {
+/// `disk`/`live` notAfter, days until `disk` and the `OK_NOT_DUE` threshold,
+/// once every `OK_NOT_DUE` condition other than the days threshold holds.
+/// Shared by `ok_not_due` and `insufficient`, so a near-renewal certificate
+/// that fails only the days check still gets its known date shown instead of
+/// a bare "no log given".
+fn ok_not_due_candidate(obs: &Observations) -> Option<(CertTime, CertTime, i64, i64)> {
     if obs.log_has_replacement_char {
         return None;
     }
@@ -366,8 +371,7 @@ fn ok_not_due(obs: &Observations) -> Option<Finding> {
     }
     let disk = obs.disk_not_after?;
     let live = obs.live_not_after?;
-    let threshold = not_due_threshold(obs.disk_not_before, disk);
-    if disk != live || disk.days_until(&obs.now) <= threshold || !obs.problems.is_empty() {
+    if disk != live || !obs.problems.is_empty() {
         return None;
     }
     // A not-yet-valid certificate (clock skew, or a misdeployed cert) is not
@@ -385,6 +389,16 @@ fn ok_not_due(obs: &Observations) -> Option<Finding> {
         {
             return None;
         }
+    }
+    let threshold = not_due_threshold(obs.disk_not_before, disk);
+    let days = disk.days_until(&obs.now);
+    Some((disk, live, days, threshold))
+}
+
+fn ok_not_due(obs: &Observations) -> Option<Finding> {
+    let (disk, live, days, threshold) = ok_not_due_candidate(obs)?;
+    if days <= threshold {
+        return None;
     }
     let mut evidence = vec![
         Evidence {
@@ -535,6 +549,17 @@ fn insufficient(obs: &Observations) -> Finding {
     }
     if obs.live_not_after.is_none() {
         evidence.push(note(EvidenceSource::Handshake, "no live notAfter"));
+    }
+    // The dates are known, and every OK_NOT_DUE condition holds except the
+    // days threshold: show the known notAfter date and how close it is,
+    // instead of leaving the evidence silent about it.
+    if let Some((disk, _live, days, threshold)) = ok_not_due_candidate(obs) {
+        if days <= threshold {
+            evidence.push(note(
+                EvidenceSource::Disk,
+                &format!("{disk}, {days} day(s) remain, at or under the {threshold}-day renewal threshold"),
+            ));
+        }
     }
     if !obs.problems.is_empty() {
         if let Some(problem) = connection_without_rule(obs) {
@@ -795,6 +820,57 @@ mod tests {
         );
         obs.snap_timer = Some(timer("loaded", "inactive", "disabled", "success"));
         assert!(snap_only_note(&obs).is_some());
+    }
+
+    #[test]
+    fn insufficient_shows_the_known_date_when_only_the_days_threshold_blocked_ok_not_due() {
+        let not_before = from_unix_seconds(0);
+        let not_after = from_unix_seconds(90 * 86_400);
+        let mut obs = bare_observations();
+        obs.disk_not_after = Some(not_after);
+        obs.live_not_after = Some(not_after);
+        obs.disk_not_before = Some(not_before);
+        obs.timer = Some(timer("loaded", "active", "enabled", "success"));
+        // 20 days remain out of 90: inside the last third (threshold 30), so
+        // not OK_NOT_DUE, but every other OK_NOT_DUE condition holds.
+        obs.now = from_unix_seconds(70 * 86_400);
+        assert!(ok_not_due(&obs).is_none());
+
+        let finding = insufficient(&obs);
+        assert!(
+            finding
+                .evidence
+                .iter()
+                .any(|item| item.source == EvidenceSource::Disk
+                    && item.text.contains("notAfter=")
+                    && item.text.contains("20 day(s) remain")
+                    && item.text.contains("30-day renewal threshold")),
+            "{:?}",
+            finding.evidence
+        );
+        // Neither "no disk notAfter" nor "no live notAfter" applies: both are known.
+        assert!(!finding
+            .evidence
+            .iter()
+            .any(|item| item.text == "no disk notAfter" || item.text == "no live notAfter"));
+    }
+
+    #[test]
+    fn insufficient_does_not_show_a_date_when_the_block_is_not_the_days_threshold() {
+        // disk and live disagree: OK_NOT_DUE fails for a different reason,
+        // so the near-renewal date note must not appear.
+        let mut obs = bare_observations();
+        obs.disk_not_after = Some(from_unix_seconds(90 * 86_400));
+        obs.live_not_after = Some(from_unix_seconds(91 * 86_400));
+        let finding = insufficient(&obs);
+        assert!(
+            !finding
+                .evidence
+                .iter()
+                .any(|item| item.text.contains("day(s) remain")),
+            "{:?}",
+            finding.evidence
+        );
     }
 
     #[test]
