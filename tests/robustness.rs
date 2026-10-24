@@ -2258,3 +2258,129 @@ fn paths_with_non_utf8_bytes_are_shown_in_text_and_json() {
         assert_path_shown(flag, path.as_os_str(), *code);
     }
 }
+
+// --- breaktest: symlinks and over-length paths (see
+// ~/brug/review/reports/breaktest-acmerenew-0001.md) -------------------------
+//
+// `read_regular_bytes`/`finding_for_failed_open` already document that
+// `std::fs::metadata` follows symlinks, and `open_read`'s doc comment already
+// walks through ELOOP/ENAMETOOLONG falling back to the open error's kind
+// ("other kind"). None of that was pinned down by a test before this patch,
+// so a future change to the open/metadata fallback could silently start
+// panicking or misclassifying these paths without any test noticing.
+
+#[cfg(unix)]
+#[test]
+fn each_input_refuses_a_dangling_symlink() {
+    let temp = TempDir::new("symlink-dangling");
+    let link = temp.dir.join("dangling.link");
+    std::os::unix::fs::symlink(temp.dir.join("missing-target"), &link).expect("symlink");
+    refuse_each_flag(link.as_os_str(), "NotFound", false);
+}
+
+#[cfg(unix)]
+#[test]
+fn each_input_refuses_a_symlink_to_a_directory() {
+    let temp = TempDir::new("symlink-to-dir");
+    let dir = temp.dir.join("a-directory");
+    std::fs::create_dir(&dir).expect("mkdir");
+    let link = temp.dir.join("to-dir.link");
+    std::os::unix::fs::symlink(&dir, &link).expect("symlink");
+    refuse_each_flag(link.as_os_str(), "is a directory", false);
+}
+
+#[cfg(unix)]
+#[test]
+fn each_input_refuses_a_symlink_loop() {
+    let temp = TempDir::new("symlink-loop");
+    let a = temp.dir.join("a.link");
+    let b = temp.dir.join("b.link");
+    std::os::unix::fs::symlink(&b, &a).expect("symlink a->b");
+    std::os::unix::fs::symlink(&a, &b).expect("symlink b->a");
+    for flag in FILE_FLAGS {
+        let report = check(&["example.com", flag, &arg(&a)]);
+        assert_has(&report, "INSUFFICIENT_EVIDENCE", 2);
+        assert!(report.stdout.contains("cannot read"), "{}", report.stdout);
+        // ELOOP is not PermissionDenied or NotFound, so it falls into the
+        // generic "other kind" bucket. That is current, intended behaviour
+        // (see `finding_for_io_kind`); this test only pins it down so a
+        // change there is a deliberate decision, not an accident.
+        assert!(report.stdout.contains("other kind"), "{}", report.stdout);
+        assert!(
+            !report.stdout.contains("LAYER1_PERMISSION"),
+            "{}",
+            report.stdout
+        );
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn each_input_accepts_a_symlink_to_a_regular_file() {
+    let temp = TempDir::new("symlink-ok");
+    let log = temp.write(
+        "real.log",
+        b"2026-09-28 03:12:44,512:DEBUG:certbot._internal.main:hello\n",
+    );
+    let link = temp.dir.join("to-real.link");
+    std::os::unix::fs::symlink(&log, &link).expect("symlink");
+    let report = check(&["example.com", "--from-log", &arg(&link)]);
+    assert!(
+        report.stdout.contains("log read, no ACME errors found"),
+        "{}",
+        report.stdout
+    );
+    assert!(
+        !report.stdout.contains("cannot read"),
+        "a readable symlink target must not be refused\n{}",
+        report.stdout
+    );
+}
+
+#[test]
+fn each_input_refuses_a_filename_over_name_max() {
+    let temp = TempDir::new("name-max");
+    // 256 bytes is one over Linux's 255-byte NAME_MAX for a single component.
+    let name = format!("{}.log", "a".repeat(252));
+    assert_eq!(name.len(), 256);
+    let path = temp.dir.join(name);
+    for flag in FILE_FLAGS {
+        let report = check(&["example.com", flag, &arg(&path)]);
+        assert_has(&report, "INSUFFICIENT_EVIDENCE", 2);
+        assert!(report.stdout.contains("cannot read"), "{}", report.stdout);
+        assert!(report.stdout.contains("other kind"), "{}", report.stdout);
+    }
+}
+
+#[test]
+fn each_input_refuses_a_path_over_path_max() {
+    let temp = TempDir::new("path-max");
+    // Build a path well past Linux's 4096-byte PATH_MAX by nesting
+    // directories, each short enough to stay under NAME_MAX on its own.
+    // `std::fs::create_dir_all` passes the whole growing absolute path to
+    // each `mkdir` syscall, so it hits ENAMETOOLONG itself once that
+    // string passes PATH_MAX; shell out to GNU `mkdir -p`, which chdirs
+    // into each new directory and avoids that.
+    let mut dir = temp.dir.clone();
+    for i in 0..70 {
+        dir = dir.join(format!("seg{i:055}"));
+    }
+    let made = Command::new("mkdir")
+        .arg("-p")
+        .arg(&dir)
+        .status()
+        .expect("run mkdir -p");
+    assert!(made.success(), "mkdir -p {}", dir.display());
+    let path = dir.join("x.log");
+    assert!(
+        path.as_os_str().len() > 4096,
+        "path too short to trip PATH_MAX: {} bytes",
+        path.as_os_str().len()
+    );
+    for flag in FILE_FLAGS {
+        let report = check(&["example.com", flag, &arg(&path)]);
+        assert_has(&report, "INSUFFICIENT_EVIDENCE", 2);
+        assert!(report.stdout.contains("cannot read"), "{}", report.stdout);
+        assert!(report.stdout.contains("other kind"), "{}", report.stdout);
+    }
+}
