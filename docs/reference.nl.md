@@ -20,7 +20,7 @@ Draai `acme-renew-doctor --help` voor de ingebouwde hulp. `--version` print `acm
 | `--from-cert-disk` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat op schijf. |
 | `--from-cert-live` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat dat de server stuurt. |
 | `--client` | `certbot`, `acme.sh` of `auto`. Standaard `auto`. In 0.1.0 worden alleen Certbot-logs gelezen. |
-| `--example` | Schrijf een synthetische Certbot-log naar `example-log.txt` in de huidige map en stop; zo werkt Snel aan de slag ook zonder kloon van de repository. |
+| `--example` | Schrijf een synthetische Certbot-log naar `example-log.txt` in de huidige map en stop; zo werkt Snel aan de slag ook zonder kloon van de repository. Kan niet samen met een andere optie. |
 | `--help` | Toon hulp en eindig met 0 als die tekst geschreven is. Als de standaarduitvoer dicht of vol is, eindig met 3. |
 | `--version` | Toon de versie en eindig met 0 als die tekst geschreven is. Als de standaarduitvoer dicht of vol is, eindig met 3. |
 
@@ -47,6 +47,7 @@ Elke rij hieronder is tegen de binary gedraaid, en een test houdt dat zo. Stdout
 | --- | --- | --- | --- |
 | Unknown client. | `--client foo` | 3 | `error: invalid value 'foo' for '--client <CLIENT>'\n  [possible values: certbot, acme.sh, auto]\n\nFor more information, try '--help'.\n` |
 | Domain together with `--all`. | `example.com --all` | 3 | `error: the argument '[DOMAIN]' cannot be used with '--all'\n\nUsage: acme-renew-doctor <DOMAIN>\n\nFor more information, try '--help'.\n` |
+| `--example` together with `--all`. | `--example --all` | 3 | `error: the argument '--example' cannot be used with '--all'\n\nUsage: acme-renew-doctor --example [DOMAIN]\n\nFor more information, try '--help'.\n` |
 | `--from-log` without a file. | `--from-log` | 3 | `error: a value is required for '--from-log <FILE>' but none was supplied\n\nFor more information, try '--help'.\n` |
 | Unknown flag. | `--bogus` | 3 | `error: unexpected argument '--bogus' found\n\n  tip: to pass '--bogus' as a value, use '-- --bogus'\n\nUsage: acme-renew-doctor [OPTIONS] [DOMAIN]\n\nFor more information, try '--help'.\n` |
 | Clock with a comma. | `ACME_RENEW_DOCTOR_NOW=1,5 example.com` | 3 | `acme-renew-doctor: ACME_RENEW_DOCTOR_NOW must be a whole number of Unix seconds, got 1,5\n` |

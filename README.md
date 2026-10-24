@@ -63,7 +63,7 @@ acme-renew-doctor --help
 
 These are the real outputs of the binary on the synthetic fixtures in `tests/fixtures`. A test runs every example and compares the output. You create each `--from-*` file yourself. The tool does not run the commands it prints.
 
-No clone of this repository? `acme-renew-doctor --example` writes a synthetic Certbot log to `example-log.txt` in the current directory (it refuses to overwrite an unrelated file of that name) and exits 0. To see the same `LAYER2_HTTP01_TIMEOUT` without a clone, run `acme-renew-doctor example.com --from-log example-log.txt`. Leave out `--from-timer-status`; that fixture is only in a clone.
+No clone of this repository? `acme-renew-doctor --example` writes a synthetic Certbot log to `example-log.txt` in the current directory (it refuses to overwrite an unrelated file of that name) and exits 0. `--example` cannot be combined with any other option. To see the same `LAYER2_HTTP01_TIMEOUT` without a clone, run `acme-renew-doctor example.com --from-log example-log.txt`. Leave out `--from-timer-status`; that fixture is only in a clone.
 
 With no files, the report asks for them and exits 2:
 

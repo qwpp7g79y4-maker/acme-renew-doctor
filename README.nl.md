@@ -65,7 +65,7 @@ acme-renew-doctor --help
 
 Dit is de echte uitvoer van de binary op de synthetische fixtures in `tests/fixtures`. Een test draait elk voorbeeld en vergelijkt de uitvoer. Elk `--from-*`-bestand maak je zelf. De tool voert de opdrachten die hij afdrukt niet uit.
 
-Geen kloon van deze repository? `acme-renew-doctor --example` schrijft een synthetische Certbot-log naar `example-log.txt` in de huidige map (en weigert een ongerelateerd bestand met die naam te overschrijven) en stopt met exit 0. Om dezelfde `LAYER2_HTTP01_TIMEOUT` te zien zonder kloon, draai `acme-renew-doctor example.com --from-log example-log.txt`. Laat `--from-timer-status` weg; die fixture zit alleen in een kloon.
+Geen kloon van deze repository? `acme-renew-doctor --example` schrijft een synthetische Certbot-log naar `example-log.txt` in de huidige map (en weigert een ongerelateerd bestand met die naam te overschrijven) en stopt met exit 0. `--example` kan niet samen met een andere optie. Om dezelfde `LAYER2_HTTP01_TIMEOUT` te zien zonder kloon, draai `acme-renew-doctor example.com --from-log example-log.txt`. Laat `--from-timer-status` weg; die fixture zit alleen in een kloon.
 
 Zonder bestanden vraagt het rapport erom en eindigt het met exit 2:
 

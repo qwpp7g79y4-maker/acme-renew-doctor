@@ -18,7 +18,7 @@ Run `acme-renew-doctor --help` for the built-in help. `--version` prints `acme-r
 | `--from-cert-disk` | Saved output of `openssl x509 -noout -dates` for the certificate on disk. |
 | `--from-cert-live` | Saved output of `openssl x509 -noout -dates` for the certificate the server sends. |
 | `--client` | `certbot`, `acme.sh` or `auto`. Default `auto`. Only Certbot logs are parsed in 0.1.0. |
-| `--example` | Write a synthetic Certbot log to `example-log.txt` in the current directory and exit; lets the Quick start work without a clone of the repository. |
+| `--example` | Write a synthetic Certbot log to `example-log.txt` in the current directory and exit; lets the Quick start work without a clone of the repository. Cannot be combined with any other option. |
 | `--help` | Show help and exit 0 when that text is written. If standard output is closed or full, exit 3. |
 | `--version` | Show the version and exit 0 when that text is written. If standard output is closed or full, exit 3. |
 
@@ -45,6 +45,7 @@ Every row below was run against the binary, and a test keeps it that way. Stdout
 | --- | --- | --- | --- |
 | Unknown client. | `--client foo` | 3 | `error: invalid value 'foo' for '--client <CLIENT>'\n  [possible values: certbot, acme.sh, auto]\n\nFor more information, try '--help'.\n` |
 | Domain together with `--all`. | `example.com --all` | 3 | `error: the argument '[DOMAIN]' cannot be used with '--all'\n\nUsage: acme-renew-doctor <DOMAIN>\n\nFor more information, try '--help'.\n` |
+| `--example` together with `--all`. | `--example --all` | 3 | `error: the argument '--example' cannot be used with '--all'\n\nUsage: acme-renew-doctor --example [DOMAIN]\n\nFor more information, try '--help'.\n` |
 | `--from-log` without a file. | `--from-log` | 3 | `error: a value is required for '--from-log <FILE>' but none was supplied\n\nFor more information, try '--help'.\n` |
 | Unknown flag. | `--bogus` | 3 | `error: unexpected argument '--bogus' found\n\n  tip: to pass '--bogus' as a value, use '-- --bogus'\n\nUsage: acme-renew-doctor [OPTIONS] [DOMAIN]\n\nFor more information, try '--help'.\n` |
 | Clock with a comma. | `ACME_RENEW_DOCTOR_NOW=1,5 example.com` | 3 | `acme-renew-doctor: ACME_RENEW_DOCTOR_NOW must be a whole number of Unix seconds, got 1,5\n` |

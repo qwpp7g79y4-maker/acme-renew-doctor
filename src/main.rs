@@ -75,8 +75,20 @@ struct Cli {
     #[arg(long, value_enum, default_value = "auto")]
     client: Client,
 
-    /// Write a synthetic Certbot log to example-log.txt in the current directory and exit (lets Quick start work without a clone of the repository)
-    #[arg(long)]
+    /// Write a synthetic Certbot log to example-log.txt in the current directory and exit (lets Quick start work without a clone of the repository); cannot be combined with any other option
+    #[arg(
+        long,
+        conflicts_with_all = [
+            "domain",
+            "all",
+            "json",
+            "from_log",
+            "from_timer_status",
+            "from_cert_disk",
+            "from_cert_live",
+            "client",
+        ]
+    )]
     example: bool,
 }
 
