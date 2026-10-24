@@ -127,3 +127,19 @@ fn a_star_in_the_domain_is_rejected_as_unsafe_not_as_invalid_shape() {
         assert_rejected(domain, false);
     }
 }
+
+#[test]
+fn empty_domain_is_rejected_as_invalid_shape_not_unsafe() {
+    // An empty domain has no character at all, so it cannot contain one
+    // that is unsafe in a shell command; its problem is the shape (zero
+    // labels, where at least two are required). `assert_rejected` cannot be
+    // reused here: it checks the raw domain did not leak into the report,
+    // and every string "contains" the empty string.
+    let json = run_json("");
+    assert!(
+        json.contains("\"domain\": \"YOUR_DOMAIN\""),
+        "expected an empty domain to be replaced with YOUR_DOMAIN\n{json}"
+    );
+    assert!(json.contains(INVALID_NOTE), "{json}");
+    assert!(!json.contains(UNSAFE_NOTE), "{json}");
+}

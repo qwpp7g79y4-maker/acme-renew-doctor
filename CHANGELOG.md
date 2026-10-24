@@ -28,6 +28,8 @@ All notable changes to this project are documented in this file.
 - CI now runs `cargo clippy` on the `fuzz/` crate and runs `cargo test --release` on the MSRV toolchain, matching the stable job.
 - `tests/ROBUSTHEID.md` said opening a path that is a fifo only does not block "on Linux"; it now says Linux, macOS and the BSDs, matching README.md and CHANGELOG.md.
 - The README and README.nl.md source for the 30-day `OK_NOT_DUE` threshold now says when the linked Let's Encrypt FAQ text was last checked.
+- An empty domain argument got the unsafe-characters note even though it has no character at all, let alone an unsafe one; it now gets the invalid-hostname note, matching every other domain built only from hostname bytes.
+- A failed `certbot.service` evidence line was silently dropped from the report when an unrelated `--from-*` file could not be read and nothing else was diagnosed: `analyze` never adds its usual `insufficient` finding in that case (the read error already makes the finding list non-empty), so there was no finding left for the note to attach to. It now gets its own finding instead of being lost.
 
 ## [0.1.0] - 2026-10-14
 
