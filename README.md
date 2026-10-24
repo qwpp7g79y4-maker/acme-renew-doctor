@@ -29,11 +29,11 @@ acme-renew-doctor --help
 
 ### Binary archive
 
-The [v0.1.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.1.0) has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
+The [v0.2.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.2.0) has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
 
 ```sh
-name=acme-renew-doctor-v0.1.0-x86_64-unknown-linux-gnu
-base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v0.1.0
+name=acme-renew-doctor-v0.2.0-x86_64-unknown-linux-gnu
+base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v0.2.0
 curl -q -fsSL -O "$base/$name.tar.gz" -O "$base/$name.tar.gz.sha256"
 sha256sum -c "$name.tar.gz.sha256"
 tar -xzf "$name.tar.gz"
