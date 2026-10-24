@@ -677,7 +677,11 @@ struct OpenObject {
 /// `{"detail": {"detail": ...}}` cost O(N * size) instead of O(size) (one
 /// full extra scan, plus a clone, per level). The span is resolved lazily,
 /// in `other_value_text`, only when a second occurrence of the same key in
-/// the same object needs to be compared against it.
+/// the same object needs to be compared against it. On that second key,
+/// `discard_unreadable_nested` drops a span `json_value_end` cannot read
+/// (the old `field_value` `None`) before the comparison, so a first broken
+/// value is ignored and a later value stays the first real one. One key
+/// per level still does not scan the nested span.
 #[derive(Clone)]
 enum FieldValue {
     String(String),
@@ -849,6 +853,7 @@ fn note_type(
     key_line: usize,
     order: &mut u64,
 ) {
+    discard_unreadable_nested(text, &mut obj.seen_type);
     match parsed {
         Some(FieldValue::String(value)) => {
             if obj.problem_type.is_none() && value.starts_with(ACME_ERROR_PREFIX) {
@@ -874,6 +879,7 @@ fn note_type(
 }
 
 fn note_detail(text: &str, obj: &mut OpenObject, parsed: Option<FieldValue>) {
+    discard_unreadable_nested(text, &mut obj.seen_detail);
     match parsed {
         Some(FieldValue::String(value)) => {
             if obj.seen_detail.is_none() {
@@ -891,6 +897,17 @@ fn note_detail(text: &str, obj: &mut OpenObject, parsed: Option<FieldValue>) {
             if obj.seen_detail.is_some() {
                 obj.detail_conflict = true;
             }
+        }
+    }
+}
+
+/// An object or array stored before its end was known. `json_value_end`
+/// returning `None` is the old `field_value` `None`: a first unreadable
+/// value is not a value, and only a later key can observe that.
+fn discard_unreadable_nested(text: &str, slot: &mut Option<FieldValue>) {
+    if let Some(FieldValue::Nested(start)) = slot.as_ref() {
+        if json_value_end(text, *start).is_none() {
+            *slot = None;
         }
     }
 }

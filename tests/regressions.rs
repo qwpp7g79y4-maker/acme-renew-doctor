@@ -304,6 +304,28 @@ fn parent_and_nested_subproblem_do_not_depend_on_field_order() {
     }
 }
 
+/// A broken escape in a first `type` array used to be ignored (`json_value_end`
+/// was `None`). The later ACME type in that object stayed a timeout (exit 1).
+/// Keeping the unreadable span made that later type a conflict (exit 2).
+#[test]
+fn unreadable_nested_type_before_a_later_acme_type_stays_a_timeout() {
+    let text = "\
+2026-09-28 03:12:44,512:DEBUG:acme.client:Received response:
+{\"type\":[\"\\q\"],\"q\":\"\\\"\",\"type\":\"urn:ietf:params:acme:error:connection\",\"detail\":\"http://example.com/.well-known/acme-challenge/test: Timeout during connect (likely firewall problem)\"}
+";
+    let parsed = parse_log(text);
+    assert!(!parsed.ambiguous_json, "{:?}", parsed.problems);
+    assert_eq!(parsed.problems.len(), 1, "{:?}", parsed.problems);
+    assert_eq!(parsed.problems[0].short_type(), "connection");
+    assert!(parsed.problems[0]
+        .detail
+        .contains("/.well-known/acme-challenge/"));
+    assert!(parsed.problems[0].detail.contains("Timeout during connect"));
+    let findings = rules::analyze(&observations(parsed.problems));
+    assert_eq!(codes(&findings), vec![Code::Layer2Http01Timeout]);
+    assert!(findings[0].code.layer().is_some());
+}
+
 #[test]
 fn duplicate_type_or_detail_of_any_json_kind_is_ambiguous() {
     for value in ["null", "[1, 2]", "true", "1", "{\"a\":1}"] {
