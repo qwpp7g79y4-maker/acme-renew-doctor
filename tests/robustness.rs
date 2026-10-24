@@ -2384,3 +2384,63 @@ fn each_input_refuses_a_path_over_path_max() {
         assert!(report.stdout.contains("other kind"), "{}", report.stdout);
     }
 }
+
+// --- regression: nested "detail"/"type" JSON no longer multiplies memory
+// with depth (see ~/brug/review/reports/breaktest-acmerenew-0002.md) --------
+//
+// `scan_json`'s "one pass over the log" promise used to be broken whenever a
+// `"detail"` or `"type"` key's value was itself a JSON object/array:
+// `apply_field` -> `field_value` -> `json_value_end` (src/certbot_log.rs)
+// eagerly re-scanned and cloned the whole remaining nested value, once per
+// nesting level, up to `MAX_JSON_DEPTH` (64). A log nesting `{"detail": ...}`
+// 64 deep around one large payload was parsed in O(depth * size) time and
+// memory instead of O(size): 16 MiB RSS at depth 1 vs. 316 MiB RSS at depth
+// 63 for the same 5 MB payload. This test builds a smaller version of that
+// payload and requires the peak RSS to stay within a small multiple of the
+// input size.
+#[cfg(target_os = "linux")]
+fn nested_detail_log(depth: usize, pad_bytes: usize) -> String {
+    let mut inner = format!("{{\"pad\":\"{}\"}}", "A".repeat(pad_bytes));
+    for _ in 0..depth {
+        inner = format!("{{\"detail\":{inner}}}");
+    }
+    format!("2026-09-28 03:12:44,512:DEBUG:acme.client:Received response:\n{inner}\n")
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn z14_nested_detail_json_does_not_multiply_memory_with_depth() {
+    let temp = TempDir::new("z14-nested");
+    let log = nested_detail_log(63, 2 * 1024 * 1024);
+    let input_len = log.len() as u64;
+    let path = temp.write("nested.log", log.as_bytes());
+    let binary = env!("CARGO_BIN_EXE_acme-renew-doctor");
+    let output = Command::new("/usr/bin/time")
+        .args(["-v", binary, "example.com", "--from-log", &arg(&path)])
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .env_remove("ACME_RENEW_DOCTOR_NOW")
+        .env("ACME_RENEW_DOCTOR_NOW", NOW)
+        .output()
+        .expect("/usr/bin/time");
+    let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+    let stdout = String::from_utf8(output.stdout).expect("stdout utf-8");
+    assert!(!stderr.contains("panicked"), "{stderr}");
+    assert!(!stdout.contains("panicked"), "{stdout}");
+    let rss_kb: u64 = time_field(&stderr, "Maximum resident set size (kbytes)")
+        .parse()
+        .unwrap_or_else(|err| panic!("rss: {err}\n{stderr}"));
+    // One pass over `input_len` bytes, plus decoding/report overhead, should
+    // not need more than a handful of times the input size. The old
+    // implementation needed roughly 66x: one extra full clone of the nested
+    // remainder per nesting level.
+    let ceiling_kb = input_len / 1024 * 4 + 20_000;
+    eprintln!(
+        "Z14_MEASURE rss_kb={rss_kb} input_kb={} ceiling_kb={ceiling_kb}",
+        input_len / 1024
+    );
+    assert!(
+        rss_kb < ceiling_kb,
+        "peak RSS {rss_kb} kB is not within {ceiling_kb} kB of a {} KB input (depth amplification in scan_json/apply_field)\n{stderr}",
+        input_len / 1024
+    );
+}
