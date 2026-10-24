@@ -140,9 +140,18 @@ fn acme_sh_fixture_with_acme_sh_client_exits_two() {
         .findings
         .iter()
         .all(|finding| finding.code != Code::ClientUnknown));
+    // Same missing-input lines as the `--client certbot` case above: the
+    // read error on the log itself does not explain the missing timer and
+    // certificate inputs.
     assert_eq!(
         evidence_text(&report),
-        vec!["acme.sh logs are not parsed yet (v0.1 parses Certbot logs only)"]
+        vec![
+            "acme.sh logs are not parsed yet (v0.1 parses Certbot logs only)",
+            "no timer status",
+            "log read, no ACME errors found",
+            "no disk notAfter",
+            "no live notAfter",
+        ]
     );
     assert_eq!(report.exit_status().code(), 2);
 }
