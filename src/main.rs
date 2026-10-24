@@ -133,7 +133,7 @@ fn main() -> ExitCode {
 }
 
 /// Writes `EXAMPLE_LOG` to `EXAMPLE_LOG_NAME`, unless a file with that name
-/// already exists and does not already hold that exact content.
+/// already exists and its bytes are not exactly the bundled example.
 fn write_example() -> ExitCode {
     match write_example_log() {
         Ok(()) => {
@@ -153,16 +153,19 @@ fn write_example() -> ExitCode {
 }
 
 fn write_example_log() -> Result<(), String> {
-    if let Ok(existing) = std::fs::read_to_string(EXAMPLE_LOG_NAME) {
-        if existing == EXAMPLE_LOG {
-            return Ok(());
-        }
-        return Err(format!(
+    // Compare bytes. `read_to_string` errors on a non-UTF-8 file and used to
+    // fall through to `fs::write`, which overwrote that file.
+    match std::fs::read(EXAMPLE_LOG_NAME) {
+        Ok(existing) if existing == EXAMPLE_LOG.as_bytes() => Ok(()),
+        Ok(_) => Err(format!(
             "{EXAMPLE_LOG_NAME} already exists with different content; remove it or run --example in an empty directory"
-        ));
+        )),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            std::fs::write(EXAMPLE_LOG_NAME, EXAMPLE_LOG)
+                .map_err(|err| format!("cannot write {EXAMPLE_LOG_NAME}: {err}"))
+        }
+        Err(err) => Err(format!("cannot read {EXAMPLE_LOG_NAME}: {err}")),
     }
-    std::fs::write(EXAMPLE_LOG_NAME, EXAMPLE_LOG)
-        .map_err(|err| format!("cannot write {EXAMPLE_LOG_NAME}: {err}"))
 }
 
 fn write_stdout(bytes: &[u8]) -> io::Result<()> {

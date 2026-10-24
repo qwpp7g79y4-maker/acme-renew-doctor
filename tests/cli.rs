@@ -199,6 +199,29 @@ fn example_refuses_to_overwrite_an_unrelated_file() {
 }
 
 #[test]
+fn example_refuses_to_overwrite_a_non_utf8_file() {
+    let temp = TempDir::new("example-non-utf8");
+    let path = temp.path.join("example-log.txt");
+    // 0xFF is not valid UTF-8, so a text read fails and must not count as
+    // "the file is absent".
+    let original = b"keep me \xff intact\n";
+    std::fs::write(&path, original).expect("write conflicting file");
+    let output = run_in(&temp.path, &["--example"]);
+    assert_eq!(output.status.code(), Some(3));
+    assert!(output.stdout.is_empty());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("example-log.txt already exists with different content"),
+        "{stderr}"
+    );
+    assert_eq!(
+        std::fs::read(&path).expect("read back"),
+        original,
+        "a non-UTF-8 file must be left untouched"
+    );
+}
+
+#[test]
 fn domain_without_inputs_exits_two() {
     let output = run(&["example.com"]);
     assert_eq!(output.status.code(), Some(2));
