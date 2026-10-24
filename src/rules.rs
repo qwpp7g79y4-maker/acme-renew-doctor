@@ -77,7 +77,19 @@ pub fn analyze(obs: &Observations) -> Vec<Finding> {
             findings.push(finding);
         }
     }
-    if findings.is_empty() {
+    // A layer diagnosis, `OK_NOT_DUE` and `CLIENT_UNKNOWN` are each a
+    // complete outcome with their own fixed evidence (`CLIENT_UNKNOWN` even
+    // has its own exit code). Anything else so far is only `read_errors`:
+    // a read error on one input does not explain what the other,
+    // successfully read inputs showed, so `insufficient` still runs for
+    // that evidence; its own failed-service note then makes
+    // `attach_failed_service` below a no-op for the finding it would
+    // otherwise have had to invent.
+    let resolved = findings.iter().any(|finding| {
+        counts_as_diagnosis(finding.code)
+            || matches!(finding.code, Code::OkNotDue | Code::ClientUnknown)
+    });
+    if !resolved {
         findings.push(insufficient(obs));
     }
     attach_failed_service(obs, &mut findings);
@@ -484,12 +496,13 @@ fn counts_as_diagnosis(code: Code) -> bool {
 
 /// Keep the failed-service evidence on the first real diagnosis.
 /// `findings` is `obs.read_errors` followed by whatever `analyze` diagnosed.
-/// `insufficient` already adds the same line, so it is not added twice.
-/// When `obs.read_errors` is not empty and nothing was diagnosed, `analyze`
-/// never adds an `insufficient` finding (the read errors already make
-/// `findings` non-empty), so there is no finding at all past the read
-/// errors to attach to; a dedicated finding carries the note instead of
-/// losing it.
+/// `insufficient` already adds the same line, so it is not added twice: when
+/// nothing was diagnosed, `analyze` always has an `insufficient` finding
+/// right after the read errors (even when `obs.read_errors` is not empty),
+/// and that finding already carries this note, so the match below finds it
+/// and returns early. The fallback that invents a finding here only guards
+/// against `findings` ending exactly at the read errors, which no longer
+/// happens, but is kept in case that invariant ever changes.
 fn attach_failed_service(obs: &Observations, findings: &mut Vec<Finding>) {
     let Some(service) = obs.service.as_ref() else {
         return;
@@ -897,6 +910,74 @@ mod tests {
                 .all(|item| !item.text.contains("failed (Result=")),
             "{:?}",
             finding.evidence
+        );
+    }
+
+    #[test]
+    fn analyze_keeps_the_insufficient_evidence_beside_an_unrelated_read_error() {
+        // A clean log (read successfully) plus an unrelated read error (the
+        // timer status file is missing) and no diagnosis at all. `analyze`
+        // used to treat the read error as already explaining everything and
+        // skip `insufficient`, silently dropping what the log showed.
+        let mut obs = bare_observations();
+        obs.log_read = true;
+        obs.read_errors = vec![Finding::new(
+            Code::InsufficientEvidence,
+            Confidence::High,
+            vec![note(
+                EvidenceSource::Timer,
+                "cannot read timer file: NotFound",
+            )],
+        )];
+        let findings = analyze(&obs);
+        assert_eq!(findings.len(), 2, "{findings:?}");
+        assert_eq!(findings[0].code, Code::InsufficientEvidence);
+        assert_eq!(
+            findings[0].evidence[0].text,
+            "cannot read timer file: NotFound"
+        );
+        assert!(
+            findings[1]
+                .evidence
+                .iter()
+                .any(|item| item.text == "log read, no ACME errors found"),
+            "the log's own evidence must not be lost behind the unrelated read error: {:?}",
+            findings[1].evidence
+        );
+    }
+
+    #[test]
+    fn analyze_keeps_an_unrecognised_connection_error_beside_an_unrelated_read_error() {
+        // Same shape, but the log itself has a real ACME connection error
+        // that no dedicated rule matches. That evidence line is the most
+        // actionable thing in the report and must survive.
+        let problem = crate::certbot_log::AcmeProblem {
+            problem_type: "urn:ietf:params:acme:error:connection".to_string(),
+            detail: "Network unreachable".to_string(),
+            line: 3,
+            first_line: 3,
+            occurrences: 1,
+            json_hits: 1,
+            ..Default::default()
+        };
+        let mut obs = bare_observations();
+        obs.log_read = true;
+        obs.problems = vec![problem];
+        obs.read_errors = vec![Finding::new(
+            Code::InsufficientEvidence,
+            Confidence::High,
+            vec![note(
+                EvidenceSource::Disk,
+                "cannot read cert file: NotFound",
+            )],
+        )];
+        let findings = analyze(&obs);
+        assert!(
+            findings.iter().any(|finding| finding
+                .evidence
+                .iter()
+                .any(|item| item.text == "line 3: Network unreachable")),
+            "the unrecognised connection error must not be lost behind the unrelated read error: {findings:?}"
         );
     }
 

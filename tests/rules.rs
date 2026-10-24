@@ -366,7 +366,24 @@ fn unreadable_log_is_insufficient_evidence() {
         read_errors: vec![err.clone()],
         ..blank()
     });
-    assert_eq!(findings, vec![err]);
+    // The read error on the log does not explain the other, entirely
+    // missing inputs; `insufficient` still names those.
+    assert_eq!(findings.len(), 2);
+    assert_eq!(findings[0], err);
+    assert_eq!(findings[1].code, Code::InsufficientEvidence);
+    assert_eq!(
+        findings[1]
+            .evidence
+            .iter()
+            .map(|item| item.text.as_str())
+            .collect::<Vec<_>>(),
+        vec![
+            "no timer status",
+            "no log given",
+            "no disk notAfter",
+            "no live notAfter"
+        ]
+    );
     assert_eq!(exit_of(&findings), 2);
 }
 

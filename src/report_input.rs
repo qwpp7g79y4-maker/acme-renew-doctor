@@ -281,9 +281,18 @@ mod tests {
             .findings
             .iter()
             .all(|finding| finding.code != Code::Layer2Http01Timeout));
+        // The "not parsed" read error does not explain the missing timer and
+        // certificate inputs; `insufficient` still names those, exactly as
+        // it would with no read error at all.
         assert_eq!(
             texts(&report),
-            vec!["acme.sh logs are not parsed yet (v0.1 parses Certbot logs only)"]
+            vec![
+                "acme.sh logs are not parsed yet (v0.1 parses Certbot logs only)",
+                "no timer status",
+                "log read, no ACME errors found",
+                "no disk notAfter",
+                "no live notAfter",
+            ]
         );
         assert_eq!(report.exit_status().code(), 2);
     }
