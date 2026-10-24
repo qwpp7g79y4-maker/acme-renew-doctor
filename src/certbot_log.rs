@@ -669,11 +669,46 @@ struct OpenObject {
     depth: u32,
 }
 
-/// A decoded string, or the raw text of any other JSON value.
-#[derive(Clone, PartialEq, Eq)]
+/// A decoded string, or the byte span of a non-string JSON value.
+///
+/// A `Nested` object/array value's end is *not* found here: finding it
+/// requires a scan of the whole value, and doing that eagerly for every
+/// `"type"`/`"detail"` key is what used to make a log with N levels of
+/// `{"detail": {"detail": ...}}` cost O(N * size) instead of O(size) (one
+/// full extra scan, plus a clone, per level). The span is resolved lazily,
+/// in `other_value_text`, only when a second occurrence of the same key in
+/// the same object needs to be compared against it.
+#[derive(Clone)]
 enum FieldValue {
     String(String),
-    Other(String),
+    Nested(usize),
+    Token(usize, usize),
+}
+
+/// The text of a non-string field value, found lazily. `Nested`'s end is
+/// only scanned for here, on comparison — not once per enclosing level.
+fn other_value_text<'a>(text: &'a str, value: &FieldValue) -> Option<&'a str> {
+    match *value {
+        FieldValue::Nested(start) => {
+            let end = json_value_end(text, start)?;
+            text.get(start..end)
+        }
+        FieldValue::Token(start, end) => text.get(start..end),
+        FieldValue::String(_) => None,
+    }
+}
+
+/// The same key twice with the same value counts as one; this is how that
+/// value equality is decided, including the lazy `Nested` lookup above.
+fn field_values_equal(text: &str, left: &FieldValue, right: &FieldValue) -> bool {
+    match (left, right) {
+        (FieldValue::String(left), FieldValue::String(right)) => left == right,
+        (FieldValue::String(_), _) | (_, FieldValue::String(_)) => false,
+        _ => match (other_value_text(text, left), other_value_text(text, right)) {
+            (Some(left), Some(right)) => left == right,
+            _ => false,
+        },
+    }
 }
 
 struct PendingHit {
@@ -801,13 +836,19 @@ fn apply_field(
 ) {
     let parsed = field_value(text, value_at);
     if key == "type" {
-        note_type(obj, parsed, key_line, order);
+        note_type(text, obj, parsed, key_line, order);
     } else if key == "detail" {
-        note_detail(obj, parsed);
+        note_detail(text, obj, parsed);
     }
 }
 
-fn note_type(obj: &mut OpenObject, parsed: Option<FieldValue>, key_line: usize, order: &mut u64) {
+fn note_type(
+    text: &str,
+    obj: &mut OpenObject,
+    parsed: Option<FieldValue>,
+    key_line: usize,
+    order: &mut u64,
+) {
     match parsed {
         Some(FieldValue::String(value)) => {
             if obj.problem_type.is_none() && value.starts_with(ACME_ERROR_PREFIX) {
@@ -817,12 +858,13 @@ fn note_type(obj: &mut OpenObject, parsed: Option<FieldValue>, key_line: usize, 
                 obj.type_order = *order;
             }
             remember(
+                text,
                 &mut obj.seen_type,
                 &mut obj.type_conflict,
                 FieldValue::String(value),
             );
         }
-        Some(other) => remember(&mut obj.seen_type, &mut obj.type_conflict, other),
+        Some(other) => remember(text, &mut obj.seen_type, &mut obj.type_conflict, other),
         None => {
             if obj.seen_type.is_some() {
                 obj.type_conflict = true;
@@ -831,19 +873,20 @@ fn note_type(obj: &mut OpenObject, parsed: Option<FieldValue>, key_line: usize, 
     }
 }
 
-fn note_detail(obj: &mut OpenObject, parsed: Option<FieldValue>) {
+fn note_detail(text: &str, obj: &mut OpenObject, parsed: Option<FieldValue>) {
     match parsed {
         Some(FieldValue::String(value)) => {
             if obj.seen_detail.is_none() {
                 obj.detail = Some(value.clone());
             }
             remember(
+                text,
                 &mut obj.seen_detail,
                 &mut obj.detail_conflict,
                 FieldValue::String(value),
             );
         }
-        Some(other) => remember(&mut obj.seen_detail, &mut obj.detail_conflict, other),
+        Some(other) => remember(text, &mut obj.seen_detail, &mut obj.detail_conflict, other),
         None => {
             if obj.seen_detail.is_some() {
                 obj.detail_conflict = true;
@@ -853,21 +896,33 @@ fn note_detail(obj: &mut OpenObject, parsed: Option<FieldValue>) {
 }
 
 /// The first value is kept. A later different value marks the field as a conflict.
-fn remember(slot: &mut Option<FieldValue>, conflict: &mut bool, value: FieldValue) {
+fn remember(text: &str, slot: &mut Option<FieldValue>, conflict: &mut bool, value: FieldValue) {
     match slot {
-        Some(existing) if existing != &value => *conflict = true,
+        Some(existing) if !field_values_equal(text, existing, &value) => *conflict = true,
         Some(_) => {}
         None => *slot = Some(value),
     }
 }
 
 fn field_value(text: &str, start: usize) -> Option<FieldValue> {
-    if text.as_bytes().get(start) == Some(&b'"') {
-        let (value, _) = parse_json_string(text, start)?;
-        return Some(FieldValue::String(value));
+    match text.as_bytes().get(start) {
+        Some(b'"') => {
+            let (value, _) = parse_json_string(text, start)?;
+            Some(FieldValue::String(value))
+        }
+        // An object/array value's end is not scanned for here: `scan_json`'s
+        // main loop is about to walk it anyway. Finding it eagerly, once per
+        // nesting level, is what used to multiply cost by nesting depth.
+        Some(b'{') | Some(b'[') => Some(FieldValue::Nested(start)),
+        // Short tokens (numbers, `true`/`false`/`null`, unreadable text)
+        // cost nothing to bound eagerly, and keep `None` for an empty/broken
+        // value exact for cases that can still have a later occurrence to
+        // compare against.
+        _ => {
+            let end = json_value_end(text, start)?;
+            Some(FieldValue::Token(start, end))
+        }
     }
-    let end = json_value_end(text, start)?;
-    Some(FieldValue::Other(text[start..end].to_string()))
 }
 
 /// End index of one JSON value. Strings are skipped. `None` when the value is unreadable.
