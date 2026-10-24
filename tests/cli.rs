@@ -221,6 +221,39 @@ fn example_refuses_to_overwrite_a_non_utf8_file() {
     );
 }
 
+fn assert_example_conflict_rejected(temp_dir: &std::path::Path, args: &[&str]) {
+    let output = run_in(temp_dir, args);
+    assert_eq!(output.status.code(), Some(3), "{args:?}");
+    assert!(
+        !temp_dir.join("example-log.txt").exists(),
+        "{args:?} must not write example-log.txt"
+    );
+}
+
+#[test]
+fn example_combined_with_domain_is_rejected() {
+    let temp = TempDir::new("example-conflict-domain");
+    assert_example_conflict_rejected(&temp.path, &["--example", "example.com"]);
+}
+
+#[test]
+fn example_combined_with_all_is_rejected() {
+    let temp = TempDir::new("example-conflict-all");
+    assert_example_conflict_rejected(&temp.path, &["--example", "--all"]);
+}
+
+#[test]
+fn example_combined_with_from_log_is_rejected() {
+    let temp = TempDir::new("example-conflict-from-log");
+    assert_example_conflict_rejected(&temp.path, &["--example", "--from-log", "x.log"]);
+}
+
+#[test]
+fn example_combined_with_json_is_rejected() {
+    let temp = TempDir::new("example-conflict-json");
+    assert_example_conflict_rejected(&temp.path, &["--example", "--json"]);
+}
+
 #[test]
 fn domain_without_inputs_exits_two() {
     let output = run(&["example.com"]);
