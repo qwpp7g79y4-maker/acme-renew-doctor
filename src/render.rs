@@ -252,10 +252,12 @@ fn report_notes(report: &Report) -> Vec<String> {
     }
     if let Some(domain) = report.snapshot.domain.as_deref() {
         if safe::safe_domain(Some(domain)).is_none() {
-            let only_hostname_bytes = !domain.is_empty()
-                && domain
-                    .bytes()
-                    .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'.');
+            // An empty domain has no character to call unsafe: it is
+            // vacuously built only from hostname bytes, so its problem is
+            // the shape (too few labels), not an unsafe character.
+            let only_hostname_bytes = domain
+                .bytes()
+                .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'.');
             notes.push(if only_hostname_bytes {
                 INVALID_DOMAIN_NOTE.to_string()
             } else {

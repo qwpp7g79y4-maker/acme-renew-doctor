@@ -512,6 +512,53 @@ fn failed_service_note_attaches_to_the_diagnosis_not_a_read_error() {
 }
 
 #[test]
+fn failed_service_note_is_not_lost_with_a_read_error_and_no_diagnosis() {
+    // With a read error but no layer diagnosis, `analyze` never adds an
+    // `insufficient` finding: the read error already makes `findings`
+    // non-empty. Before, `attach_failed_service` assumed a finding always
+    // sat right after the read errors and silently dropped the note when
+    // none did, so a real failed `certbot.service` disappeared from the
+    // report entirely.
+    let mut obs = observations(Vec::new());
+    obs.timer = None;
+    obs.disk_not_after = None;
+    obs.live_not_after = None;
+    obs.log_read = false;
+    obs.read_errors = vec![Finding::new(
+        Code::InsufficientEvidence,
+        Confidence::High,
+        vec![Evidence {
+            source: EvidenceSource::Disk,
+            text: "cannot read disk cert: NotFound".to_string(),
+        }],
+    )];
+    obs.service = Some(TimerStatus {
+        id: "certbot.service".to_string(),
+        load_state: "loaded".to_string(),
+        active_state: "failed".to_string(),
+        sub_state: "failed".to_string(),
+        unit_file_state: "enabled".to_string(),
+        result: "exit-code".to_string(),
+        condition_result: "yes".to_string(),
+    });
+    let findings = rules::analyze(&obs);
+    assert_eq!(findings[0].code, Code::InsufficientEvidence);
+    assert_eq!(
+        findings[0].evidence[0].text,
+        "cannot read disk cert: NotFound"
+    );
+    assert!(
+        findings
+            .iter()
+            .any(|finding| finding
+                .evidence
+                .iter()
+                .any(|item| item.text.ends_with(rules::FAILED_SERVICE_NOTE_SUFFIX))),
+        "the failed-service note must not be lost when there is a read error but no diagnosis: {findings:?}"
+    );
+}
+
+#[test]
 fn bidi_controls_are_escaped_in_text() {
     for ch in ['\u{202e}', '\u{2066}', '\u{200e}', '\u{200f}', '\u{061c}'] {
         let escaped = escape_file_text(&format!("name{ch}x"));

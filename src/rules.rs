@@ -471,7 +471,12 @@ fn counts_as_diagnosis(code: Code) -> bool {
 /// Keep the failed-service evidence on the first real diagnosis.
 /// `findings` is `obs.read_errors` followed by whatever `analyze` diagnosed.
 /// `insufficient` already adds the same line, so it is not added twice.
-fn attach_failed_service(obs: &Observations, findings: &mut [Finding]) {
+/// When `obs.read_errors` is not empty and nothing was diagnosed, `analyze`
+/// never adds an `insufficient` finding (the read errors already make
+/// `findings` non-empty), so there is no finding at all past the read
+/// errors to attach to; a dedicated finding carries the note instead of
+/// losing it.
+fn attach_failed_service(obs: &Observations, findings: &mut Vec<Finding>) {
     let Some(service) = obs.service.as_ref() else {
         return;
     };
@@ -486,11 +491,19 @@ fn attach_failed_service(obs: &Observations, findings: &mut [Finding]) {
         return;
     }
     // Skip the read errors so the note lands on the actual diagnosis.
-    if let Some(target) = findings.get_mut(obs.read_errors.len()) {
-        target.evidence.push(Evidence {
+    match findings.get_mut(obs.read_errors.len()) {
+        Some(target) => target.evidence.push(Evidence {
             source: EvidenceSource::Timer,
             text,
-        });
+        }),
+        None => findings.push(Finding::new(
+            Code::InsufficientEvidence,
+            Confidence::Low,
+            vec![Evidence {
+                source: EvidenceSource::Timer,
+                text,
+            }],
+        )),
     }
 }
 
