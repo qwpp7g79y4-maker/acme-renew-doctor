@@ -113,6 +113,21 @@ fn from_log_dash_reads_the_log_from_standard_input() {
     );
 }
 
+#[test]
+fn from_log_dash_names_standard_input_on_a_wide_encoding_error() {
+    // UTF-16LE bytes piped in on standard input must be reported as
+    // "standard input", not as a file named "-": there is no such file.
+    let utf16le = [0xFFu8, 0xFE, b'A', 0x00, b'B', 0x00];
+    let output = run_with_stdin(&["example.com", "--from-log", "-"], &utf16le);
+    assert_eq!(output.status.code(), Some(2));
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("cannot read standard input: the file is UTF-16LE; save it as UTF-8"),
+        "{stdout}"
+    );
+    assert!(!stdout.contains("cannot read -:"), "{stdout}");
+}
+
 struct TempDir {
     path: std::path::PathBuf,
 }

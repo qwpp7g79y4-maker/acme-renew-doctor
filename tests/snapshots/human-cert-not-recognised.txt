@@ -6,6 +6,12 @@ inputs: log=(none) · timer status=(none) · cert disk=tests/fixtures/certs/not-
   evidence:
   • [disk] certificate dates not recognised (no notAfter= line in openssl x509 -dates output)
 
+? INSUFFICIENT_EVIDENCE  confidence=low  layer=-
+  evidence:
+  • [timer] no timer status
+  • [log] no log given
+  • [disk] no disk notAfter
+
 Next (SAFE copy-paste checks, read-only; Doctor runs nothing and will NOT renew or reload for you):
   → systemctl show certbot.timer certbot.service -p Id,LoadState,ActiveState,SubState,UnitFileState,Result,ConditionResult,LastTriggerUSec,NextElapseUSecRealtime
     why: save this output yourself and pass the file with --from-timer-status

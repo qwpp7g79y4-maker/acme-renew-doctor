@@ -24,6 +24,25 @@
           "text": "certificate dates not recognised (no notAfter= line in openssl x509 -dates output)"
         }
       ]
+    },
+    {
+      "code": "INSUFFICIENT_EVIDENCE",
+      "layer": null,
+      "confidence": "low",
+      "evidence": [
+        {
+          "source": "timer",
+          "text": "no timer status"
+        },
+        {
+          "source": "log",
+          "text": "no log given"
+        },
+        {
+          "source": "disk",
+          "text": "no disk notAfter"
+        }
+      ]
     }
   ],
   "next_checks": [

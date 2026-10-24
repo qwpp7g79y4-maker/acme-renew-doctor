@@ -149,7 +149,8 @@ impl WideEncoding {
 /// `-` means standard input, buffered fully (up to `LOG_MAX_BYTES`) and then
 /// decoded exactly like a file, so the same size and encoding checks apply.
 pub fn read_log(path: &Path) -> Result<DecodedLog, Finding> {
-    let bytes = if path == Path::new("-") {
+    let is_stdin = path == Path::new("-");
+    let bytes = if is_stdin {
         read_capped(
             std::io::stdin().lock(),
             LOG_MAX_BYTES,
@@ -159,7 +160,12 @@ pub fn read_log(path: &Path) -> Result<DecodedLog, Finding> {
     } else {
         read_regular_bytes(path, LOG_MAX_BYTES, EvidenceSource::Log)?
     };
-    decode_log_bytes(path, &bytes)
+    let what = if is_stdin {
+        "standard input".to_string()
+    } else {
+        path.display().to_string()
+    };
+    decode_log_bytes(&what, &bytes)
 }
 
 /// Read at most `max_bytes` from `reader`, with the same over-the-limit
@@ -338,9 +344,9 @@ fn finding_for_io(path: &Path, source: EvidenceSource, err: &std::io::Error) -> 
     finding_for_io_kind(source, &path.display().to_string(), err)
 }
 
-fn decode_log_bytes(path: &Path, bytes: &[u8]) -> Result<DecodedLog, Finding> {
+fn decode_log_bytes(what: &str, bytes: &[u8]) -> Result<DecodedLog, Finding> {
     if let Some(encoding) = wide_text_encoding(bytes) {
-        return Err(wide_encoding_finding(path, encoding, EvidenceSource::Log));
+        return Err(wide_encoding_finding(what, encoding, EvidenceSource::Log));
     }
     let bytes = without_utf8_bom(bytes);
     let (text, replaced_invalid_utf8_bytes) = utf8_with_replacement(bytes);
@@ -358,7 +364,11 @@ pub fn read_strict_text(
 ) -> Result<String, Finding> {
     let bytes = read_regular_bytes(path, max_bytes, source)?;
     if let Some(encoding) = wide_text_encoding(&bytes) {
-        return Err(wide_encoding_finding(path, encoding, source));
+        return Err(wide_encoding_finding(
+            &path.display().to_string(),
+            encoding,
+            source,
+        ));
     }
     let bytes = without_utf8_bom(&bytes);
     match std::str::from_utf8(bytes) {
@@ -430,12 +440,11 @@ fn wide_text_encoding(bytes: &[u8]) -> Option<WideEncoding> {
     None
 }
 
-fn wide_encoding_finding(path: &Path, encoding: WideEncoding, source: EvidenceSource) -> Finding {
+fn wide_encoding_finding(what: &str, encoding: WideEncoding, source: EvidenceSource) -> Finding {
     read_finding(
         source,
         format!(
-            "cannot read {}: the file is {}; save it as UTF-8",
-            path.display(),
+            "cannot read {what}: the file is {}; save it as UTF-8",
             encoding.label()
         ),
     )
@@ -1911,16 +1920,15 @@ mod tests {
 
     #[test]
     fn utf8_bom_is_skipped_and_one_bad_byte_is_counted() {
-        let path = Path::new("log");
-        let decoded = decode_log_bytes(path, b"\xEF\xBB\xBFhello").expect("utf-8 bom");
+        let decoded = decode_log_bytes("log", b"\xEF\xBB\xBFhello").expect("utf-8 bom");
         assert_eq!(decoded.text, "hello");
         assert_eq!(decoded.replaced_invalid_utf8_bytes, 0);
 
-        let decoded = decode_log_bytes(path, b"ab\xFFcd").expect("one bad byte");
+        let decoded = decode_log_bytes("log", b"ab\xFFcd").expect("one bad byte");
         assert_eq!(decoded.replaced_invalid_utf8_bytes, 1);
         assert!(decoded.text.contains('\u{FFFD}'));
 
-        let err = decode_log_bytes(path, &[0xFF, 0xFE, b'A', 0x00]).unwrap_err();
+        let err = decode_log_bytes("log", &[0xFF, 0xFE, b'A', 0x00]).unwrap_err();
         assert!(err.evidence[0].text.contains("UTF-16LE"));
         assert!(err.evidence[0].text.contains("save it as UTF-8"));
         assert!(!err.evidence[0].text.contains("other kind"));
