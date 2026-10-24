@@ -1,4 +1,4 @@
-acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+acme-renew-doctor 0.2.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=(none) · timer status=(none) · cert disk=tests/fixtures/certs/not-a-cert.txt · cert live=tests/fixtures/certs/dates-current.txt
 

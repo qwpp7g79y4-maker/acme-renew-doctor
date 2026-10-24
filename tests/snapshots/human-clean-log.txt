@@ -1,4 +1,4 @@
-acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+acme-renew-doctor 0.2.0 (read-only, nothing was changed)
 target: (none) · client: auto
 inputs: log=tests/fixtures/certbot/http01-connection-refused.log · timer status=tests/fixtures/timer/certbot-timer-enabled.txt · cert disk=(none) · cert live=(none)
 
