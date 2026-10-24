@@ -8,9 +8,13 @@ All notable changes to this project are documented in this file.
 
 - `OK_NOT_DUE` now requires a third of the disk certificate's own lifetime (notAfter minus notBefore) to remain, capped at 30 days, instead of a fixed 30 days. The fixed threshold is longer than Let's Encrypt's 6-day short-lived certificate option, so `OK_NOT_DUE` could never be reached for one. The cap keeps a 90-day Certbot default certificate's behaviour unchanged, and falls back to the fixed 30 days when the saved `-dates` output has no `notBefore=` line.
 - `OK_NOT_DUE` now also requires the disk certificate's notBefore, when known, to not be after `now`. Before, a not-yet-valid certificate (clock skew, or a misdeployed certificate) with a far-off notAfter could be reported `OK_NOT_DUE`.
+- When every `OK_NOT_DUE` condition holds except the remaining-days threshold, `INSUFFICIENT_EVIDENCE` adds the known date: `notAfter=<date>, <days> day(s) remain, at or under the <threshold>-day renewal threshold`.
 
 ### Added
 
+- `--from-log -` reads a Certbot log from standard input, buffered up to the same 268435456 byte limit as a file. Only the literal path `-`, and only on `--from-log`, does this, so `journalctl -u certbot.service | acme-renew-doctor example.com --from-log -` works.
+- `--example` writes a synthetic Certbot log to `example-log.txt` in the current directory and exits 0. That is the only file the tool writes. The same bytes again are left as they are. Different bytes, including bytes that are not valid UTF-8, are left untouched and the command exits 3.
+- The README and README.nl.md warn that the report quotes the files you pass back verbatim and does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, and before you forward the report.
 - The README lists the supported systems: glibc 2.34 or newer for the Linux gnu build, macOS 10.12 (Intel) and 11.0 (Apple Silicon), and Windows 10.
 - CI checks the highest glibc symbol of the Linux gnu binary and runs the tests in release mode too.
 - Release archives contain `QUALITY.md` and `QUALITY.nl.md`, and the archive smoke test checks for them.

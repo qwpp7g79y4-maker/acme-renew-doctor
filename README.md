@@ -8,7 +8,7 @@ Explain why a Certbot renewal failed, or quietly never ran, from files you pass.
 
 [Installation](#installation) • [Quick start](#quick-start) • [How it works](#how-it-works) • [Alternatives](#compared-with-alternatives) • [Limitations](#limitations) • [Reference](docs/reference.md)
 
-acme-renew-doctor is a local, read-only command-line tool written in Rust. It explains why a Certbot TLS renewal failed, or quietly never ran. It collects nothing. It only reads files you pass in: saved command output, or text you pasted into a file. It runs no command, never forces a renewal, and never reloads a service. A finding is a fixed code plus the evidence for it. Codes that name a layer use scheduler, validation, or deployment. It needs no account and makes no network connection.
+acme-renew-doctor is a local, read-only command-line tool written in Rust. It explains why a Certbot TLS renewal failed, or quietly never ran. It collects nothing. It only reads files you pass in: saved command output, or text you pasted into a file. It runs no command, never forces a renewal, and never reloads a service. The only file it writes is `example-log.txt` in the current directory, and only when you pass `--example`.  A finding is a fixed code plus the evidence for it. Codes that name a layer use scheduler, validation, or deployment. It needs no account and makes no network connection.
 
 **Warning:** the report quotes the files you pass back verbatim; it does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, especially before you forward the report to anyone else. See [Privacy](#privacy).
 
@@ -63,7 +63,7 @@ acme-renew-doctor --help
 
 These are the real outputs of the binary on the synthetic fixtures in `tests/fixtures`. A test runs every example and compares the output. You create each `--from-*` file yourself. The tool does not run the commands it prints.
 
-No clone of this repository? `acme-renew-doctor --example` writes a synthetic Certbot log to `example-log.txt` in the current directory (it refuses to overwrite an unrelated file of that name) and exits 0. Pass `--from-log example-log.txt` instead of the `tests/fixtures/...` path in the second example below to see the same `LAYER2_HTTP01_TIMEOUT` without a clone.
+No clone of this repository? `acme-renew-doctor --example` writes a synthetic Certbot log to `example-log.txt` in the current directory (it refuses to overwrite an unrelated file of that name) and exits 0. To see the same `LAYER2_HTTP01_TIMEOUT` without a clone, run `acme-renew-doctor example.com --from-log example-log.txt`. Leave out `--from-timer-status`; that fixture is only in a clone.
 
 With no files, the report asks for them and exits 2:
 

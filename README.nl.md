@@ -8,7 +8,7 @@ Leg uit waarom een Certbot-vernieuwing faalde, of stilletjes nooit draaide, aan 
 
 [Installatie](#installatie) • [Snel aan de slag](#snel-aan-de-slag) • [Hoe het werkt](#hoe-het-werkt) • [Alternatieven](#vergelijking-met-alternatieven) • [Beperkingen](#beperkingen) • [Referentie](docs/reference.nl.md)
 
-acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. Het legt uit waarom een Certbot-TLS-vernieuwing faalde, of stilletjes nooit draaide. Het verzamelt niets. Het leest alleen bestanden die je meegeeft: opgeslagen opdrachtuitvoer, of tekst die je in een bestand plakte. Het voert geen opdracht uit, forceert nooit een vernieuwing en herlaadt nooit een service. Een bevinding is een vaste code plus het bewijs daarvoor. Codes die een laag noemen gebruiken scheduler, validation of deployment. Het heeft geen account nodig en maakt geen netwerkverbinding.
+acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. Het legt uit waarom een Certbot-TLS-vernieuwing faalde, of stilletjes nooit draaide. Het verzamelt niets. Het leest alleen bestanden die je meegeeft: opgeslagen opdrachtuitvoer, of tekst die je in een bestand plakte. Het voert geen opdracht uit, forceert nooit een vernieuwing en herlaadt nooit een service. Het enige bestand dat het schrijft is `example-log.txt` in de huidige map, en alleen als je `--example` meegeeft.  Een bevinding is een vaste code plus het bewijs daarvoor. Codes die een laag noemen gebruiken scheduler, validation of deployment. Het heeft geen account nodig en maakt geen netwerkverbinding.
 
 **Waarschuwing:** het rapport citeert de bestanden die je meegeeft woordelijk terug; het redigeert niet. Verwijder tokens, wachtwoorden en API-sleutels uit een log of andere opgeslagen opdrachtuitvoer voordat je die meegeeft, zeker voordat je het rapport doorstuurt. Zie [Privacy](#privacy).
 
@@ -65,7 +65,7 @@ acme-renew-doctor --help
 
 Dit is de echte uitvoer van de binary op de synthetische fixtures in `tests/fixtures`. Een test draait elk voorbeeld en vergelijkt de uitvoer. Elk `--from-*`-bestand maak je zelf. De tool voert de opdrachten die hij afdrukt niet uit.
 
-Geen kloon van deze repository? `acme-renew-doctor --example` schrijft een synthetische Certbot-log naar `example-log.txt` in de huidige map (en weigert een ongerelateerd bestand met die naam te overschrijven) en stopt met exit 0. Geef `--from-log example-log.txt` in plaats van het pad `tests/fixtures/...` in het tweede voorbeeld hieronder om dezelfde `LAYER2_HTTP01_TIMEOUT` te zien zonder kloon.
+Geen kloon van deze repository? `acme-renew-doctor --example` schrijft een synthetische Certbot-log naar `example-log.txt` in de huidige map (en weigert een ongerelateerd bestand met die naam te overschrijven) en stopt met exit 0. Om dezelfde `LAYER2_HTTP01_TIMEOUT` te zien zonder kloon, draai `acme-renew-doctor example.com --from-log example-log.txt`. Laat `--from-timer-status` weg; die fixture zit alleen in een kloon.
 
 Zonder bestanden vraagt het rapport erom en eindigt het met exit 2:
 
