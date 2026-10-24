@@ -69,7 +69,7 @@ With no files, the report asks for them and exits 2:
 
 ```console
 $ acme-renew-doctor example.com
-acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+acme-renew-doctor 0.2.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=(none) · timer status=(none) · cert disk=(none) · cert live=(none)
 
@@ -101,7 +101,7 @@ A saved Certbot log and a saved timer status, both synthetic:
 
 ```console
 $ acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout-repeated.log --from-timer-status tests/fixtures/timer/certbot-timer-disabled.txt
-acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+acme-renew-doctor 0.2.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=tests/fixtures/certbot/http01-timeout-repeated.log · timer status=tests/fixtures/timer/certbot-timer-disabled.txt · cert disk=(none) · cert live=(none)
 
@@ -145,7 +145,7 @@ Certificate dates that are equal and not yet due, with the clock pinned for the 
 
 ```console
 $ ACME_RENEW_DOCTOR_NOW=1791273600 acme-renew-doctor example.com --from-timer-status tests/fixtures/timer/certbot-timer-enabled.txt --from-cert-disk tests/fixtures/certs/dates-current.txt --from-cert-live tests/fixtures/certs/dates-current.txt
-acme-renew-doctor 0.1.0 (read-only, nothing was changed)
+acme-renew-doctor 0.2.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=(none) · timer status=tests/fixtures/timer/certbot-timer-enabled.txt · cert disk=tests/fixtures/certs/dates-current.txt · cert live=tests/fixtures/certs/dates-current.txt
 
