@@ -16,9 +16,23 @@ pub struct CertTime {
 }
 
 impl CertTime {
+    /// Whole days remaining until `self`, counted from the exact elapsed
+    /// time (not the bare calendar date): a `now` that is partway through
+    /// its day has already used up those hours, so they are not counted as
+    /// a whole day still remaining. `div_euclid` floors towards negative
+    /// infinity, so a `now` after `self` still gives a correctly negative
+    /// count.
     pub fn days_until(&self, now: &CertTime) -> i64 {
-        days_from_civil(self.year, self.month, self.day)
-            .saturating_sub(days_from_civil(now.year, now.month, now.day))
+        self.unix_seconds()
+            .saturating_sub(now.unix_seconds())
+            .div_euclid(86_400)
+    }
+
+    fn unix_seconds(&self) -> i64 {
+        days_from_civil(self.year, self.month, self.day) * 86_400
+            + i64::from(self.hour) * 3_600
+            + i64::from(self.minute) * 60
+            + i64::from(self.second)
     }
 }
 
@@ -370,6 +384,23 @@ notAfter=Jun  4 11:04:38 2035 GMT
     }
 
     #[test]
+    fn days_until_counts_an_elapsed_partial_day_not_the_bare_calendar_date() {
+        // notAfter is 64 days (5,529,600s) after notBefore: Let's Encrypt's
+        // short-lived profile. A third of that lifetime is 1,843,200s, i.e.
+        // 21 days and 8 hours, not a whole number of calendar days.
+        let not_after = at(2026, 3, 6, 0, 0, 0);
+        // Exactly 21 days and 8 hours before not_after, but still the same
+        // calendar date (Feb 12) as a point only 8 hours earlier would be.
+        let now = at(2026, 2, 12, 16, 0, 0);
+        assert_eq!(
+            not_after.days_until(&now),
+            21,
+            "8 hours have already elapsed on Feb 12, so only 21 whole days remain, \
+             not 22 as a bare calendar-date subtraction would report"
+        );
+    }
+
+    #[test]
     fn days_from_civil_and_civil_from_days_round_trip_across_eras() {
         // Howard Hinnant's day-count conversion is each other's inverse.
         // Sweeping dates across every kind of boundary the formula has to
@@ -449,7 +480,7 @@ Unable to load certificate
             let not_after =
                 parse_openssl_enddate(&text).unwrap_or_else(|| panic!("{name} notAfter"));
             assert_eq!(
-                unix_seconds(not_after) - unix_seconds(not_before),
+                not_after.unix_seconds() - not_before.unix_seconds(),
                 90 * 86_400 - 1,
                 "{name}"
             );
@@ -457,12 +488,5 @@ Unable to load certificate
         let errors = std::fs::read_to_string(root.join("tests/fixtures/certs/not-a-cert.txt"))
             .expect("not-a-cert");
         assert_eq!(parse_openssl_enddate(&errors), None);
-    }
-
-    fn unix_seconds(time: CertTime) -> i64 {
-        days_from_civil(time.year, time.month, time.day) * 86_400
-            + i64::from(time.hour) * 3_600
-            + i64::from(time.minute) * 60
-            + i64::from(time.second)
     }
 }

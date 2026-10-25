@@ -26,6 +26,19 @@ pub struct Observations {
 /// (`disk_not_before` missing or not earlier than `disk_not_after`). Also
 /// the value `not_due_threshold` computes for a 90-day certificate, so a
 /// certbot-default certificate sees the same behaviour as before.
+///
+/// `openssl x509 -noout -enddate` (as opposed to `-dates`) never prints
+/// `notBefore=`, so this path is reached for every disk certificate read
+/// that way, not only malformed input. For a real 64-day Let's Encrypt
+/// short-lived certificate in that case, the true threshold (a third of
+/// 64 days, about 21 days) is smaller than this 30-day fallback, so
+/// `OK_NOT_DUE` can report "not due" slightly later than it has to. There
+/// is no second source for the certificate's lifetime in this tool's
+/// inputs (no ARI, no renewal-config `renew_before_expiry`), so that gap
+/// is not closed by guessing a lifetime from `notAfter` alone: doing so
+/// would invent data `not_due_threshold` has no way to confirm. The
+/// fallback stays a fixed, conservative number instead, and never widens
+/// the window in which `OK_NOT_DUE` is reported.
 pub const NOT_DUE_DAYS: i64 = 30;
 
 /// Days of validity that must remain for `OK_NOT_DUE`: one third of the
@@ -730,6 +743,12 @@ mod tests {
         assert_eq!(not_due_threshold(Some(not_before), ninety_days), 30);
         let six_days = from_unix_seconds(6 * 86_400);
         assert_eq!(not_due_threshold(Some(not_before), six_days), 2);
+        // Let's Encrypt's short-lived profile: 64 days, not divisible by 3.
+        // A third is 21 days and 8 hours; `not_due_threshold` returns whole
+        // days only, so it floors to 21 rather than rounding up to 22 and
+        // granting more lenience than the certificate's lifetime allows.
+        let sixty_four_days = from_unix_seconds(64 * 86_400);
+        assert_eq!(not_due_threshold(Some(not_before), sixty_four_days), 21);
     }
 
     #[test]

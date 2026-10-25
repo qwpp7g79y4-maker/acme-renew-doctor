@@ -1023,13 +1023,18 @@ fn parse_openssl_enddate_accepts_gmt_only() {
 
 #[test]
 fn days_until_crosses_year_and_leap_day() {
+    // Only 1 hour has elapsed, so no whole day remains yet, even though the
+    // calendar date has already turned over to the next year.
     assert_eq!(
         at(2026, 1, 1, 0, 0, 0).days_until(&at(2025, 12, 31, 23, 0, 0)),
-        1
+        0
     );
+    // 2024 is a leap year: Feb 28 12:00 to Mar 1 00:00 is 36 hours, i.e. 1
+    // whole day plus a partial day, not the 2 calendar dates (28th, 29th)
+    // crossed.
     assert_eq!(
         at(2024, 3, 1, 0, 0, 0).days_until(&at(2024, 2, 28, 12, 0, 0)),
-        2
+        1
     );
     assert_eq!(
         at(2023, 3, 1, 0, 0, 0).days_until(&at(2023, 2, 28, 0, 0, 0)),
