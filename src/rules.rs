@@ -56,7 +56,13 @@ fn not_due_threshold(not_before: Option<CertTime>, not_after: CertTime) -> i64 {
     let Some(not_before) = not_before else {
         return NOT_DUE_DAYS;
     };
-    let lifetime_days = not_after.days_until(&not_before);
+    // `days_until` floors to whole days; a real certificate's lifetime is
+    // rarely an exact multiple of 86,400 seconds (notBefore and notAfter
+    // carry independent seconds), so flooring alone would understate it.
+    // Swapping the operands turns that floor into a ceiling: `div_euclid`
+    // floors the now-negative difference towards negative infinity, which
+    // is the same as rounding the positive difference up.
+    let lifetime_days = -not_before.days_until(&not_after);
     if lifetime_days <= 0 {
         return NOT_DUE_DAYS;
     }
@@ -749,6 +755,28 @@ mod tests {
         // granting more lenience than the certificate's lifetime allows.
         let sixty_four_days = from_unix_seconds(64 * 86_400);
         assert_eq!(not_due_threshold(Some(not_before), sixty_four_days), 21);
+    }
+
+    #[test]
+    fn not_due_threshold_rounds_a_sub_day_lifetime_remainder_up_before_dividing() {
+        // A real certificate's notBefore and notAfter carry independent
+        // seconds, so a genuine 90-day Let's Encrypt certificate's lifetime
+        // is 90 days minus a second, not an exact multiple of 86,400. The
+        // threshold must still come out to 30, the value `NOT_DUE_DAYS`
+        // documents as "same behaviour as before" for a 90-day certificate.
+        let not_before = from_unix_seconds(0);
+        let ninety_days_minus_a_second = from_unix_seconds(90 * 86_400 - 1);
+        assert_eq!(
+            not_due_threshold(Some(not_before), ninety_days_minus_a_second),
+            30
+        );
+        // Let's Encrypt's short-lived profile minus a second: still 64 whole
+        // days once the remainder is rounded up, so the threshold stays 21.
+        let sixty_four_days_minus_a_second = from_unix_seconds(64 * 86_400 - 1);
+        assert_eq!(
+            not_due_threshold(Some(not_before), sixty_four_days_minus_a_second),
+            21
+        );
     }
 
     #[test]

@@ -401,6 +401,13 @@ notAfter=Jun  4 11:04:38 2035 GMT
     }
 
     #[test]
+    fn days_until_for_a_cert_expired_one_hour_ago_is_negative_one() {
+        let now = at(2026, 10, 6, 8, 0, 0);
+        let not_after = at(2026, 10, 6, 7, 0, 0);
+        assert_eq!(not_after.days_until(&now), -1);
+    }
+
+    #[test]
     fn days_from_civil_and_civil_from_days_round_trip_across_eras() {
         // Howard Hinnant's day-count conversion is each other's inverse.
         // Sweeping dates across every kind of boundary the formula has to
