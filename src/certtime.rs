@@ -385,8 +385,9 @@ notAfter=Jun  4 11:04:38 2035 GMT
 
     #[test]
     fn days_until_counts_an_elapsed_partial_day_not_the_bare_calendar_date() {
-        // notAfter is 64 days (5,529,600s) after notBefore: Let's Encrypt's
-        // short-lived profile. A third of that lifetime is 1,843,200s, i.e.
+        // notAfter is 64 days (5,529,600s) after notBefore: a test lifetime,
+        // not a Let's Encrypt profile, picked only for not being evenly
+        // divisible by 3. A third of that lifetime is 1,843,200s, i.e.
         // 21 days and 8 hours, not a whole number of calendar days.
         let not_after = at(2026, 3, 6, 0, 0, 0);
         // Exactly 21 days and 8 hours before not_after, but still the same

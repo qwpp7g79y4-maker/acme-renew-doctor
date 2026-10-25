@@ -29,8 +29,9 @@ pub struct Observations {
 ///
 /// `openssl x509 -noout -enddate` (as opposed to `-dates`) never prints
 /// `notBefore=`, so this path is reached for every disk certificate read
-/// that way, not only malformed input. For a real 64-day Let's Encrypt
-/// short-lived certificate in that case, the true threshold (a third of
+/// that way, not only malformed input. For a certificate with a 64-day
+/// lifetime in that case (not a Let's Encrypt profile, just a round
+/// number not evenly divisible by 3), the true threshold (a third of
 /// 64 days, about 21 days) is smaller than this 30-day fallback, so
 /// `OK_NOT_DUE` can report "not due" slightly later than it has to. There
 /// is no second source for the certificate's lifetime in this tool's
@@ -749,10 +750,11 @@ mod tests {
         assert_eq!(not_due_threshold(Some(not_before), ninety_days), 30);
         let six_days = from_unix_seconds(6 * 86_400);
         assert_eq!(not_due_threshold(Some(not_before), six_days), 2);
-        // Let's Encrypt's short-lived profile: 64 days, not divisible by 3.
-        // A third is 21 days and 8 hours; `not_due_threshold` returns whole
-        // days only, so it floors to 21 rather than rounding up to 22 and
-        // granting more lenience than the certificate's lifetime allows.
+        // A 64-day test lifetime, not a Let's Encrypt profile: just a round
+        // number not divisible by 3. A third is 21 days and 8 hours;
+        // `not_due_threshold` returns whole days only, so it floors to 21
+        // rather than rounding up to 22 and granting more lenience than
+        // the certificate's lifetime allows.
         let sixty_four_days = from_unix_seconds(64 * 86_400);
         assert_eq!(not_due_threshold(Some(not_before), sixty_four_days), 21);
     }
@@ -770,12 +772,29 @@ mod tests {
             not_due_threshold(Some(not_before), ninety_days_minus_a_second),
             30
         );
-        // Let's Encrypt's short-lived profile minus a second: still 64 whole
-        // days once the remainder is rounded up, so the threshold stays 21.
+        // The same 64-day test lifetime minus a second: still 64 whole days
+        // once the remainder is rounded up, so the threshold stays 21.
         let sixty_four_days_minus_a_second = from_unix_seconds(64 * 86_400 - 1);
         assert_eq!(
             not_due_threshold(Some(not_before), sixty_four_days_minus_a_second),
             21
+        );
+    }
+
+    #[test]
+    fn not_due_threshold_for_a_real_let_s_encrypt_short_lived_certificate_is_two() {
+        // Let's Encrypt's actual short-lived profile is 160 hours
+        // (6 days, 16 hours), not the 64-day round number used elsewhere
+        // in this file to test rounding. A third of 160 hours is 53
+        // hours and 20 minutes, i.e. 2 days and change, so the threshold
+        // floors to 2.
+        let not_before = from_unix_seconds(0);
+        let hundred_sixty_hours = from_unix_seconds(160 * 3_600);
+        assert_eq!(not_due_threshold(Some(not_before), hundred_sixty_hours), 2);
+        let hundred_sixty_hours_minus_a_second = from_unix_seconds(160 * 3_600 - 1);
+        assert_eq!(
+            not_due_threshold(Some(not_before), hundred_sixty_hours_minus_a_second),
+            2
         );
     }
 
