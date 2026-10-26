@@ -2353,6 +2353,7 @@ fn each_input_refuses_a_filename_over_name_max() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
 fn each_input_refuses_a_path_over_path_max() {
     let temp = TempDir::new("path-max");
     // Build a path well past Linux's 4096-byte PATH_MAX by nesting
