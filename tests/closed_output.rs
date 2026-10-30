@@ -123,6 +123,7 @@ mod unix {
     }
 
     #[test]
+    #[cfg(target_os = "linux")]
     fn json_report_on_a_closed_pipe_exits_three() {
         assert_exit_three(
             &["--json", "example.com"],
