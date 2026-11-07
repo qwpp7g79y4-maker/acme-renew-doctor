@@ -1,0 +1,1 @@
+ACME_RENEW_DOCTOR_NOW=1791273600 acme-renew-doctor example.com --from-timer-status timer-status.txt --from-cert-disk cert-disk.txt --from-cert-live cert-live.txt

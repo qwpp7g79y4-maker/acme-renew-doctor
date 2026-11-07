@@ -9,6 +9,10 @@ All notable changes to this project are documented in this file.
 - `OK_NOT_DUE` now requires a third of the disk certificate's own lifetime (notAfter minus notBefore) to remain, capped at 30 days, instead of a fixed 30 days. The fixed threshold is longer than Let's Encrypt's 6-day short-lived certificate option, so `OK_NOT_DUE` could never be reached for one. The cap keeps a 90-day Certbot default certificate's behaviour unchanged, and falls back to the fixed 30 days when the saved `-dates` output has no `notBefore=` line.
 - `OK_NOT_DUE` now also requires the disk certificate's notBefore, when known, to not be after `now`. Before, a not-yet-valid certificate (clock skew, or a misdeployed certificate) with a far-off notAfter could be reported `OK_NOT_DUE`.
 - When every `OK_NOT_DUE` condition holds except the remaining-days threshold, `INSUFFICIENT_EVIDENCE` adds the known date: `notAfter=<date>, <days> day(s) remain, at or under the <threshold>-day renewal threshold`.
+- Read errors now say what to do. A missing file, a file you may not read and any other read failure each add a short hint after the kind, for example `cannot read PATH: NotFound (no such file; check the path, or save the command output to a file first)`. An invalid `ACME_RENEW_DOCTOR_NOW` adds `unset ACME_RENEW_DOCTOR_NOW to use the system clock`. Exit codes are unchanged. The reference pages and their tests carry the new text.
+- `--help` no longer says Certbot logs are parsed "in v0.1".
+- `README.md` and `README.nl.md` have Example and Options sections; every option from `--help` is listed in both, and a test checks it.
+- `examples/` has two synthetic cases with their input files and expected output, compared by the golden test `tests/examples.rs`.
 
 ### Added
 

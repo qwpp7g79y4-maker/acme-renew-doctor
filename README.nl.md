@@ -6,7 +6,7 @@ Leg uit waarom een Certbot-vernieuwing faalde, of stilletjes nooit draaide, aan 
 
 [![crates.io](https://img.shields.io/crates/v/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![downloads](https://img.shields.io/crates/d/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![CI](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml) [![PEPAI gecontroleerd](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.nl.md) [![MSRV 1.85](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/blob/main/Cargo.toml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#licentie)
 
-[Installatie](#installatie) • [Snel aan de slag](#snel-aan-de-slag) • [Hoe het werkt](#hoe-het-werkt) • [Alternatieven](#vergelijking-met-alternatieven) • [Beperkingen](#beperkingen) • [Referentie](docs/reference.nl.md)
+[Installatie](#installatie) • [Snel aan de slag](#snel-aan-de-slag) • [Voorbeeld](#voorbeeld) • [Opties](#opties) • [Hoe het werkt](#hoe-het-werkt) • [Alternatieven](#vergelijking-met-alternatieven) • [Beperkingen](#beperkingen) • [Referentie](docs/reference.nl.md)
 
 acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. Het legt uit waarom een Certbot-TLS-vernieuwing faalde, of stilletjes nooit draaide. Het verzamelt niets. Het leest alleen bestanden die je meegeeft: opgeslagen opdrachtuitvoer, of tekst die je in een bestand plakte. Het voert geen opdracht uit, forceert nooit een vernieuwing en herlaadt nooit een service. Het enige bestand dat het schrijft is `example-log.txt` in de huidige map, en alleen als je `--example` meegeeft.  Een bevinding is een vaste code plus het bewijs daarvoor. Codes die een laag noemen gebruiken scheduler, validation of deployment. Het heeft geen account nodig en maakt geen netwerkverbinding.
 
@@ -172,6 +172,37 @@ exit 0: ok, not due
 ```
 
 `1791273600` is 2026-10-06 08:00:00 UTC. `--json` schrijft één JSON-object in plaats van deze tekst. Alle opties, exitcodes en foutmeldingen staan in de [referentie](docs/reference.nl.md) en in `acme-renew-doctor --help`.
+
+## Voorbeeld
+
+De map `examples/` bevat twee synthetische gevallen met invoerbestanden en de exacte verwachte uitvoer. `tests/examples.rs` draait beide en vergelijkt de uitvoer, zodat ze niet kunnen afwijken.
+
+```sh
+cd examples/http01-timeout
+acme-renew-doctor example.com --from-log letsencrypt.log --from-timer-status timer-status.txt
+```
+
+Dit toont `LAYER1_TIMER_DISABLED` en `LAYER2_HTTP01_TIMEOUT` en eindigt met exit 1; de volledige tekst staat in `examples/http01-timeout/expected-output.txt`. Het tweede geval, `examples/ok-not-due`, eindigt in `OK_NOT_DUE` en exit 0. Zie [examples/README.md](examples/README.md) (Engels).
+
+## Opties
+
+Elke optie uit `acme-renew-doctor --help`:
+
+| Optie | Wat het doet |
+| --- | --- |
+| `[DOMAIN]` | Domein om te diagnosticeren. Staat in het rapport; de log wordt niet op domein gefilterd. Niet te combineren met `--all`. |
+| `--all` | Diagnosticeer alle certificaten. Live verzamelen is nog niet gebouwd; gebruik de `--from-*`-bestanden. Niet te combineren met `[DOMAIN]`. |
+| `--json` | Druk het rapport af als JSON (met `schema_version`) in plaats van tekst. |
+| `--from-log <FILE>` | Certbot-logbestand om te analyseren, bijvoorbeeld een kopie van `/var/log/letsencrypt/letsencrypt.log`. `-` leest standaardinvoer. |
+| `--from-timer-status <FILE>` | Opgeslagen uitvoer van `systemctl show certbot.timer`. |
+| `--from-cert-disk <FILE>` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat op schijf, bijvoorbeeld `/etc/letsencrypt/live/DOMAIN/fullchain.pem`. |
+| `--from-cert-live <FILE>` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat dat de server stuurt (uit `openssl s_client`). |
+| `--client <CLIENT>` | ACME-client die de bestanden schreef: `certbot`, `acme.sh` of `auto` (standaard). Alleen Certbot-logs worden geparsed. |
+| `--example` | Schrijf een synthetische Certbot-log naar `example-log.txt` in de huidige map en stop. Niet te combineren met een andere optie. |
+| `-h`, `--help` | Toon de hulp. |
+| `-V`, `--version` | Toon de versie. |
+
+Exitcodes: 0 `OK_NOT_DUE`, 1 een probleem met een benoemde laag, 2 onvoldoende bewijs, 3 gebruiksfout. Details staan in de [referentie](docs/reference.nl.md).
 
 ## Hoe het werkt
 

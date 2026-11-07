@@ -6,7 +6,7 @@ Explain why a Certbot renewal failed, or quietly never ran, from files you pass.
 
 [![crates.io](https://img.shields.io/crates/v/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![downloads](https://img.shields.io/crates/d/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![CI](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml) [![PEPAI checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.md) [![MSRV 1.85](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/blob/main/Cargo.toml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-[Installation](#installation) • [Quick start](#quick-start) • [How it works](#how-it-works) • [Alternatives](#compared-with-alternatives) • [Limitations](#limitations) • [Reference](docs/reference.md)
+[Installation](#installation) • [Quick start](#quick-start) • [Example](#example) • [Options](#options) • [How it works](#how-it-works) • [Alternatives](#compared-with-alternatives) • [Limitations](#limitations) • [Reference](docs/reference.md)
 
 acme-renew-doctor is a local, read-only command-line tool written in Rust. It explains why a Certbot TLS renewal failed, or quietly never ran. It collects nothing. It only reads files you pass in: saved command output, or text you pasted into a file. It runs no command, never forces a renewal, and never reloads a service. The only file it writes is `example-log.txt` in the current directory, and only when you pass `--example`.  A finding is a fixed code plus the evidence for it. Codes that name a layer use scheduler, validation, or deployment. It needs no account and makes no network connection.
 
@@ -170,6 +170,37 @@ exit 0: ok, not due
 ```
 
 `1791273600` is 2026-10-06 08:00:00 UTC. `--json` prints one JSON object instead of this text. All options, exit codes and error messages are listed in the [reference](docs/reference.md) and in `acme-renew-doctor --help`.
+
+## Example
+
+The `examples/` folder has two synthetic cases with their input files and the exact expected output. `tests/examples.rs` runs both and compares the output, so they cannot drift.
+
+```sh
+cd examples/http01-timeout
+acme-renew-doctor example.com --from-log letsencrypt.log --from-timer-status timer-status.txt
+```
+
+This prints `LAYER1_TIMER_DISABLED` and `LAYER2_HTTP01_TIMEOUT` and exits 1; the full text is in `examples/http01-timeout/expected-output.txt`. The second case, `examples/ok-not-due`, ends in `OK_NOT_DUE` and exit 0. See [examples/README.md](examples/README.md).
+
+## Options
+
+Every option in `acme-renew-doctor --help`:
+
+| Option | What it does |
+| --- | --- |
+| `[DOMAIN]` | Domain to diagnose. Shown in the report; the log is not filtered by domain. Cannot be combined with `--all`. |
+| `--all` | Diagnose all certificates. Live collection is not built yet; use the `--from-*` files. Cannot be combined with `[DOMAIN]`. |
+| `--json` | Print the report as JSON (with `schema_version`) instead of text. |
+| `--from-log <FILE>` | Certbot log file to analyse, for example a copy of `/var/log/letsencrypt/letsencrypt.log`. `-` reads standard input. |
+| `--from-timer-status <FILE>` | Saved output of `systemctl show certbot.timer`. |
+| `--from-cert-disk <FILE>` | Saved output of `openssl x509 -noout -dates` for the certificate on disk, for example `/etc/letsencrypt/live/DOMAIN/fullchain.pem`. |
+| `--from-cert-live <FILE>` | Saved output of `openssl x509 -noout -dates` for the certificate the server sends (from `openssl s_client`). |
+| `--client <CLIENT>` | ACME client that wrote the files: `certbot`, `acme.sh` or `auto` (default). Only Certbot logs are parsed. |
+| `--example` | Write a synthetic Certbot log to `example-log.txt` in the current directory and exit. Cannot be combined with any other option. |
+| `-h`, `--help` | Print help. |
+| `-V`, `--version` | Print the version. |
+
+Exit codes: 0 `OK_NOT_DUE`, 1 a problem with a named layer, 2 insufficient evidence, 3 usage error. Details are in the [reference](docs/reference.md).
 
 ## How it works
 

@@ -52,7 +52,11 @@ fn help_exits_zero_and_lists_arguments() {
         "Saved output of `systemctl show certbot.timer` to analyse",
         "Saved output of `openssl x509 -noout -dates` for the certificate on disk (e.g. /etc/letsencrypt/live/DOMAIN/fullchain.pem)",
         "Saved output of `openssl x509 -noout -dates` for the certificate the server sends (from openssl s_client)",
-        "only Certbot logs are parsed in v0.1",
+        "only Certbot logs are parsed; acme.sh logs are recognised but not analysed yet",
+        "--from-cert-disk",
+        "--from-cert-live",
+        "--example",
+        "--version",
     ] {
         assert!(
             text.contains(needle),

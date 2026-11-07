@@ -527,9 +527,9 @@ fn option_and_error_tables_match_the_binary() {
             "cannot be used with '--all'\n",
             "a value is required for '--from-log <FILE>' but none was supplied\n",
             "unexpected argument '--bogus' found\n",
-            "got 1,5\n",
-            "got 1.5\n",
-            "got not-a-timestamp\n",
+            "got 1,5; unset ACME_RENEW_DOCTOR_NOW to use the system clock\n",
+            "got 1.5; unset ACME_RENEW_DOCTOR_NOW to use the system clock\n",
+            "got not-a-timestamp; unset ACME_RENEW_DOCTOR_NOW to use the system clock\n",
         ] {
             assert!(
                 usage_messages
@@ -559,7 +559,7 @@ fn option_and_error_tables_match_the_binary() {
             report_messages.insert(row.message);
         }
         for needed in [
-            "does-not-exist.log: NotFound\n",
+            "does-not-exist.log: NotFound (no such file; check the path, or save the command output to a file first)\n",
             "tests/fixtures/certbot: is a directory\n",
             "timer status not recognised (no Id= line in systemctl show output)\n",
             "certificate dates not recognised (no notAfter= line in openssl x509 -dates output)\n",
@@ -630,5 +630,47 @@ fn walk(dir: &std::path::Path, root: &std::path::Path, names: &mut Vec<String>) 
             .expect("utf-8")
             .replace('\\', "/");
         names.push(rel);
+    }
+}
+
+/// Every option that `--help` prints must be named in both READMEs.
+#[test]
+fn every_help_option_is_in_both_readmes() {
+    let output = bin().arg("--help").output().expect("start binary");
+    let help = String::from_utf8_lossy(&output.stdout).into_owned();
+    let mut options = Vec::new();
+    for line in help.lines().skip_while(|line| *line != "Options:").skip(1) {
+        for word in line.split_whitespace().take(3) {
+            let word = word.trim_end_matches(',');
+            if word.starts_with('-') {
+                options.push(word.to_string());
+            }
+        }
+    }
+    for expected in [
+        "--all",
+        "--json",
+        "--from-log",
+        "--from-timer-status",
+        "--from-cert-disk",
+        "--from-cert-live",
+        "--client",
+        "--example",
+        "--help",
+        "--version",
+    ] {
+        assert!(
+            options.iter().any(|o| o == expected),
+            "{expected} not parsed from --help:\n{help}"
+        );
+    }
+    for page in [README, README_DUTCH] {
+        let text = read(page);
+        for option in &options {
+            assert!(
+                text.contains(option.as_str()),
+                "{page} does not mention {option}"
+            );
+        }
     }
 }

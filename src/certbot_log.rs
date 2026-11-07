@@ -195,9 +195,13 @@ fn read_capped(
 
 fn finding_for_io_kind(source: EvidenceSource, what: &str, err: &std::io::Error) -> Finding {
     let kind = match err.kind() {
-        std::io::ErrorKind::PermissionDenied => "PermissionDenied",
-        std::io::ErrorKind::NotFound => "NotFound",
-        _ => "other kind",
+        std::io::ErrorKind::PermissionDenied => {
+            "PermissionDenied (you may not read it; copy the file to a place you can read, or run as a user who can)"
+        }
+        std::io::ErrorKind::NotFound => {
+            "NotFound (no such file; check the path, or save the command output to a file first)"
+        }
+        _ => "other kind (the operating system refused the read; check that the path is a readable file)",
     };
     read_finding(source, format!("cannot read {what}: {kind}"))
 }
@@ -1513,7 +1517,7 @@ mod tests {
         assert_eq!(denied.evidence[0].source, EvidenceSource::Log);
         assert_eq!(
             denied.evidence[0].text,
-            "cannot read tests/fixtures/certbot/letsencrypt.log: PermissionDenied"
+            "cannot read tests/fixtures/certbot/letsencrypt.log: PermissionDenied (you may not read it; copy the file to a place you can read, or run as a user who can)"
         );
         assert_eq!(report_with(denied).exit_status().code(), 2);
 
@@ -1525,7 +1529,7 @@ mod tests {
         assert_eq!(missing.layer, None);
         assert_eq!(
             missing.evidence[0].text,
-            "cannot read tests/fixtures/certbot/letsencrypt.log: NotFound"
+            "cannot read tests/fixtures/certbot/letsencrypt.log: NotFound (no such file; check the path, or save the command output to a file first)"
         );
         assert_eq!(report_with(missing).exit_status().code(), 2);
     }
@@ -1540,7 +1544,10 @@ mod tests {
         assert_eq!(err.evidence[0].source, EvidenceSource::Log);
         assert_eq!(
             err.evidence[0].text,
-            format!("cannot read {}: NotFound", path.display())
+            format!(
+                "cannot read {}: NotFound (no such file; check the path, or save the command output to a file first)",
+                path.display()
+            )
         );
     }
 

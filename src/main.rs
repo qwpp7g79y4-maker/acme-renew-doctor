@@ -71,7 +71,7 @@ struct Cli {
     #[arg(long, value_name = "FILE", value_parser = AnyPath)]
     from_cert_live: Option<PathBuf>,
 
-    /// ACME client that wrote the files (only Certbot logs are parsed in v0.1)
+    /// ACME client that wrote the files (only Certbot logs are parsed; acme.sh logs are recognised but not analysed yet)
     #[arg(long, value_enum, default_value = "auto")]
     client: Client,
 
@@ -201,7 +201,7 @@ fn now() -> Result<CertTime, String> {
     match std::env::var("ACME_RENEW_DOCTOR_NOW") {
         Err(std::env::VarError::NotPresent) => system_now(),
         Err(std::env::VarError::NotUnicode(_)) => {
-            Err("ACME_RENEW_DOCTOR_NOW must be a whole number of Unix seconds".to_string())
+            Err("ACME_RENEW_DOCTOR_NOW must be a whole number of Unix seconds; unset it to use the system clock".to_string())
         }
         Ok(value) => parse_now_override(&value),
     }
@@ -210,11 +210,11 @@ fn now() -> Result<CertTime, String> {
 fn parse_now_override(value: &str) -> Result<CertTime, String> {
     let shown = render::escape_file_text(value);
     let secs = value.parse::<i64>().map_err(|_| {
-        format!("ACME_RENEW_DOCTOR_NOW must be a whole number of Unix seconds, got {shown}")
+        format!("ACME_RENEW_DOCTOR_NOW must be a whole number of Unix seconds, got {shown}; unset ACME_RENEW_DOCTOR_NOW to use the system clock")
     })?;
     certtime::try_from_unix_seconds(secs).ok_or_else(|| {
         format!(
-            "ACME_RENEW_DOCTOR_NOW must be a Unix second from 1970-01-01 through 9999-12-31 UTC, got {shown}"
+            "ACME_RENEW_DOCTOR_NOW must be a Unix second from 1970-01-01 through 9999-12-31 UTC, got {shown}; unset ACME_RENEW_DOCTOR_NOW to use the system clock"
         )
     })
 }
