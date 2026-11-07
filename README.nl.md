@@ -12,6 +12,8 @@ acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. He
 
 **Waarschuwing:** het rapport citeert de bestanden die je meegeeft woordelijk terug; het redigeert niet. Verwijder tokens, wachtwoorden en API-sleutels uit een log of andere opgeslagen opdrachtuitvoer voordat je die meegeeft, zeker voordat je het rapport doorstuurt. Zie [Privacy](#privacy).
 
+Tests: `cargo test --no-fail-fast` geeft 413 geslaagd, 0 mislukt, 1 genegeerd (gemeten op deze release; zie [QUALITY.nl.md](QUALITY.nl.md)).
+
 De uitvoer van de tool is Engels; de voorbeelden hieronder tonen die precies zoals de binary hem schrijft.
 
 ## Waarom

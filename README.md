@@ -12,6 +12,8 @@ acme-renew-doctor is a local, read-only command-line tool written in Rust. It ex
 
 **Warning:** the report quotes the files you pass back verbatim; it does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, especially before you forward the report to anyone else. See [Privacy](#privacy).
 
+Tests: `cargo test --no-fail-fast` gives 413 passed, 0 failed, 1 ignored (measured on this release; see [QUALITY.md](QUALITY.md)).
+
 ## Why
 
 Let's Encrypt stopped expiration-notification emails on 4 June 2025 (https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended.html). Since then a renewal that fails, or a timer that quietly stops, is easy to miss until the certificate expires. The cause sits in one of three layers: the scheduler, the ACME validation or the deployment. acme-renew-doctor reads the evidence you saved and names that layer, with the line that proves it.
