@@ -6,6 +6,12 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-07 (release check of 0.2.0)
+
+- `cargo test --no-fail-fast` on commit `e564dcc`: 413 passed / 0 failed / 1 ignored.
+- `cargo clippy --all-targets -- -D warnings`: clean.
+- Only these two checks were run for this entry; the earlier entries below were not repeated.
+
 ### 2026-10-17 (weekly)
 
 **1. Unit and regression tests**

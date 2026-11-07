@@ -6,6 +6,12 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
 
+### 2026-11-07 (releasecontrole van 0.2.0)
+
+- `cargo test --no-fail-fast` op commit `e564dcc`: 413 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo clippy --all-targets -- -D warnings`: schoon.
+- Alleen deze twee controles zijn voor deze invoer uitgevoerd; de onderstaande eerdere invoer is niet herhaald.
+
 ### 2026-10-17 (wekelijks)
 
 **1. Unit- en regressietests**
