@@ -16,6 +16,8 @@ Draai `acme-renew-doctor --help` voor de ingebouwde hulp. `--version` print `acm
 | `--all` | Stel alle certificaten vast. Live verzamelen is niet gebouwd; geef `--from-*`-bestanden mee. Kan niet samen met `[DOMAIN]`. |
 | `--json` | Eén JSON-object met `schema_version` 1, in plaats van tekst. |
 | `--output` | Schrijf het rapport naar dit bestand in plaats van standaarduitvoer. Een bestaand bestand wordt vervangen. Een ontbrekende bovenliggende map is een fout (exit 3, dezelfde code als een mislukte schrijfactie naar standaarduitvoer) en wordt niet aangemaakt. |
+| `--quiet` | Verberg de hintregel, ook op een terminal. Geen contextregel. Een pipe laat beide al weg. |
+| `--verbose` | Toon de hintregel, en als het rapport geschreven is één `context:`-regel op stderr, ook bij een pipe. Niet samen met `--quiet`. |
 | `--from-log` | Certbot-log om te analyseren, bijvoorbeeld een kopie van `/var/log/letsencrypt/letsencrypt.log`. `-` leest in plaats daarvan standaardinvoer, gebufferd tot dezelfde bytelimiet. |
 | `--from-timer-status` | Opgeslagen uitvoer van `systemctl show certbot.timer` om te analyseren. |
 | `--from-cert-disk` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat op schijf. |
@@ -36,9 +38,11 @@ De tool maakt zelf geen decimalen op. Bewijstekst is de bestandstekst, dus een C
 | 0 | Er is een bevinding `OK_NOT_DUE`, en elke bevinding behalve `DANGEROUS_FORCE_BLOCKED` is `OK_NOT_DUE`. `--help` en `--version` eindigen ook met 0 als die tekst geschreven is. De tekst eindigt op `exit 0: ok, not due`. |
 | 1 | Een bevinding heeft een laag (scheduler, validation of deployment). De tekst eindigt op `exit 1: problem found`. |
 | 2 | Elk ander rapport, inclusief `INSUFFICIENT_EVIDENCE`. De tekst eindigt op `exit 2: insufficient evidence`. |
-| 3 | Een bevinding is `CLIENT_UNKNOWN`, of clap wees de argumenten af, of `ACME_RENEW_DOCTOR_NOW` is geen geheel getal van Unix-seconden, of zijn UTC-datum valt buiten 1970-01-01 tot en met 9999-12-31. Een `CLIENT_UNKNOWN`-rapport eindigt op `exit 3: usage error`. Clap en de klokvariabele schrijven naar stderr en laten stdout leeg. Als het tekstrapport of JSON niet geschreven kan worden omdat de standaarduitvoer dicht of vol is, panict de tool niet: hij schrijft `acme-renew-doctor: could not write output: ...` naar de standaardfout en eindigt met 3. Als `--output` niet geschreven kan worden, eindigt de tool ook met 3, laat de standaarduitvoer leeg en maakt een ontbrekende bovenliggende map niet aan. Een gebruiksmelding die niet geschreven kan worden doet hetzelfde. Als de standaardfout dicht of vol is, panict de melding voor een ongeldige `ACME_RENEW_DOCTOR_NOW` niet, en het proces eindigt nog steeds met 3. |
+| 3 | Een bevinding is `CLIENT_UNKNOWN`, of clap wees de argumenten af, of `ACME_RENEW_DOCTOR_NOW` is geen geheel getal van Unix-seconden, of zijn UTC-datum valt buiten 1970-01-01 tot en met 9999-12-31. Een `CLIENT_UNKNOWN`-rapport eindigt op `exit 3: usage error`. Clap en de klokvariabele schrijven naar stderr en laten stdout leeg. Als het tekstrapport of JSON niet geschreven kan worden omdat de standaarduitvoer dicht of vol is, panict de tool niet: hij schrijft `acme-renew-doctor: could not write output: ...` naar de standaardfout en eindigt met 3. Als `--output` niet geschreven kan worden, eindigt de tool ook met 3, laat de standaarduitvoer leeg en maakt een ontbrekende bovenliggende map niet aan. Een gebruiksmelding die niet geschreven kan worden doet hetzelfde. Als de standaardfout dicht of vol is, panict de melding voor een ongeldige `ACME_RENEW_DOCTOR_NOW` niet, en het proces eindigt nog steeds met 3. `--quiet` samen met `--verbose` is dezelfde exit 3. |
 
 `CLIENT_UNKNOWN` wordt vóór elke laagcode bekeken, dus dat rapport eindigt met 3 ook als een andere bevinding een laag heeft.
+
+Op een terminal print een fout op stderr ook een `hint:`-regel met de vervolgstap die al in die fout staat. Een pipe, een redirect of `--quiet` houdt alleen de foutregel. De rijen hieronder zijn de tekst van een pipe: één regel, geen `hint:`. `--verbose` toont de hint ook bij een pipe, en als het rapport geschreven is één `context:`-regel op stderr (`files` en `findings`). Het rapport op stdout blijft gelijk. `--quiet` samen met `--verbose` is exit 3.
 
 ## Exitcodes en gebruiksfouten
 

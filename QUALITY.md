@@ -6,6 +6,13 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-08 (W-44, `--quiet` and `--verbose`, branch prep/w24-fout)
+
+- `--quiet` hides the hint line. A pipe or a redirect already omits it. `--verbose` prints the hint and, after a successful report write, one `context:` line on stderr (`files` and `findings`). Standard output stays the report. `--quiet` together with `--verbose` is exit 3. A missing parent directory of `--output` stays exit 3 and is not created.
+- `cargo test --no-fail-fast`: 455 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
 ### 2026-11-08 (W-43, `--output PATH`, branch prep/w24-fout)
 
 - `--output PATH` writes the report to that file instead of standard output. An existing file is replaced. A missing parent directory exits 3, the same code as a failed write to standard output, and is not created.

@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- `--quiet` and `--verbose`. A pipe or a redirect omits the `hint:` line. `--verbose` prints that line, and when the report was written one `context:` line on stderr (`files` and `findings`). `--quiet` omits the hint even on a terminal. The report on stdout is unchanged. Exit codes stay 0, 1, 2 and 3. `--quiet` together with `--verbose` is exit 3. A missing parent directory for `--output` stays exit 3.
 - `--output PATH` writes the report to that file instead of standard output. An existing file is replaced. A missing parent directory is exit 3, the same code as a failed write to standard output, and is not created. The diagnosis exit code is unchanged when the write succeeds.
 - README.md and README.nl.md: section "Aan de slag in 5 minuten" with five offline commands on the fixtures in `tests/fixtures`. `tests/readme.rs` runs them literally.
 - `tests/offline_certs.rs`: offline tests with synthetic certificate text in a temporary directory, with the clock fixed by `ACME_RENEW_DOCTOR_NOW`. No network and no real certificate. An expired certificate is diagnosed. For a wrong host and a broken chain the tool only reads dates, so it does not invent a verdict and says the evidence is not recognised.

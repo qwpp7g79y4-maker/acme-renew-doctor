@@ -1,4 +1,4 @@
-use std::io::{self, Write};
+use std::io::{self, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::SystemTime;
@@ -59,6 +59,14 @@ pub(crate) struct Cli {
     #[arg(long, value_name = "PATH")]
     output: Option<PathBuf>,
 
+    /// Hide the hint line. No context line. A pipe already omits both
+    #[arg(long, conflicts_with = "verbose")]
+    quiet: bool,
+
+    /// Print the hint line, and on success one context line on stderr. Not with --quiet
+    #[arg(long, conflicts_with = "quiet")]
+    verbose: bool,
+
     /// Certbot log file to analyse, e.g. a copy of /var/log/letsencrypt/letsencrypt.log (- reads standard input)
     #[arg(long, value_name = "FILE", value_parser = AnyPath)]
     from_log: Option<PathBuf>,
@@ -92,6 +100,8 @@ pub(crate) struct Cli {
             "from_cert_disk",
             "from_cert_live",
             "client",
+            "quiet",
+            "verbose",
         ]
     )]
     example: bool,
@@ -111,8 +121,10 @@ fn main() -> ExitCode {
         Err(err) => finish_parse_error(err),
     };
 
+    let extra = show_extra(cli.quiet, cli.verbose, io::stderr().is_terminal());
+
     if cli.example {
-        return write_example();
+        return write_example(extra);
     }
 
     let snapshot = Snapshot {
@@ -131,7 +143,7 @@ fn main() -> ExitCode {
     let now = match now() {
         Ok(now) => now,
         Err(message) => {
-            write_stderr_line(&format!("acme-renew-doctor: {message}"));
+            emit_error(&format!("acme-renew-doctor: {message}"), extra);
             return ExitCode::from(3);
         }
     };
@@ -144,14 +156,72 @@ fn main() -> ExitCode {
         render::human(&report, &checks)
     };
     if let Err(err) = write_report(cli.output.as_deref(), text.as_bytes()) {
-        return report_write_error(cli.output.as_deref(), &err);
+        return report_write_error(cli.output.as_deref(), &err, extra);
+    }
+    if cli.verbose {
+        let files = input_file_count(&report.snapshot);
+        write_stderr_line(&format!(
+            "context: files {files}, findings {}",
+            report.findings.len()
+        ));
     }
     ExitCode::from(u8::try_from(report.exit_status().code()).expect("exit code fits in u8"))
 }
 
+/// Hint lines are extra context.
+///
+/// A terminal shows them. A pipe or a redirect does not, so captured stderr
+/// stays the error line. `--verbose` shows them anyway. `--quiet` hides them
+/// even on a terminal. The report on stdout is unchanged either way.
+/// Both flags together are a clap usage error and never reach a report.
+fn show_extra(quiet: bool, verbose: bool, terminal: bool) -> bool {
+    if quiet {
+        false
+    } else if verbose {
+        true
+    } else {
+        terminal
+    }
+}
+
+fn input_file_count(snapshot: &Snapshot) -> usize {
+    usize::from(snapshot.from_log.is_some())
+        + usize::from(snapshot.from_timer_status.is_some())
+        + usize::from(snapshot.from_cert_disk.is_some())
+        + usize::from(snapshot.from_cert_live.is_some())
+}
+
+/// The next step already sits in the error after `; ` or `. `.
+fn next_step(message: &str) -> Option<&str> {
+    let semi = message.find("; ").map(|index| index + 2);
+    let dot = message.find(". ").map(|index| index + 2);
+    let start = match (semi, dot) {
+        (Some(left), Some(right)) => Some(left.min(right)),
+        (Some(left), None) => Some(left),
+        (None, Some(right)) => Some(right),
+        (None, None) => None,
+    }?;
+    let tail = message[start..].trim();
+    if tail.is_empty() {
+        None
+    } else {
+        Some(tail)
+    }
+}
+
+/// Writes the error line. When `extra` is set, repeats the next step as `hint:`.
+fn emit_error(message: &str, extra: bool) {
+    write_stderr_line(message);
+    if extra {
+        if let Some(hint) = next_step(message) {
+            write_stderr_line(&format!("hint: {hint}"));
+        }
+    }
+}
+
 /// Writes `EXAMPLE_LOG` to `EXAMPLE_LOG_NAME`, unless a file with that name
 /// already exists and its bytes are not exactly the bundled example.
-fn write_example() -> ExitCode {
+fn write_example(extra: bool) -> ExitCode {
     match write_example_log() {
         Ok(()) => {
             let message = format!(
@@ -159,11 +229,11 @@ fn write_example() -> ExitCode {
             );
             match write_stdout(message.as_bytes()) {
                 Ok(()) => ExitCode::from(0),
-                Err(err) => output_error(&err),
+                Err(err) => output_error(&err, extra),
             }
         }
         Err(message) => {
-            write_stderr_line(&format!("acme-renew-doctor: {message}"));
+            emit_error(&format!("acme-renew-doctor: {message}"), extra);
             ExitCode::from(3)
         }
     }
@@ -203,14 +273,17 @@ fn write_report(path: Option<&Path>, bytes: &[u8]) -> io::Result<()> {
     file.flush()
 }
 
-fn report_write_error(path: Option<&Path>, err: &io::Error) -> ExitCode {
+fn report_write_error(path: Option<&Path>, err: &io::Error, extra: bool) -> ExitCode {
     let Some(path) = path else {
-        return output_error(err);
+        return output_error(err, extra);
     };
     let shown = render::escape_file_text(&path.to_string_lossy());
-    write_stderr_line(&format!(
-        "acme-renew-doctor: could not write report to {shown}: {err}; check that the parent directory exists and is writable; the tool does not create it"
-    ));
+    emit_error(
+        &format!(
+            "acme-renew-doctor: could not write report to {shown}: {err}; check that the parent directory exists and is writable; the tool does not create it"
+        ),
+        extra,
+    );
     ExitCode::from(3)
 }
 
@@ -220,8 +293,13 @@ fn write_stderr_line(line: &str) {
     let _ = stderr.flush();
 }
 
-fn output_error(err: &io::Error) -> ExitCode {
-    write_stderr_line(&format!("acme-renew-doctor: could not write output: {err}; check that the output is not closed or full and run again"));
+fn output_error(err: &io::Error, extra: bool) -> ExitCode {
+    emit_error(
+        &format!(
+            "acme-renew-doctor: could not write output: {err}; check that the output is not closed or full and run again"
+        ),
+        extra,
+    );
     ExitCode::from(3)
 }
 
@@ -251,6 +329,19 @@ fn system_now() -> Result<CertTime, String> {
     certtime::try_from_system_time(SystemTime::now()).map_err(str::to_string)
 }
 
+fn stderr_is_extra_from_args() -> bool {
+    let mut quiet = false;
+    let mut verbose = false;
+    for arg in std::env::args().skip(1) {
+        match arg.as_str() {
+            "--quiet" => quiet = true,
+            "--verbose" => verbose = true,
+            _ => {}
+        }
+    }
+    show_extra(quiet, verbose, io::stderr().is_terminal())
+}
+
 fn finish_parse_error(err: clap::Error) -> ! {
     let code = match err.kind() {
         clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion => {
@@ -259,7 +350,7 @@ fn finish_parse_error(err: clap::Error) -> ! {
         _ => ExitStatus::Usage.code(),
     };
     if let Err(io_err) = err.print() {
-        let _ = output_error(&io_err);
+        let _ = output_error(&io_err, stderr_is_extra_from_args());
         std::process::exit(3);
     }
     std::process::exit(code);
@@ -268,6 +359,40 @@ fn finish_parse_error(err: clap::Error) -> ! {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn extra_follows_quiet_verbose_and_the_terminal() {
+        assert!(!show_extra(true, false, true));
+        assert!(show_extra(false, true, false));
+        assert!(!show_extra(false, false, false));
+        assert!(show_extra(false, false, true));
+        assert!(!show_extra(true, true, true));
+    }
+
+    #[test]
+    fn next_step_is_the_clause_after_the_first_separator() {
+        assert_eq!(
+            next_step("missing parent. Check the directory"),
+            Some("Check the directory")
+        );
+        assert_eq!(
+            next_step("cannot write it; check the permissions"),
+            Some("check the permissions")
+        );
+        assert_eq!(next_step("no separator"), None);
+    }
+
+    #[test]
+    fn quiet_and_verbose_parse_and_conflict() {
+        let quiet = Cli::try_parse_from(["acme-renew-doctor", "--quiet"]).unwrap();
+        assert!(quiet.quiet);
+        assert!(!quiet.verbose);
+        let verbose = Cli::try_parse_from(["acme-renew-doctor", "--verbose"]).unwrap();
+        assert!(verbose.verbose);
+        assert!(!verbose.quiet);
+        assert!(Cli::try_parse_from(["acme-renew-doctor", "--quiet", "--verbose"]).is_err());
+        assert!(Cli::try_parse_from(["acme-renew-doctor", "--example", "--quiet"]).is_err());
+    }
 
     #[test]
     fn example_flag_is_accepted() {

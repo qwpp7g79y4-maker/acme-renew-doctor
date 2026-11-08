@@ -4,7 +4,7 @@
 .SH NAME
 acme\-renew\-doctor \- Explains why ACME certificate renewal failed (read\-only).
 .SH SYNOPSIS
-\fBacme\-renew\-doctor\fR [\fB\-\-all\fR] [\fB\-\-json\fR] [\fB\-\-output\fR] [\fB\-\-from\-log\fR] [\fB\-\-from\-timer\-status\fR] [\fB\-\-from\-cert\-disk\fR] [\fB\-\-from\-cert\-live\fR] [\fB\-\-client\fR] [\fB\-\-example\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIDOMAIN\fR] 
+\fBacme\-renew\-doctor\fR [\fB\-\-all\fR] [\fB\-\-json\fR] [\fB\-\-output\fR] [\fB\-\-quiet\fR] [\fB\-\-verbose\fR] [\fB\-\-from\-log\fR] [\fB\-\-from\-timer\-status\fR] [\fB\-\-from\-cert\-disk\fR] [\fB\-\-from\-cert\-live\fR] [\fB\-\-client\fR] [\fB\-\-example\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIDOMAIN\fR] 
 .SH DESCRIPTION
 Explains why ACME certificate renewal failed (read\-only).
 .SH OPTIONS
@@ -17,6 +17,12 @@ Print the report as JSON (with schema_version) instead of text
 .TP
 \fB\-\-output\fR \fI<PATH>\fR
 Write the report to this file instead of standard output. An existing file is replaced. A missing parent directory is an error and is not created
+.TP
+\fB\-\-quiet\fR
+Hide the hint line. No context line. A pipe already omits both
+.TP
+\fB\-\-verbose\fR
+Print the hint line, and on success one context line on stderr. Not with \-\-quiet
 .TP
 \fB\-\-from\-log\fR \fI<FILE>\fR
 Certbot log file to analyse, e.g. a copy of /var/log/letsencrypt/letsencrypt.log (\- reads standard input)

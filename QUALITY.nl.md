@@ -6,6 +6,13 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
 
+### 2026-11-08 (W-44, `--quiet` en `--verbose`, tak prep/w24-fout)
+
+- `--quiet` verbergt de hintregel. Een pipe of een redirect laat die al weg. `--verbose` toont de hint en, na een geslaagde rapportschrijfactie, één `context:`-regel op stderr (`files` en `findings`). Standaarduitvoer blijft het rapport. `--quiet` samen met `--verbose` is exit 3. Een ontbrekende bovenliggende map van `--output` blijft exit 3 en wordt niet aangemaakt.
+- `cargo test --no-fail-fast`: 455 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
 ### 2026-11-08 (W-43, `--output PATH`, tak prep/w24-fout)
 
 - `--output PATH` schrijft het rapport naar dat bestand in plaats van standaarduitvoer. Een bestaand bestand wordt vervangen. Een ontbrekende bovenliggende map eindigt met 3, dezelfde code als een mislukte schrijfactie naar standaarduitvoer, en wordt niet aangemaakt.
