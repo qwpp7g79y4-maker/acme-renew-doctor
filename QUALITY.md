@@ -6,6 +6,13 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-08 (W-26, speed on a 100 MiB input, branch prep/w24-fout)
+
+- Input: a synthetic log of exactly 104857600 bytes (100 MiB), built by repeating `examples/http01-timeout/letsencrypt.log` (3332 bytes) and cutting at the byte count. It lives in `/tmp` and is not committed. The repeated lines are almost identical (the same block over and over, so the last block is cut off mid-line); this is a best case for the parser, not a typical log. The tool accepted it (the log limit is 256 MiB) and reported the same findings as for the small example, with 62940 attempts counted.
+- Command: `/usr/bin/time -f "%e" target/release/acme-renew-doctor example.com --from-log big.log --from-timer-status timer-status.txt` on the release build, exit status 1 (problem found) as for the small example.
+- Measured wall seconds, three runs: 0.54, 0.54, 0.55. Peak memory in one earlier run: 207076 KB.
+- One machine, no other load recorded; no throughput figure is derived from this.
+
 ### 2026-11-08 (W-12, "Aan de slag in 5 minuten", branch prep/w07-offline)
 
 - `cargo test --no-fail-fast` on commit `f3c6178` plus the working-tree change: 423 passed / 0 failed / 1 ignored. The new test `five_minute_section_commands_run_literally` runs the five commands of the section as written.
