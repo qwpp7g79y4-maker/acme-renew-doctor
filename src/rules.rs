@@ -1,20 +1,31 @@
+//! Choose finding codes from a log, a timer status and certificate dates.
+
 use crate::certbot_log::AcmeProblem;
 use crate::certtime::CertTime;
 use crate::model::{Code, Confidence, Evidence, EvidenceSource, Finding};
 use crate::timer::TimerStatus;
 
+/// Saved inputs [`analyze`] reads. The caller fills this.
 pub struct Observations {
+    /// `certbot.timer`, when the timer file had that unit.
     pub timer: Option<TimerStatus>,
+    /// `certbot.service`, when the timer file had that unit.
     pub service: Option<TimerStatus>,
+    /// `snap.certbot.renew.timer`, when the timer file had that unit.
     pub snap_timer: Option<TimerStatus>,
+    /// ACME errors from a Certbot log.
     pub problems: Vec<AcmeProblem>,
+    /// `notAfter` from `--from-cert-disk`.
     pub disk_not_after: Option<CertTime>,
+    /// `notAfter` from `--from-cert-live`.
     pub live_not_after: Option<CertTime>,
     /// From the same saved `-dates` output as `disk_not_after`, when that
     /// output has a `notBefore=` line. Used only to scale the `OK_NOT_DUE`
     /// threshold to the certificate's own lifetime.
     pub disk_not_before: Option<CertTime>,
+    /// Clock the date rules compare against.
     pub now: CertTime,
+    /// Findings already chosen while reading files. [`analyze`] keeps them first.
     pub read_errors: Vec<Finding>,
     /// True when a log was passed and read.
     pub log_read: bool,
@@ -50,8 +61,10 @@ fn not_due_threshold(not_before: Option<CertTime>, not_after: CertTime) -> i64 {
     (lifetime_days / 3).min(NOT_DUE_DAYS)
 }
 
+/// Text appended when `certbot.service` failed and a finding keeps that note.
 pub const FAILED_SERVICE_NOTE_SUFFIX: &str = "; the renewal ran and failed, check the Certbot log";
 
+/// Findings for these observations. Read errors stay first.
 pub fn analyze(obs: &Observations) -> Vec<Finding> {
     let mut findings = Vec::new();
     findings.extend(obs.read_errors.iter().cloned());

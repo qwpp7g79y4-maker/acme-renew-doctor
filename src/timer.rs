@@ -1,17 +1,30 @@
+//! `systemctl show` text for `certbot.timer`, `certbot.service` and `snap.certbot.renew.timer`.
+
+/// Fields kept from one `systemctl show` unit block.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TimerStatus {
+    /// `Id=`.
     pub id: String,
+    /// `LoadState=`.
     pub load_state: String,
+    /// `ActiveState=`.
     pub active_state: String,
+    /// `SubState=`.
     pub sub_state: String,
+    /// `UnitFileState=`.
     pub unit_file_state: String,
+    /// `Result=`.
     pub result: String,
+    /// `ConditionResult=`.
     pub condition_result: String,
 }
 
+/// Certbot units found in `systemctl show` text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SystemctlShow {
+    /// `certbot.timer`.
     pub timer: Option<TimerStatus>,
+    /// `certbot.service`.
     pub service: Option<TimerStatus>,
     /// `snap.certbot.renew.timer`, separate from certbot.timer.
     pub snap_timer: Option<TimerStatus>,
@@ -37,20 +50,29 @@ const CERTBOT_TIMER_ID: &str = "certbot.timer";
 const CERTBOT_SERVICE_ID: &str = "certbot.service";
 const SNAP_TIMER_ID: &str = "snap.certbot.renew.timer";
 
+/// Shown when the file has no `Id=` line.
 pub const NO_ID_LINE: &str = "timer status not recognised (no Id= line in systemctl show output); save the output of systemctl show certbot.timer to a file and pass it";
+/// Shown when no block is `certbot.timer`, `certbot.service` or `snap.certbot.renew.timer`.
 pub const NO_SUPPORTED_UNIT: &str =
     "timer status not recognised (no certbot.timer, certbot.service or snap.certbot.renew.timer); save the output of systemctl show for one of those units";
+/// Shown when one of those units is repeated with different states.
 pub const AMBIGUOUS_UNITS: &str =
     "timer status is ambiguous (the same unit appears more than once with different states); save the output of one systemctl show run per file";
 
+/// Result of reading `systemctl show` text.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ShowParse {
+    /// At least one supported unit, with no conflicting repeat.
     Units(Box<SystemctlShow>),
+    /// No `Id=` line.
     NoId,
+    /// `Id=` lines, and none of them names a supported Certbot unit.
     NoSupportedUnit,
+    /// A supported unit appears more than once with different states.
     Ambiguous,
 }
 
+/// Supported units, or `None` for every [`ShowParse`] other than [`ShowParse::Units`].
 pub fn parse_systemctl_show(text: &str) -> Option<SystemctlShow> {
     match classify_show(text) {
         ShowParse::Units(show) => Some(*show),
@@ -58,6 +80,7 @@ pub fn parse_systemctl_show(text: &str) -> Option<SystemctlShow> {
     }
 }
 
+/// Classify `systemctl show` text. This does not read a file.
 pub fn classify_show(text: &str) -> ShowParse {
     let blocks = parse_blocks(text);
     if !blocks.iter().any(|block| block.has_id) {

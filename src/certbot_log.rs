@@ -1,3 +1,5 @@
+//! Certbot log text: ACME errors, and the byte limits for a log, a timer file and certificate dates.
+
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Read;
@@ -5,15 +7,20 @@ use std::path::Path;
 
 use crate::model::{Code, Confidence, Evidence, EvidenceSource, Finding};
 
+/// Prefix of an ACME problem type: `urn:ietf:params:acme:error:`.
 pub const ACME_ERROR_PREFIX: &str = "urn:ietf:params:acme:error:";
 
 /// One JSON object repeated `type` or `detail` with two different values.
 pub const AMBIGUOUS_ACME_JSON: &str = "ACME JSON is ambiguous (the same object has type or detail more than once with different values); check that the log was not edited or merged by hand, or pass the original log";
 
+/// One ACME error found in a Certbot log.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AcmeProblem {
+    /// ACME problem type. [`ACME_ERROR_PREFIX`] is kept when the log had it.
     pub problem_type: String,
+    /// ACME `detail`, or the Certbot summary detail.
     pub detail: String,
+    /// Identifier from the ACME object, when the log had one.
     pub identifier: Option<String>,
     /// Line of the finding that wins: latest timestamp, otherwise the bottom line.
     pub line: usize,
@@ -36,6 +43,7 @@ pub struct AcmeProblem {
 }
 
 impl AcmeProblem {
+    /// Type without [`ACME_ERROR_PREFIX`], or the whole type when that prefix is absent.
     pub fn short_type(&self) -> &str {
         self.problem_type
             .strip_prefix(ACME_ERROR_PREFIX)
@@ -48,20 +56,25 @@ impl AcmeProblem {
     }
 }
 
+/// True when `text` has a Certbot-style log line whose logger starts with `certbot` or `acme`.
 pub fn has_certbot_lines(text: &str) -> bool {
     text.lines().any(is_certbot_line)
 }
 
 /// Problems from a Certbot log, plus whether one ACME object contradicted itself.
 pub struct LogParse {
+    /// One entry per distinct error, in diagnosis order.
     pub problems: Vec<AcmeProblem>,
+    /// True when one ACME object repeated `type` or `detail` with two different values.
     pub ambiguous_json: bool,
 }
 
+/// Problems from a Certbot log. A contradictory ACME object is only reported by [`parse_log`].
 pub fn parse(text: &str) -> Vec<AcmeProblem> {
     parse_log(text).problems
 }
 
+/// Problems from a Certbot log, and whether one ACME object contradicted itself.
 pub fn parse_log(text: &str) -> LogParse {
     let scan = scan_json(text);
     let mut hits = scan.hits;
@@ -113,7 +126,9 @@ pub fn parse_log(text: &str) -> LogParse {
 /// A log that was read. Invalid UTF-8 sequences are U+FFFD; `replaced_invalid_utf8_bytes` counts the bytes those sequences replaced.
 #[derive(Debug)]
 pub struct DecodedLog {
+    /// Log text. Each invalid UTF-8 sequence is one U+FFFD.
     pub text: String,
+    /// Invalid bytes those U+FFFD characters replaced.
     pub replaced_invalid_utf8_bytes: usize,
 }
 
@@ -479,6 +494,7 @@ fn utf8_with_replacement(bytes: &[u8]) -> (String, usize) {
     (text, replaced)
 }
 
+/// Read error for a log path, as a [`crate::model::Finding`] with source `log`.
 pub fn finding_for_read_error(path: &Path, err: &std::io::Error) -> Finding {
     finding_for_io(path, EvidenceSource::Log, err)
 }

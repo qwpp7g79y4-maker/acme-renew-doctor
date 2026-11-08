@@ -1,3 +1,5 @@
+//! OpenSSL `notAfter` and `notBefore` lines, and the UTC clock the rules call "now".
+
 use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -6,16 +8,25 @@ const MONTHS: [&str; 12] = [
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// UTC timestamp from an OpenSSL date line or from a Unix second.
 pub struct CertTime {
+    /// Year, from 1970 through 9999.
     pub year: i32,
+    /// Month, from 1 through 12.
     pub month: u32,
+    /// Day of the month.
     pub day: u32,
+    /// Hour, from 0 through 23.
     pub hour: u32,
+    /// Minute, from 0 through 59.
     pub minute: u32,
+    /// Second, from 0 through 59.
     pub second: u32,
 }
 
 impl CertTime {
+    /// Whole calendar days from `now`'s date until this date. The clock time is ignored.
+    /// Negative when this date's day is earlier.
     pub fn days_until(&self, now: &CertTime) -> i64 {
         days_from_civil(self.year, self.month, self.day)
             .saturating_sub(days_from_civil(now.year, now.month, now.day))
@@ -45,6 +56,10 @@ impl fmt::Display for CertTime {
 const MIN_YEAR: i32 = 1970;
 const MAX_YEAR: i32 = 9999;
 
+/// `notAfter=` from OpenSSL date text.
+///
+/// `None` when the line is missing, when the same prefix appears twice with
+/// different values, or when the line is not a GMT date in 1970 through 9999.
 pub fn parse_openssl_enddate(text: &str) -> Option<CertTime> {
     parse_openssl_date(text, "notAfter=")
 }
@@ -160,6 +175,9 @@ pub fn try_from_unix_seconds(secs: i64) -> Option<CertTime> {
     })
 }
 
+/// Unix seconds as a [`CertTime`].
+///
+/// Panics when the UTC date is outside 1970-01-01 through 9999-12-31.
 pub fn from_unix_seconds(secs: i64) -> CertTime {
     try_from_unix_seconds(secs).expect("Unix seconds are inside 1970-01-01 through 9999-12-31 UTC")
 }

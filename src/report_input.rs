@@ -1,3 +1,5 @@
+//! Read the caller's files and build a [`crate::model::Report`].
+
 use std::path::Path;
 
 use crate::certbot_log::{self, read_log};
@@ -8,6 +10,13 @@ use crate::model::{
 use crate::rules::{self, Observations};
 use crate::timer;
 
+/// Read the snapshot's files and return the report.
+///
+/// `now` is the clock the date rules compare against. A file that cannot be
+/// read becomes a finding. A log above [`crate::certbot_log::LOG_MAX_BYTES`]
+/// (268435456) and a timer or certificate file above
+/// [`crate::certbot_log::SHORT_TEXT_MAX_BYTES`] (1048576) become findings and
+/// are not loaded.
 pub fn build_report(snapshot: Snapshot, now: CertTime) -> Report {
     let mut read_errors = Vec::new();
     let mut log_read = false;
