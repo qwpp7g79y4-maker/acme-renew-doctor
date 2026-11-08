@@ -150,3 +150,54 @@ fn offline_runs_never_need_a_network_tool() {
     assert!(out.stderr.is_empty());
     assert!(stdout(&out).contains("Doctor runs nothing"));
 }
+
+/// W-45: the same offline report, with outgoing connections blocked.
+///
+/// `unshare --user --map-root-user --net` starts a network namespace whose
+/// route table is empty, so the process has no way out. The proof uses those
+/// same flags, then the Doctor reads the synthetic expired dates. It does
+/// not diagnose a host or a chain.
+#[cfg(target_os = "linux")]
+#[test]
+fn expired_certificate_is_reported_with_outgoing_connections_blocked() {
+    let ns = ["--user", "--map-root-user", "--net", "--"];
+    let proof = Command::new("unshare")
+        .args(ns)
+        .args(["cat", "/proc/net/route"])
+        .output()
+        .expect("unshare route table");
+    assert!(
+        proof.status.success(),
+        "unshare failed: {}",
+        String::from_utf8_lossy(&proof.stderr)
+    );
+    let routes = String::from_utf8(proof.stdout).expect("utf-8 route table");
+    assert!(
+        !routes.split_whitespace().any(|field| field == "00000000"),
+        "network namespace still has a route: {routes:?}"
+    );
+
+    let dir = TempDir::new("blocked");
+    let cert = dir.write("expired.txt", EXPIRED);
+    let out = Command::new("unshare")
+        .args(ns)
+        .arg(env!("CARGO_BIN_EXE_acme-renew-doctor"))
+        .current_dir(env!("CARGO_MANIFEST_DIR"))
+        .args(["example.com", "--from-timer-status"])
+        .arg("tests/fixtures/timer/certbot-timer-enabled.txt")
+        .arg("--from-cert-disk")
+        .arg(&cert)
+        .arg("--from-cert-live")
+        .arg(&cert)
+        .env("ACME_RENEW_DOCTOR_NOW", NOW)
+        .output()
+        .expect("run acme-renew-doctor with outgoing connections blocked");
+    let text = stdout(&out);
+    assert!(text.contains("notAfter=Mar 31 23:59:59 2026 GMT"), "{text}");
+    assert!(text.contains("-189 day(s) remain"), "{text}");
+    assert!(text.contains("at or under the"), "{text}");
+    assert_eq!(out.status.code(), Some(2), "{text}");
+    assert!(out.stderr.is_empty(), "{text}");
+    assert!(!text.to_lowercase().contains("hostname"), "{text}");
+    assert!(!text.to_lowercase().contains("issuer"), "{text}");
+}

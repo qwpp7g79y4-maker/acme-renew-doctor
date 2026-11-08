@@ -6,6 +6,13 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-08 (W-45, offline report with outgoing connections blocked, branch prep/w24-fout)
+
+- `tests/offline_certs.rs`: `expired_certificate_is_reported_with_outgoing_connections_blocked` runs the offline expired-certificate report inside `unshare --user --map-root-user --net`. That namespace has an empty route table. The findings stay the date findings. The report does not name a host or a chain problem.
+- `cargo test --no-fail-fast`: 444 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
 ### 2026-11-08 (W-28, line coverage, branch prep/w24-fout)
 
 - Command: `cargo llvm-cov` (cargo-llvm-cov 0.9.1, stable toolchain), on tip `8cf74b0` plus the working-tree change below.
