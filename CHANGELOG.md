@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.0] - 2026-11-08
+
+### Changed
+
+- The package version is 1.0.0. This is the v1 proposal of 0.2.0. Behaviour is unchanged from 0.2.0.
+
 ## [0.2.0] - 2026-10-24
 
 ### Changed
