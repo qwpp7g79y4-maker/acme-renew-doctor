@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Added
+
+- `tests/offline_certs.rs`: offline tests with synthetic certificate text in a temporary directory, with the clock fixed by `ACME_RENEW_DOCTOR_NOW`. No network and no real certificate. An expired certificate is diagnosed. For a wrong host and a broken chain the tool only reads dates, so it does not invent a verdict and says the evidence is not recognised.
+
+### Changed
+
+- `SECURITY.md` lists 1.0.x as the supported version, replacing 0.1.x.
+
 ## [1.0.0] - 2026-11-08
 
 ### Changed
