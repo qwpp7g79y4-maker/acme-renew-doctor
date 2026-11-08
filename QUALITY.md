@@ -8,7 +8,7 @@ This log is updated weekly and lists only checks that actually ran, with the num
 
 ### 2026-11-08 (pre-release quality pass, branch prep/v1-kwaliteit)
 
-- `cargo test --no-fail-fast` on commit `cd98671`: 416 passed / 0 failed / 1 ignored.
+- `cargo test --no-fail-fast` on commit `de0d994`: 416 passed / 0 failed / 1 ignored.
 - `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
 - Only these three checks were run for this entry; the earlier entries below were not repeated.
 

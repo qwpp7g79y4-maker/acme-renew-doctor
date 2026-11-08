@@ -8,7 +8,7 @@ Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitg
 
 ### 2026-11-08 (kwaliteitsronde voor de release, tak prep/v1-kwaliteit)
 
-- `cargo test --no-fail-fast` op commit `cd98671`: 416 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo test --no-fail-fast` op commit `de0d994`: 416 geslaagd / 0 mislukt / 1 genegeerd.
 - `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
 - Alleen deze drie controles zijn voor dit item uitgevoerd; de eerdere items hieronder zijn niet herhaald.
 
