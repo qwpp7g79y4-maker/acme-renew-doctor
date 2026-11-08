@@ -6,6 +6,13 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
 
+### 2026-11-08 (W-46, invoerlimiet, tak prep/w24-fout)
+
+- `--from-log` blijft hoogstens 268435456 bytes (256 MiB). Een timerbestand en beide certificaatbestanden blijven hoogstens 1048576 bytes (1 MiB). Een groter gewoon bestand eindigt met exit 2 en `over the 268435456 byte limit` of `over the 1048576 byte limit`, en wordt niet ingelezen. Geen van beide grenzen is verhoogd. De gemeten invoer van 100 MiB blijft onder de loggrens. Het te grote bestand maakt de test in `/tmp` en wordt niet gecommit. Exitcodes blijven 0, 1, 2 en 3. Een ontbrekende bovenliggende map van `--output` blijft exit 3.
+- `cargo test --no-fail-fast`: 456 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
 ### 2026-11-08 (W-44, `--quiet` en `--verbose`, tak prep/w24-fout)
 
 - `--quiet` verbergt de hintregel. Een pipe of een redirect laat die al weg. `--verbose` toont de hint en, na een geslaagde rapportschrijfactie, één `context:`-regel op stderr (`files` en `findings`). Standaarduitvoer blijft het rapport. `--quiet` samen met `--verbose` is exit 3. Een ontbrekende bovenliggende map van `--output` blijft exit 3 en wordt niet aangemaakt.

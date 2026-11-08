@@ -25,7 +25,7 @@ Hide the hint line. No context line. A pipe already omits both
 Print the hint line, and on success one context line on stderr. Not with \-\-quiet
 .TP
 \fB\-\-from\-log\fR \fI<FILE>\fR
-Certbot log file to analyse, e.g. a copy of /var/log/letsencrypt/letsencrypt.log (\- reads standard input)
+Certbot log file to analyse, e.g. a copy of /var/log/letsencrypt/letsencrypt.log (\- reads standard input). A log larger than 268435456 bytes (256 MiB) exits 2 and is not loaded. A timer or certificate file larger than 1048576 bytes (1 MiB) exits 2 and is not loaded.
 .TP
 \fB\-\-from\-timer\-status\fR \fI<FILE>\fR
 Saved output of `systemctl show certbot.timer` to analyse

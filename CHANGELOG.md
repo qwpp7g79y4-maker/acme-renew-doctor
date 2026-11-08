@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- The log limit stays 268435456 bytes (256 MiB) and the timer and certificate limit stays 1048576 bytes (1 MiB). A larger regular file exits 2 with `over the 268435456 byte limit` or `over the 1048576 byte limit` and is not loaded. Neither limit was raised. The over-limit file is created in `/tmp` by the test and is not committed. Exit codes stay 0, 1, 2 and 3. A missing parent directory for `--output` stays exit 3.
 - `--quiet` and `--verbose`. A pipe or a redirect omits the `hint:` line. `--verbose` prints that line, and when the report was written one `context:` line on stderr (`files` and `findings`). `--quiet` omits the hint even on a terminal. The report on stdout is unchanged. Exit codes stay 0, 1, 2 and 3. `--quiet` together with `--verbose` is exit 3. A missing parent directory for `--output` stays exit 3.
 - `--output PATH` writes the report to that file instead of standard output. An existing file is replaced. A missing parent directory is exit 3, the same code as a failed write to standard output, and is not created. The diagnosis exit code is unchanged when the write succeeds.
 - README.md and README.nl.md: section "Aan de slag in 5 minuten" with five offline commands on the fixtures in `tests/fixtures`. `tests/readme.rs` runs them literally.
