@@ -1,5 +1,5 @@
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::time::SystemTime;
 
@@ -55,6 +55,10 @@ pub(crate) struct Cli {
     #[arg(long)]
     json: bool,
 
+    /// Write the report to this file instead of standard output. An existing file is replaced. A missing parent directory is an error and is not created
+    #[arg(long, value_name = "PATH")]
+    output: Option<PathBuf>,
+
     /// Certbot log file to analyse, e.g. a copy of /var/log/letsencrypt/letsencrypt.log (- reads standard input)
     #[arg(long, value_name = "FILE", value_parser = AnyPath)]
     from_log: Option<PathBuf>,
@@ -82,6 +86,7 @@ pub(crate) struct Cli {
             "domain",
             "all",
             "json",
+            "output",
             "from_log",
             "from_timer_status",
             "from_cert_disk",
@@ -138,8 +143,8 @@ fn main() -> ExitCode {
     } else {
         render::human(&report, &checks)
     };
-    if let Err(err) = write_stdout(text.as_bytes()) {
-        return output_error(&err);
+    if let Err(err) = write_report(cli.output.as_deref(), text.as_bytes()) {
+        return report_write_error(cli.output.as_deref(), &err);
     }
     ExitCode::from(u8::try_from(report.exit_status().code()).expect("exit code fits in u8"))
 }
@@ -184,6 +189,29 @@ fn write_stdout(bytes: &[u8]) -> io::Result<()> {
     let mut stdout = io::stdout().lock();
     stdout.write_all(bytes)?;
     stdout.flush()
+}
+
+/// Write the report to `--output`, or to stdout when that flag is absent.
+/// A missing parent directory is not created. A failed write uses exit 3,
+/// the same code as a failed write to stdout.
+fn write_report(path: Option<&Path>, bytes: &[u8]) -> io::Result<()> {
+    let Some(path) = path else {
+        return write_stdout(bytes);
+    };
+    let mut file = std::fs::File::create(path)?;
+    file.write_all(bytes)?;
+    file.flush()
+}
+
+fn report_write_error(path: Option<&Path>, err: &io::Error) -> ExitCode {
+    let Some(path) = path else {
+        return output_error(err);
+    };
+    let shown = render::escape_file_text(&path.to_string_lossy());
+    write_stderr_line(&format!(
+        "acme-renew-doctor: could not write report to {shown}: {err}; check that the parent directory exists and is writable; the tool does not create it"
+    ));
+    ExitCode::from(3)
 }
 
 fn write_stderr_line(line: &str) {

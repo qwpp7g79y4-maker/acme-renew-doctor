@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 ### Added
 
+- `--output PATH` writes the report to that file instead of standard output. An existing file is replaced. A missing parent directory is exit 3, the same code as a failed write to standard output, and is not created. The diagnosis exit code is unchanged when the write succeeds.
 - README.md and README.nl.md: section "Aan de slag in 5 minuten" with five offline commands on the fixtures in `tests/fixtures`. `tests/readme.rs` runs them literally.
 - `tests/offline_certs.rs`: offline tests with synthetic certificate text in a temporary directory, with the clock fixed by `ACME_RENEW_DOCTOR_NOW`. No network and no real certificate. An expired certificate is diagnosed. For a wrong host and a broken chain the tool only reads dates, so it does not invent a verdict and says the evidence is not recognised.
 - `tests/offline_certs.rs`: `expired_certificate_is_reported_with_outgoing_connections_blocked` runs that expired-certificate report in a network namespace (`unshare --user --map-root-user --net`) whose route table is empty. The findings stay the date findings. No host or chain verdict.

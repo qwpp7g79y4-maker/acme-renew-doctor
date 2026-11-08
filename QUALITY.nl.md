@@ -6,6 +6,13 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
 
+### 2026-11-08 (W-43, `--output PATH`, tak prep/w24-fout)
+
+- `--output PATH` schrijft het rapport naar dat bestand in plaats van standaarduitvoer. Een bestaand bestand wordt vervangen. Een ontbrekende bovenliggende map eindigt met 3, dezelfde code als een mislukte schrijfactie naar standaarduitvoer, en wordt niet aangemaakt.
+- `cargo test --no-fail-fast`: 447 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
 ### 2026-11-08 (W-45, offline rapport met uitgaande verbindingen geblokkeerd, tak prep/w24-fout)
 
 - `tests/offline_certs.rs`: `expired_certificate_is_reported_with_outgoing_connections_blocked` draait het offline rapport van een verlopen certificaat in `unshare --user --map-root-user --net`. Die netwerk-namespace heeft een lege routetabel. De bevindingen blijven de datums. Het rapport noemt geen host- of ketenprobleem.

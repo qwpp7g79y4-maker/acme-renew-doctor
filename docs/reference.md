@@ -13,6 +13,7 @@ Run `acme-renew-doctor --help` for the built-in help. `--version` prints `acme-r
 | `[DOMAIN]` | Shown on the report. The log is not filtered by domain. Cannot be combined with `--all`. |
 | `--all` | Diagnose all certificates. Live collection is not built; pass `--from-*` files. Cannot be combined with `[DOMAIN]`. |
 | `--json` | One JSON object with `schema_version` 1, instead of text. |
+| `--output` | Write the report to this file instead of standard output. An existing file is replaced. A missing parent directory is an error (exit 3, the same code as a failed write to standard output) and is not created. |
 | `--from-log` | Certbot log file to analyse, for example a copy of `/var/log/letsencrypt/letsencrypt.log`. `-` reads standard input instead, buffered up to the same byte limit. |
 | `--from-timer-status` | Saved output of `systemctl show certbot.timer` to analyse. |
 | `--from-cert-disk` | Saved output of `openssl x509 -noout -dates` for the certificate on disk. |
@@ -33,7 +34,7 @@ The tool does not format its own decimals. Evidence text is the file text, so a 
 | 0 | There is an `OK_NOT_DUE` finding, and every finding other than `DANGEROUS_FORCE_BLOCKED` is `OK_NOT_DUE`. `--help` and `--version` also exit 0 when that text is written. The text ends with `exit 0: ok, not due`. |
 | 1 | Some finding has a layer (scheduler, validation or deployment). The text ends with `exit 1: problem found`. |
 | 2 | Any other report, including `INSUFFICIENT_EVIDENCE`. The text ends with `exit 2: insufficient evidence`. |
-| 3 | Some finding is `CLIENT_UNKNOWN`, or clap rejected the arguments, or `ACME_RENEW_DOCTOR_NOW` is not a whole number of Unix seconds, or its UTC date is outside 1970-01-01 through 9999-12-31. A `CLIENT_UNKNOWN` report ends with `exit 3: usage error`. Clap and the clock variable write to stderr and leave stdout empty. If the text report or JSON cannot be written because standard output is closed or full, the tool does not panic: it writes `acme-renew-doctor: could not write output: ...` to standard error and exits 3. A usage message that cannot be written does the same. If standard error is closed or full, the message for an invalid `ACME_RENEW_DOCTOR_NOW` does not panic, and the process still exits 3. |
+| 3 | Some finding is `CLIENT_UNKNOWN`, or clap rejected the arguments, or `ACME_RENEW_DOCTOR_NOW` is not a whole number of Unix seconds, or its UTC date is outside 1970-01-01 through 9999-12-31. A `CLIENT_UNKNOWN` report ends with `exit 3: usage error`. Clap and the clock variable write to stderr and leave stdout empty. If the text report or JSON cannot be written because standard output is closed or full, the tool does not panic: it writes `acme-renew-doctor: could not write output: ...` to standard error and exits 3. If `--output` cannot be written, the tool exits 3 as well, leaves standard output empty, and does not create a missing parent directory. A usage message that cannot be written does the same. If standard error is closed or full, the message for an invalid `ACME_RENEW_DOCTOR_NOW` does not panic, and the process still exits 3. |
 
 `CLIENT_UNKNOWN` is checked before any layer code, so that report exits 3 even when another finding has a layer.
 

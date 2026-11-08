@@ -6,6 +6,13 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-08 (W-43, `--output PATH`, branch prep/w24-fout)
+
+- `--output PATH` writes the report to that file instead of standard output. An existing file is replaced. A missing parent directory exits 3, the same code as a failed write to standard output, and is not created.
+- `cargo test --no-fail-fast`: 447 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
 ### 2026-11-08 (W-45, offline report with outgoing connections blocked, branch prep/w24-fout)
 
 - `tests/offline_certs.rs`: `expired_certificate_is_reported_with_outgoing_connections_blocked` runs the offline expired-certificate report inside `unshare --user --map-root-user --net`. That namespace has an empty route table. The findings stay the date findings. The report does not name a host or a chain problem.
