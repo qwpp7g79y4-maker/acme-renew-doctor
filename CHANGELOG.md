@@ -9,6 +9,8 @@ All notable changes to this project are documented in this file.
 - README.md and README.nl.md: section "Aan de slag in 5 minuten" with five offline commands on the fixtures in `tests/fixtures`. `tests/readme.rs` runs them literally.
 - `tests/offline_certs.rs`: offline tests with synthetic certificate text in a temporary directory, with the clock fixed by `ACME_RENEW_DOCTOR_NOW`. No network and no real certificate. An expired certificate is diagnosed. For a wrong host and a broken chain the tool only reads dates, so it does not invent a verdict and says the evidence is not recognised.
 
+- `man/acme-renew-doctor.1`, generated from the CLI definition with `clap_mangen`, and bash and zsh completions from `clap_complete`. Both come from `cargo run --example gen_assets -- man` and `cargo run --example gen_assets -- completions DIR`. The crates are dev-dependencies; the binary and `--help` are unchanged. `tests/man_page.rs` checks the man page against `--help`.
+
 ### Changed
 
 - `SECURITY.md` lists 1.0.x as the supported version, replacing 0.1.x.

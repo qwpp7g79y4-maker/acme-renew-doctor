@@ -16,4 +16,6 @@ exclude = [".github/", ".gitattributes"]
 clap = { version = "4", features = ["derive"] }
 
 [dev-dependencies]
+clap_complete = "4.6"
+clap_mangen = "0.3"
 proptest = "1"

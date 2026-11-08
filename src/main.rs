@@ -42,7 +42,7 @@ impl TypedValueParser for AnyPath {
     version,
     about = "Explains why ACME certificate renewal failed (read-only)."
 )]
-struct Cli {
+pub(crate) struct Cli {
     /// Domain to diagnose (shown in the report; the log is not filtered by domain yet)
     #[arg(value_name = "DOMAIN", conflicts_with = "all")]
     domain: Option<String>,
