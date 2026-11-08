@@ -37,11 +37,11 @@ const CERTBOT_TIMER_ID: &str = "certbot.timer";
 const CERTBOT_SERVICE_ID: &str = "certbot.service";
 const SNAP_TIMER_ID: &str = "snap.certbot.renew.timer";
 
-pub const NO_ID_LINE: &str = "timer status not recognised (no Id= line in systemctl show output)";
+pub const NO_ID_LINE: &str = "timer status not recognised (no Id= line in systemctl show output); save the output of systemctl show certbot.timer to a file and pass it";
 pub const NO_SUPPORTED_UNIT: &str =
-    "timer status not recognised (no certbot.timer, certbot.service or snap.certbot.renew.timer)";
+    "timer status not recognised (no certbot.timer, certbot.service or snap.certbot.renew.timer); save the output of systemctl show for one of those units";
 pub const AMBIGUOUS_UNITS: &str =
-    "timer status is ambiguous (the same unit appears more than once with different states)";
+    "timer status is ambiguous (the same unit appears more than once with different states); save the output of one systemctl show run per file";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ShowParse {

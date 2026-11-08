@@ -165,7 +165,7 @@ pub fn from_unix_seconds(secs: i64) -> CertTime {
 }
 
 /// The system clock is not a certificate date, and it is not a Unix second of 0.
-pub const SYSTEM_CLOCK_RANGE: &str = "system clock is outside 1970-01-01 through 9999-12-31 UTC";
+pub const SYSTEM_CLOCK_RANGE: &str = "system clock is outside 1970-01-01 through 9999-12-31 UTC; fix the system clock, or set ACME_RENEW_DOCTOR_NOW to a Unix second";
 
 /// `Err` when `now` is before 1970-01-01 or after 9999-12-31 UTC.
 /// A clock before the epoch is not turned into second 0.

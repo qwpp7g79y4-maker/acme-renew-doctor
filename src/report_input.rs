@@ -148,7 +148,7 @@ fn cert_not_recognised(source: EvidenceSource) -> Finding {
         vec![Evidence {
             source,
             text:
-                "certificate dates not recognised (no notAfter= line in openssl x509 -dates output)"
+                "certificate dates not recognised (no notAfter= line in openssl x509 -dates output); save the output of openssl x509 -noout -dates to a file and pass it"
                     .to_string(),
         }],
     )
@@ -307,8 +307,8 @@ mod tests {
             ),
             from_unix_seconds(0),
         );
-        assert!(texts(&report)
-            .contains(&"timer status not recognised (no Id= line in systemctl show output)"));
+        assert!(texts(&report).contains(&crate::timer::NO_ID_LINE));
+        assert!(crate::timer::NO_ID_LINE.contains("save the output of systemctl show"));
     }
 
     #[test]
@@ -416,7 +416,9 @@ mod tests {
                 && finding.evidence.iter().any(|item| {
                     item.source == EvidenceSource::Disk
                         && item.text
-                            == "certificate dates not recognised (no notAfter= line in openssl x509 -dates output)"
+                            .starts_with(
+                                "certificate dates not recognised (no notAfter= line in openssl x509 -dates output); save"
+                            )
                 })
         }));
     }

@@ -4,7 +4,7 @@ inputs: log=(none) · timer status=(none) · cert disk=tests/fixtures/certs/not-
 
 ? INSUFFICIENT_EVIDENCE  confidence=high  layer=-
   evidence:
-  • [disk] certificate dates not recognised (no notAfter= line in openssl x509 -dates output)
+  • [disk] certificate dates not recognised (no notAfter= line in openssl x509 -dates output); save the output of openssl x509 -noout -dates to a file and pass it
 
 ? INSUFFICIENT_EVIDENCE  confidence=low  layer=-
   evidence:

@@ -13,7 +13,7 @@ mod unix {
     }
 
     const BROKEN_PIPE: &str =
-        "acme-renew-doctor: could not write output: Broken pipe (os error 32)\n";
+        "acme-renew-doctor: could not write output: Broken pipe (os error 32); check that the output is not closed or full and run again\n";
 
     /// Write end of a pipe whose read end is already closed.
     fn closed_pipe() -> Stdio {
@@ -171,7 +171,7 @@ mod unix {
 
     #[cfg(target_os = "linux")]
     const FULL_DEVICE: &str =
-        "acme-renew-doctor: could not write output: No space left on device (os error 28)\n";
+        "acme-renew-doctor: could not write output: No space left on device (os error 28); check that the output is not closed or full and run again\n";
 
     #[cfg(target_os = "linux")]
     fn full_device() -> Stdio {

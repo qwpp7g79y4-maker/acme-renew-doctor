@@ -8,7 +8,7 @@ use crate::model::{Code, Confidence, Evidence, EvidenceSource, Finding};
 pub const ACME_ERROR_PREFIX: &str = "urn:ietf:params:acme:error:";
 
 /// One JSON object repeated `type` or `detail` with two different values.
-pub const AMBIGUOUS_ACME_JSON: &str = "ACME JSON is ambiguous (the same object has type or detail more than once with different values)";
+pub const AMBIGUOUS_ACME_JSON: &str = "ACME JSON is ambiguous (the same object has type or detail more than once with different values); check that the log was not edited or merged by hand, or pass the original log";
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AcmeProblem {
@@ -187,7 +187,7 @@ fn read_capped(
     if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > max_bytes {
         return Err(read_finding(
             source,
-            format!("cannot read {what}: over the {max_bytes} byte limit"),
+            format!("cannot read {what}: over the {max_bytes} byte limit; pass a smaller excerpt, for example the last part of the log made with tail"),
         ));
     }
     Ok(bytes)
@@ -227,7 +227,8 @@ pub fn read_regular_bytes(
     if path.as_os_str().is_empty() {
         return Err(read_finding(
             source,
-            "cannot read: the path is empty".to_string(),
+            "cannot read: the path is empty; give the path of a saved file after the option"
+                .to_string(),
         ));
     }
     let file = match open_read(path) {
@@ -241,7 +242,10 @@ pub fn read_regular_bytes(
     if meta.is_dir() {
         return Err(read_finding(
             source,
-            format!("cannot read {}: is a directory", path.display()),
+            format!(
+                "cannot read {}: is a directory; give the path of a file, not a folder",
+                path.display()
+            ),
         ));
     }
     if !meta.is_file() {
@@ -258,7 +262,7 @@ pub fn read_regular_bytes(
         return Err(read_finding(
             source,
             format!(
-                "cannot read {}: the file is {len} bytes, over the {max_bytes} byte limit",
+                "cannot read {}: the file is {len} bytes, over the {max_bytes} byte limit; pass a smaller excerpt of it",
                 path.display()
             ),
         ));
@@ -274,7 +278,7 @@ pub fn read_regular_bytes(
         return Err(read_finding(
             source,
             format!(
-                "cannot read {}: the file is over the {max_bytes} byte limit",
+                "cannot read {}: the file is over the {max_bytes} byte limit; pass a smaller excerpt of it",
                 path.display()
             ),
         ));
@@ -323,7 +327,10 @@ fn finding_for_failed_open(path: &Path, source: EvidenceSource, err: &std::io::E
     match std::fs::metadata(path) {
         Ok(meta) if meta.is_dir() => read_finding(
             source,
-            format!("cannot read {}: is a directory", path.display()),
+            format!(
+                "cannot read {}: is a directory; give the path of a file, not a folder",
+                path.display()
+            ),
         ),
         Ok(meta) if !meta.is_file() => read_finding(
             source,
@@ -380,7 +387,7 @@ pub fn read_strict_text(
         Err(_) => Err(read_finding(
             source,
             format!(
-                "cannot read {}: the file is not valid UTF-8",
+                "cannot read {}: the file is not valid UTF-8; save it as UTF-8 and run again",
                 path.display()
             ),
         )),
@@ -1586,7 +1593,10 @@ mod tests {
             );
         }
 
-        let expected = format!("cannot read {}: is a directory", path.display());
+        let expected = format!(
+            "cannot read {}: is a directory; give the path of a file, not a folder",
+            path.display()
+        );
         let from_bytes = read_regular_bytes(&path, LOG_MAX_BYTES, EvidenceSource::Log).unwrap_err();
         assert_eq!(from_bytes.code, Code::InsufficientEvidence);
         assert_eq!(from_bytes.layer, None);
@@ -1847,7 +1857,7 @@ mod tests {
         .unwrap_err();
         assert_eq!(
             err.evidence[0].text,
-            "cannot read standard input: over the 10 byte limit"
+            "cannot read standard input: over the 10 byte limit; pass a smaller excerpt, for example the last part of the log made with tail"
         );
     }
 

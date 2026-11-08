@@ -174,9 +174,9 @@ fn write_example_log() -> Result<(), String> {
         )),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
             std::fs::write(EXAMPLE_LOG_NAME, EXAMPLE_LOG)
-                .map_err(|err| format!("cannot write {EXAMPLE_LOG_NAME}: {err}"))
+                .map_err(|err| format!("cannot write {EXAMPLE_LOG_NAME}: {err}; run --example in a directory you can write to"))
         }
-        Err(err) => Err(format!("cannot read {EXAMPLE_LOG_NAME}: {err}")),
+        Err(err) => Err(format!("cannot read {EXAMPLE_LOG_NAME}: {err}; remove it or run --example in an empty directory")),
     }
 }
 
@@ -193,7 +193,7 @@ fn write_stderr_line(line: &str) {
 }
 
 fn output_error(err: &io::Error) -> ExitCode {
-    write_stderr_line(&format!("acme-renew-doctor: could not write output: {err}"));
+    write_stderr_line(&format!("acme-renew-doctor: could not write output: {err}; check that the output is not closed or full and run again"));
     ExitCode::from(3)
 }
 
