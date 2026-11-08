@@ -6,6 +6,12 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
 
+### 2026-11-08 (W-12, "Aan de slag in 5 minuten", tak prep/w07-offline)
+
+- `cargo test --no-fail-fast` op commit `f3c6178` plus de werkboomwijziging: 423 geslaagd / 0 mislukt / 1 genegeerd. De nieuwe test `five_minute_section_commands_run_literally` draait de vijf opdrachten van de sectie zoals geschreven.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Het getal 416 hieronder is op een andere tak gemeten; het beschrijft deze tak niet.
+
 ### 2026-11-08 (kwaliteitsronde voor de release, tak prep/v1-kwaliteit)
 
 - `cargo test --no-fail-fast` op commit `de0d994`: 416 geslaagd / 0 mislukt / 1 genegeerd.

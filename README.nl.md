@@ -12,7 +12,7 @@ acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. He
 
 **Waarschuwing:** het rapport citeert de bestanden die je meegeeft woordelijk terug; het redigeert niet. Verwijder tokens, wachtwoorden en API-sleutels uit een log of andere opgeslagen opdrachtuitvoer voordat je die meegeeft, zeker voordat je het rapport doorstuurt. Zie [Privacy](#privacy).
 
-Tests: `cargo test --no-fail-fast` geeft 416 geslaagd, 0 mislukt, 1 genegeerd (gemeten op commit `de0d994`; zie [QUALITY.nl.md](QUALITY.nl.md)).
+Tests: `cargo test --no-fail-fast` geeft 423 geslaagd, 0 mislukt, 1 genegeerd (gemeten op commit `f3c6178` plus de werkboomwijziging die de sectie "Aan de slag in 5 minuten" en de test toevoegt; zie [QUALITY.nl.md](QUALITY.nl.md)).
 
 De uitvoer van de tool is Engels; de voorbeelden hieronder tonen die precies zoals de binary hem schrijft.
 
@@ -172,6 +172,26 @@ exit 0: ok, not due
 ```
 
 `1791273600` is 2026-10-06 08:00:00 UTC. `--json` schrijft één JSON-object in plaats van deze tekst. Alle opties, exitcodes en foutmeldingen staan in de [referentie](docs/reference.nl.md) en in `acme-renew-doctor --help`.
+
+## Aan de slag in 5 minuten
+
+Vijf opdrachten, offline en alleen-lezen, op de synthetische fixtures in `tests/fixtures`. Ze lezen geen `/var/log`, roepen geen `journalctl` aan, maken geen netwerkverbinding en openen geen TUI. Draai ze in de hoofdmap van een kloon, met `acme-renew-doctor` op je `PATH` (na `cargo install --locked --path .`, of gebruik `target/release/acme-renew-doctor`). Een test draait de opdrachten in dit blok letterlijk.
+
+```sh
+acme-renew-doctor --help
+acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout.log
+acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout-repeated.log --from-timer-status tests/fixtures/timer/certbot-timer-disabled.txt
+ACME_RENEW_DOCTOR_NOW=1791273600 acme-renew-doctor example.com --from-timer-status tests/fixtures/timer/certbot-timer-enabled.txt --from-cert-disk tests/fixtures/certs/dates-current.txt --from-cert-live tests/fixtures/certs/dates-current.txt
+acme-renew-doctor example.com --json --from-log tests/fixtures/certbot/http01-timeout.log
+```
+
+1. Toont de opties. Exit 0.
+2. Eén opgeslagen Certbot-log: `LAYER2_HTTP01_TIMEOUT`, exit 1 (probleem gevonden).
+3. Een log plus een opgeslagen timerstatus: `LAYER1_TIMER_DISABLED` en `LAYER2_HTTP01_TIMEOUT`, exit 1.
+4. Gelijke, nog niet verlopen certificaatdatums met vastgezette klok: `OK_NOT_DUE`, exit 0.
+5. Dezelfde bevinding als opdracht 2 als één JSON-object, exit 1.
+
+Sla voor je eigen server de uitvoer van de opdrachten die het rapport onder "Next" afdrukt op in bestanden en geef ze door met de `--from-*`-opties. Zie [Snel aan de slag](#snel-aan-de-slag).
 
 ## Voorbeeld
 

@@ -6,6 +6,12 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-08 (W-12, "Aan de slag in 5 minuten", branch prep/w07-offline)
+
+- `cargo test --no-fail-fast` on commit `f3c6178` plus the working-tree change: 423 passed / 0 failed / 1 ignored. The new test `five_minute_section_commands_run_literally` runs the five commands of the section as written.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- The 416 figure below was measured on another branch; it does not describe this one.
+
 ### 2026-11-08 (pre-release quality pass, branch prep/v1-kwaliteit)
 
 - `cargo test --no-fail-fast` on commit `de0d994`: 416 passed / 0 failed / 1 ignored.

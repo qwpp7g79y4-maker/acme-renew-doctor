@@ -12,7 +12,7 @@ acme-renew-doctor is a local, read-only command-line tool written in Rust. It ex
 
 **Warning:** the report quotes the files you pass back verbatim; it does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, especially before you forward the report to anyone else. See [Privacy](#privacy).
 
-Tests: `cargo test --no-fail-fast` gives 416 passed, 0 failed, 1 ignored (measured on commit `de0d994`; see [QUALITY.md](QUALITY.md)).
+Tests: `cargo test --no-fail-fast` gives 423 passed, 0 failed, 1 ignored (measured on commit `f3c6178` plus the working-tree change that adds the "Aan de slag in 5 minuten" section and its test; see [QUALITY.md](QUALITY.md)).
 
 ## Why
 
@@ -170,6 +170,26 @@ exit 0: ok, not due
 ```
 
 `1791273600` is 2026-10-06 08:00:00 UTC. `--json` prints one JSON object instead of this text. All options, exit codes and error messages are listed in the [reference](docs/reference.md) and in `acme-renew-doctor --help`.
+
+## Aan de slag in 5 minuten
+
+Five commands, offline and read-only, on the synthetic fixtures in `tests/fixtures`. They read no `/var/log`, call no `journalctl`, make no network connection and open no TUI. Run them from the root of a clone, with `acme-renew-doctor` on your `PATH` (after `cargo install --locked --path .`, or use `target/release/acme-renew-doctor`). A test runs the commands in this block literally.
+
+```sh
+acme-renew-doctor --help
+acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout.log
+acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout-repeated.log --from-timer-status tests/fixtures/timer/certbot-timer-disabled.txt
+ACME_RENEW_DOCTOR_NOW=1791273600 acme-renew-doctor example.com --from-timer-status tests/fixtures/timer/certbot-timer-enabled.txt --from-cert-disk tests/fixtures/certs/dates-current.txt --from-cert-live tests/fixtures/certs/dates-current.txt
+acme-renew-doctor example.com --json --from-log tests/fixtures/certbot/http01-timeout.log
+```
+
+1. Shows the options. Exit 0.
+2. One saved Certbot log: `LAYER2_HTTP01_TIMEOUT`, exit 1 (problem found).
+3. A log plus a saved timer status: `LAYER1_TIMER_DISABLED` and `LAYER2_HTTP01_TIMEOUT`, exit 1.
+4. Equal, not yet due certificate dates with the clock pinned: `OK_NOT_DUE`, exit 0.
+5. The same finding as command 2 as one JSON object, exit 1.
+
+For your own server, save the output of the commands the report prints under "Next" to files and pass them with the `--from-*` options. See [Quick start](#quick-start).
 
 ## Example
 
