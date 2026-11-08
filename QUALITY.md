@@ -6,6 +6,13 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-08 (W-48, SIGINT, branch prep/w24-fout)
+
+- SIGINT exits 130. Stderr is `acme-renew-doctor: interrupted by SIGINT; run the command again`. The report is not left half-written. `tests/sigint.rs` sends the signal through a pidfd of the child it spawned. Ordinary exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes. The timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3. No host or chain finding was added.
+- `cargo test --no-fail-fast`: 457 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
 ### 2026-11-08 (W-46, input limit, branch prep/w24-fout)
 
 - `--from-log` stays at most 268435456 bytes (256 MiB). A timer file and both certificate files stay at most 1048576 bytes (1 MiB). A larger regular file exits 2 with `over the 268435456 byte limit` or `over the 1048576 byte limit` and is not loaded. Neither limit was raised. The measured 100 MiB input stays under the log limit. The over-limit file is created in `/tmp` by the test and is not committed. Exit codes stay 0, 1, 2 and 3. A missing parent directory for `--output` stays exit 3.

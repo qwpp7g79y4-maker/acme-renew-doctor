@@ -116,10 +116,23 @@ enum Client {
 }
 
 fn main() -> ExitCode {
+    acme_renew_doctor::install_sigint_handler();
+    let code = run();
+    if acme_renew_doctor::sigint_caught() {
+        note_interrupted();
+        return ExitCode::from(acme_renew_doctor::EXIT_SIGINT);
+    }
+    code
+}
+
+fn run() -> ExitCode {
     let cli = match Cli::try_parse() {
         Ok(cli) => cli,
         Err(err) => finish_parse_error(err),
     };
+    if acme_renew_doctor::sigint_caught() {
+        return ExitCode::from(acme_renew_doctor::EXIT_SIGINT);
+    }
 
     let extra = show_extra(cli.quiet, cli.verbose, io::stderr().is_terminal());
 
@@ -155,8 +168,15 @@ fn main() -> ExitCode {
     } else {
         render::human(&report, &checks)
     };
-    if let Err(err) = write_report(cli.output.as_deref(), text.as_bytes()) {
-        return report_write_error(cli.output.as_deref(), &err, extra);
+    match write_report(cli.output.as_deref(), text.as_bytes()) {
+        ReportWrite::Failed(err) => {
+            return report_write_error(cli.output.as_deref(), &err, extra);
+        }
+        ReportWrite::Interrupted => return ExitCode::from(acme_renew_doctor::EXIT_SIGINT),
+        ReportWrite::Done => {}
+    }
+    if acme_renew_doctor::sigint_caught() {
+        return ExitCode::from(acme_renew_doctor::EXIT_SIGINT);
     }
     if cli.verbose {
         let files = input_file_count(&report.snapshot);
@@ -222,15 +242,27 @@ fn emit_error(message: &str, extra: bool) {
 /// Writes `EXAMPLE_LOG` to `EXAMPLE_LOG_NAME`, unless a file with that name
 /// already exists and its bytes are not exactly the bundled example.
 fn write_example(extra: bool) -> ExitCode {
+    if acme_renew_doctor::sigint_caught() {
+        return ExitCode::from(acme_renew_doctor::EXIT_SIGINT);
+    }
     match write_example_log() {
         Ok(()) => {
+            if acme_renew_doctor::sigint_caught() {
+                return ExitCode::from(acme_renew_doctor::EXIT_SIGINT);
+            }
             let message = format!(
                 "wrote {EXAMPLE_LOG_NAME} in the current directory (synthetic Certbot log for the Quick start)\n"
             );
             match write_stdout(message.as_bytes()) {
                 Ok(()) => ExitCode::from(0),
+                Err(_) if acme_renew_doctor::sigint_caught() => {
+                    ExitCode::from(acme_renew_doctor::EXIT_SIGINT)
+                }
                 Err(err) => output_error(&err, extra),
             }
+        }
+        Err(_) if acme_renew_doctor::sigint_caught() => {
+            ExitCode::from(acme_renew_doctor::EXIT_SIGINT)
         }
         Err(message) => {
             emit_error(&format!("acme-renew-doctor: {message}"), extra);
@@ -248,29 +280,137 @@ fn write_example_log() -> Result<(), String> {
             "{EXAMPLE_LOG_NAME} already exists with different content; remove it or run --example in an empty directory"
         )),
         Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-            std::fs::write(EXAMPLE_LOG_NAME, EXAMPLE_LOG)
-                .map_err(|err| format!("cannot write {EXAMPLE_LOG_NAME}: {err}; run --example in a directory you can write to"))
+            let written = acme_renew_doctor::with_sigint_blocked(|| {
+                if acme_renew_doctor::sigint_caught() {
+                    return None;
+                }
+                Some(std::fs::write(EXAMPLE_LOG_NAME, EXAMPLE_LOG))
+            });
+            match written {
+                None => Err(format!(
+                    "cannot write {EXAMPLE_LOG_NAME}: interrupted by SIGINT; run --example again"
+                )),
+                Some(Ok(())) => Ok(()),
+                Some(Err(_)) if acme_renew_doctor::sigint_caught() => {
+                    let _ = std::fs::remove_file(EXAMPLE_LOG_NAME);
+                    Err(format!(
+                        "cannot write {EXAMPLE_LOG_NAME}: interrupted by SIGINT; run --example again"
+                    ))
+                }
+                Some(Err(err)) => Err(format!(
+                    "cannot write {EXAMPLE_LOG_NAME}: {err}; run --example in a directory you can write to"
+                )),
+            }
         }
         Err(err) => Err(format!("cannot read {EXAMPLE_LOG_NAME}: {err}; remove it or run --example in an empty directory")),
     }
 }
 
 fn write_stdout(bytes: &[u8]) -> io::Result<()> {
-    let mut stdout = io::stdout().lock();
-    stdout.write_all(bytes)?;
-    stdout.flush()
+    let result = acme_renew_doctor::with_sigint_blocked(|| {
+        if acme_renew_doctor::sigint_caught() {
+            return Err(io::Error::other("interrupted by SIGINT"));
+        }
+        let mut stdout = io::stdout().lock();
+        stdout.write_all(bytes)?;
+        stdout.flush()
+    });
+    if acme_renew_doctor::sigint_caught() {
+        return Err(io::Error::other("interrupted by SIGINT"));
+    }
+    result
+}
+
+enum ReportWrite {
+    Done,
+    Failed(io::Error),
+    Interrupted,
+}
+
+/// Path of a temporary file next to `path`, on the same filesystem, so the
+/// finished report can replace `path` in one rename. SIGINT before that
+/// rename deletes the temporary file and leaves `path` as it was.
+fn temp_beside(path: &Path) -> PathBuf {
+    let parent = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+        .unwrap_or_else(|| Path::new("."));
+    let mut name = std::ffi::OsString::from(".");
+    name.push(
+        path.file_name()
+            .unwrap_or_else(|| std::ffi::OsStr::new("report")),
+    );
+    name.push(format!(".acme-renew-doctor-{}.tmp", std::process::id()));
+    parent.join(name)
+}
+
+/// Replace `path` with the finished bytes in `tmp`.
+///
+/// On Unix, `rename` replaces an existing file in one step. On Windows,
+/// `rename` does not replace an existing file, so the finished bytes are
+/// copied over `path` after they are complete in `tmp`.
+fn publish_temp(tmp: &Path, path: &Path) -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        let copied = std::fs::copy(tmp, path).map(|_| ());
+        let _ = std::fs::remove_file(tmp);
+        copied
+    }
+    #[cfg(not(windows))]
+    {
+        std::fs::rename(tmp, path)
+    }
 }
 
 /// Write the report to `--output`, or to stdout when that flag is absent.
 /// A missing parent directory is not created. A failed write uses exit 3,
-/// the same code as a failed write to stdout.
-fn write_report(path: Option<&Path>, bytes: &[u8]) -> io::Result<()> {
+/// the same code as a failed write to stdout. SIGINT publishes nothing
+/// partial: the destination is replaced only after the new bytes are complete.
+fn write_report(path: Option<&Path>, bytes: &[u8]) -> ReportWrite {
+    if acme_renew_doctor::sigint_caught() {
+        return ReportWrite::Interrupted;
+    }
     let Some(path) = path else {
-        return write_stdout(bytes);
+        return match write_stdout(bytes) {
+            Ok(()) => ReportWrite::Done,
+            Err(_) if acme_renew_doctor::sigint_caught() => ReportWrite::Interrupted,
+            Err(err) => ReportWrite::Failed(err),
+        };
     };
-    let mut file = std::fs::File::create(path)?;
-    file.write_all(bytes)?;
-    file.flush()
+    let tmp = temp_beside(path);
+    let created = std::fs::File::create(&tmp).and_then(|mut file| {
+        file.write_all(bytes)?;
+        file.flush()
+    });
+    if let Err(err) = created {
+        let _ = std::fs::remove_file(&tmp);
+        if acme_renew_doctor::sigint_caught() {
+            return ReportWrite::Interrupted;
+        }
+        return ReportWrite::Failed(err);
+    }
+    let renamed = acme_renew_doctor::with_sigint_blocked(|| {
+        if acme_renew_doctor::sigint_caught() {
+            return None;
+        }
+        Some(publish_temp(&tmp, path))
+    });
+    match renamed {
+        None => {
+            let _ = std::fs::remove_file(&tmp);
+            ReportWrite::Interrupted
+        }
+        Some(Ok(())) if acme_renew_doctor::sigint_caught() => ReportWrite::Interrupted,
+        Some(Ok(())) => ReportWrite::Done,
+        Some(Err(_)) if acme_renew_doctor::sigint_caught() => {
+            let _ = std::fs::remove_file(&tmp);
+            ReportWrite::Interrupted
+        }
+        Some(Err(err)) => {
+            let _ = std::fs::remove_file(&tmp);
+            ReportWrite::Failed(err)
+        }
+    }
 }
 
 fn report_write_error(path: Option<&Path>, err: &io::Error, extra: bool) -> ExitCode {
@@ -291,6 +431,13 @@ fn write_stderr_line(line: &str) {
     let mut stderr = io::stderr().lock();
     let _ = writeln!(stderr, "{line}");
     let _ = stderr.flush();
+}
+
+fn note_interrupted() {
+    emit_error(
+        "acme-renew-doctor: interrupted by SIGINT; run the command again",
+        stderr_is_extra_from_args(),
+    );
 }
 
 fn output_error(err: &io::Error, extra: bool) -> ExitCode {
@@ -350,8 +497,16 @@ fn finish_parse_error(err: clap::Error) -> ! {
         _ => ExitStatus::Usage.code(),
     };
     if let Err(io_err) = err.print() {
+        if acme_renew_doctor::sigint_caught() {
+            note_interrupted();
+            std::process::exit(i32::from(acme_renew_doctor::EXIT_SIGINT));
+        }
         let _ = output_error(&io_err, stderr_is_extra_from_args());
         std::process::exit(3);
+    }
+    if acme_renew_doctor::sigint_caught() {
+        note_interrupted();
+        std::process::exit(i32::from(acme_renew_doctor::EXIT_SIGINT));
     }
     std::process::exit(code);
 }

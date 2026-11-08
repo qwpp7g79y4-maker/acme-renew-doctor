@@ -186,17 +186,22 @@ pub fn read_log(path: &Path) -> Result<DecodedLog, Finding> {
 /// Read at most `max_bytes` from `reader`, with the same over-the-limit
 /// message `read_regular_bytes` uses for a file.
 fn read_capped(
-    mut reader: impl Read,
+    reader: impl Read,
     max_bytes: u64,
     source: EvidenceSource,
     what: &str,
 ) -> Result<Vec<u8>, Finding> {
+    if crate::interrupt::interrupted() {
+        return Err(sigint_finding(source, what));
+    }
     let mut bytes = Vec::new();
-    if let Err(err) = reader
-        .by_ref()
+    let read_result = crate::interrupt::StopOnSigint::new(reader)
         .take(max_bytes.saturating_add(1))
-        .read_to_end(&mut bytes)
-    {
+        .read_to_end(&mut bytes);
+    if crate::interrupt::interrupted() {
+        return Err(sigint_finding(source, what));
+    }
+    if let Err(err) = read_result {
         return Err(finding_for_io_kind(source, what, &err));
     }
     if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > max_bytes {
@@ -239,6 +244,9 @@ pub fn read_regular_bytes(
     max_bytes: u64,
     source: EvidenceSource,
 ) -> Result<Vec<u8>, Finding> {
+    if crate::interrupt::interrupted() {
+        return Err(sigint_finding(source, &path.display().to_string()));
+    }
     if path.as_os_str().is_empty() {
         return Err(read_finding(
             source,
@@ -283,10 +291,13 @@ pub fn read_regular_bytes(
         ));
     }
     let mut bytes = Vec::new();
-    if let Err(err) = file
+    let read_result = crate::interrupt::StopOnSigint::new(file)
         .take(max_bytes.saturating_add(1))
-        .read_to_end(&mut bytes)
-    {
+        .read_to_end(&mut bytes);
+    if crate::interrupt::interrupted() {
+        return Err(sigint_finding(source, &path.display().to_string()));
+    }
+    if let Err(err) = read_result {
         return Err(finding_for_io(path, source, &err));
     }
     if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > max_bytes {
@@ -356,6 +367,10 @@ fn finding_for_failed_open(path: &Path, source: EvidenceSource, err: &std::io::E
         ),
         _ => finding_for_io(path, source, err),
     }
+}
+
+fn sigint_finding(source: EvidenceSource, what: &str) -> Finding {
+    read_finding(source, format!("cannot read {what}: interrupted by SIGINT"))
 }
 
 fn read_finding(source: EvidenceSource, text: String) -> Finding {
