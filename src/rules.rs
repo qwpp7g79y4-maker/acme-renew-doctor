@@ -50,7 +50,16 @@ pub const NOT_DUE_DAYS: i64 = 30;
 /// lifetime that implies a bigger threshold (a placeholder or malformed
 /// notBefore) must not make `OK_NOT_DUE` more lenient than the old fixed
 /// threshold. Falls back to `NOT_DUE_DAYS` when the lifetime is not known.
-fn not_due_threshold(not_before: Option<CertTime>, not_after: CertTime) -> i64 {
+/// `warn_days`, when set, replaces that computation. The caller passes the
+/// `--warn-days` value. It is not a clock and it is not stored on the report.
+fn not_due_threshold(
+    not_before: Option<CertTime>,
+    not_after: CertTime,
+    warn_days: Option<i64>,
+) -> i64 {
+    if let Some(days) = warn_days {
+        return days;
+    }
     let Some(not_before) = not_before else {
         return NOT_DUE_DAYS;
     };
@@ -66,6 +75,16 @@ pub const FAILED_SERVICE_NOTE_SUFFIX: &str = "; the renewal ran and failed, chec
 
 /// Findings for these observations. Read errors stay first.
 pub fn analyze(obs: &Observations) -> Vec<Finding> {
+    analyze_with_warn_days(obs, None)
+}
+
+/// Same findings as [`analyze`].
+///
+/// `warn_days` replaces the renewal threshold when it is set. `None` keeps
+/// one third of the disk certificate lifetime, capped at 30 days. The value
+/// is the `--warn-days` setting. It is not written onto the report, and it
+/// is not a clock.
+pub(crate) fn analyze_with_warn_days(obs: &Observations, warn_days: Option<i64>) -> Vec<Finding> {
     let mut findings = Vec::new();
     findings.extend(obs.read_errors.iter().cloned());
 
@@ -86,7 +105,7 @@ pub fn analyze(obs: &Observations) -> Vec<Finding> {
         .iter()
         .any(|finding| counts_as_diagnosis(finding.code));
     if !diagnosed && obs.read_errors.is_empty() {
-        if let Some(finding) = ok_not_due(obs) {
+        if let Some(finding) = ok_not_due(obs, warn_days) {
             findings.push(finding);
         }
     }
@@ -103,7 +122,7 @@ pub fn analyze(obs: &Observations) -> Vec<Finding> {
             || matches!(finding.code, Code::OkNotDue | Code::ClientUnknown)
     });
     if !resolved {
-        findings.push(insufficient(obs));
+        findings.push(insufficient(obs, warn_days));
     }
     attach_failed_service(obs, &mut findings);
     findings
@@ -380,7 +399,10 @@ fn no_reload(obs: &Observations) -> Option<Finding> {
 /// Shared by `ok_not_due` and `insufficient`, so a near-renewal certificate
 /// that fails only the days check still gets its known date shown instead of
 /// a bare "no log given".
-fn ok_not_due_candidate(obs: &Observations) -> Option<(CertTime, CertTime, i64, i64)> {
+fn ok_not_due_candidate(
+    obs: &Observations,
+    warn_days: Option<i64>,
+) -> Option<(CertTime, CertTime, i64, i64)> {
     if obs.log_has_replacement_char {
         return None;
     }
@@ -415,13 +437,13 @@ fn ok_not_due_candidate(obs: &Observations) -> Option<(CertTime, CertTime, i64, 
             return None;
         }
     }
-    let threshold = not_due_threshold(obs.disk_not_before, disk);
+    let threshold = not_due_threshold(obs.disk_not_before, disk, warn_days);
     let days = disk.days_until(&obs.now);
     Some((disk, live, days, threshold))
 }
 
-fn ok_not_due(obs: &Observations) -> Option<Finding> {
-    let (disk, live, days, threshold) = ok_not_due_candidate(obs)?;
+fn ok_not_due(obs: &Observations, warn_days: Option<i64>) -> Option<Finding> {
+    let (disk, live, days, threshold) = ok_not_due_candidate(obs, warn_days)?;
     if days <= threshold {
         return None;
     }
@@ -435,6 +457,13 @@ fn ok_not_due(obs: &Observations) -> Option<Finding> {
             text: live.to_string(),
         },
     ];
+    // Only when the caller set a threshold. The default report stays as it was.
+    if warn_days.is_some() {
+        evidence.push(Evidence {
+            source: EvidenceSource::Disk,
+            text: format!("{days} day(s) remain, above the {threshold}-day renewal threshold"),
+        });
+    }
     if let Some(timer) = &obs.timer {
         evidence.push(timer_line(&format!("Id={}", timer.id)));
         evidence.push(timer_line(&format!("LoadState={}", timer.load_state)));
@@ -547,7 +576,7 @@ fn attach_failed_service(obs: &Observations, findings: &mut Vec<Finding>) {
     }
 }
 
-fn insufficient(obs: &Observations) -> Finding {
+fn insufficient(obs: &Observations, warn_days: Option<i64>) -> Finding {
     let mut evidence = Vec::new();
     if let Some(text) = snap_install_note(obs) {
         evidence.push(note(EvidenceSource::Timer, &text));
@@ -579,7 +608,7 @@ fn insufficient(obs: &Observations) -> Finding {
     // The dates are known, and every OK_NOT_DUE condition holds except the
     // days threshold: show the known notAfter date and how close it is,
     // instead of leaving the evidence silent about it.
-    if let Some((disk, _live, days, threshold)) = ok_not_due_candidate(obs) {
+    if let Some((disk, _live, days, threshold)) = ok_not_due_candidate(obs, warn_days) {
         if days <= threshold {
             evidence.push(note(
                 EvidenceSource::Disk,
@@ -731,7 +760,7 @@ mod tests {
         obs.live_not_after = Some(later);
         obs.timer = Some(timer("masked", "active", "enabled", "success"));
         assert!(
-            ok_not_due(&obs).is_none(),
+            ok_not_due(&obs, None).is_none(),
             "a masked timer must not count as ok-not-due even when unit_file_state and active_state look right"
         );
     }
@@ -740,9 +769,9 @@ mod tests {
     fn not_due_threshold_is_one_third_of_the_known_lifetime() {
         let not_before = from_unix_seconds(0);
         let ninety_days = from_unix_seconds(90 * 86_400);
-        assert_eq!(not_due_threshold(Some(not_before), ninety_days), 30);
+        assert_eq!(not_due_threshold(Some(not_before), ninety_days, None), 30);
         let six_days = from_unix_seconds(6 * 86_400);
-        assert_eq!(not_due_threshold(Some(not_before), six_days), 2);
+        assert_eq!(not_due_threshold(Some(not_before), six_days, None), 2);
     }
 
     #[test]
@@ -754,7 +783,7 @@ mod tests {
         let not_before = from_unix_seconds(0);
         let nine_years = from_unix_seconds(9 * 365 * 86_400);
         assert_eq!(
-            not_due_threshold(Some(not_before), nine_years),
+            not_due_threshold(Some(not_before), nine_years, None),
             NOT_DUE_DAYS
         );
     }
@@ -762,14 +791,68 @@ mod tests {
     #[test]
     fn not_due_threshold_falls_back_to_the_fixed_days_without_a_usable_lifetime() {
         let not_after = from_unix_seconds(90 * 86_400);
-        assert_eq!(not_due_threshold(None, not_after), NOT_DUE_DAYS);
+        assert_eq!(not_due_threshold(None, not_after, None), NOT_DUE_DAYS);
         // notBefore not earlier than notAfter: a broken or swapped pair, not a lifetime.
-        assert_eq!(not_due_threshold(Some(not_after), not_after), NOT_DUE_DAYS);
-        let later_than_not_after = from_unix_seconds(91 * 86_400);
         assert_eq!(
-            not_due_threshold(Some(later_than_not_after), not_after),
+            not_due_threshold(Some(not_after), not_after, None),
             NOT_DUE_DAYS
         );
+        let later_than_not_after = from_unix_seconds(91 * 86_400);
+        assert_eq!(
+            not_due_threshold(Some(later_than_not_after), not_after, None),
+            NOT_DUE_DAYS
+        );
+    }
+
+    #[test]
+    fn warn_days_replaces_the_computed_threshold_and_states_the_remaining_days() {
+        let not_before = from_unix_seconds(0);
+        let not_after = from_unix_seconds(90 * 86_400);
+        assert_eq!(not_due_threshold(Some(not_before), not_after, Some(10)), 10);
+        assert_eq!(not_due_threshold(None, not_after, Some(7)), 7);
+
+        let mut obs = bare_observations();
+        obs.disk_not_after = Some(not_after);
+        obs.live_not_after = Some(not_after);
+        obs.disk_not_before = Some(not_before);
+        obs.timer = Some(timer("loaded", "active", "enabled", "success"));
+        // 20 days remain out of 90. The computed threshold is 30.
+        obs.now = from_unix_seconds(70 * 86_400);
+
+        let default = analyze_with_warn_days(&obs, None);
+        assert_eq!(default.len(), 1);
+        assert_eq!(default[0].code, Code::InsufficientEvidence);
+        assert!(default[0].evidence.iter().any(|item| item
+            .text
+            .contains("20 day(s) remain, at or under the 30-day renewal threshold")));
+
+        let warned = analyze_with_warn_days(&obs, Some(10));
+        assert_eq!(warned.len(), 1);
+        assert_eq!(warned[0].code, Code::OkNotDue);
+        assert!(warned[0]
+            .evidence
+            .iter()
+            .any(|item| { item.text == "20 day(s) remain, above the 10-day renewal threshold" }));
+
+        let still_under = analyze_with_warn_days(&obs, Some(20));
+        assert_eq!(still_under[0].code, Code::InsufficientEvidence);
+        assert!(still_under[0].evidence.iter().any(|item| {
+            item.text
+                .contains("20 day(s) remain, at or under the 20-day renewal threshold")
+        }));
+
+        // Dates that do not match are not a remaining-days finding, and not a host or chain verdict.
+        obs.live_not_after = Some(from_unix_seconds(91 * 86_400));
+        let mismatched = analyze_with_warn_days(&obs, Some(10));
+        assert!(mismatched
+            .iter()
+            .all(|finding| finding.code != Code::OkNotDue));
+        assert!(mismatched.iter().all(|finding| {
+            finding
+                .evidence
+                .iter()
+                .all(|item| !item.text.contains("day(s) remain"))
+        }));
     }
 
     #[test]
@@ -786,14 +869,14 @@ mod tests {
         // 6-day certificate never has more than 30 days remaining.
         obs.now = from_unix_seconds(86_400);
         assert!(
-            ok_not_due(&obs).is_some(),
+            ok_not_due(&obs, None).is_some(),
             "a freshly issued short-lived certificate must be OK_NOT_DUE"
         );
 
         // 1 day remains out of 6: inside the last third, due for renewal.
         obs.now = from_unix_seconds(5 * 86_400);
         assert!(
-            ok_not_due(&obs).is_none(),
+            ok_not_due(&obs, None).is_none(),
             "a short-lived certificate in its last third must not be OK_NOT_DUE"
         );
     }
@@ -810,7 +893,7 @@ mod tests {
         obs.live_not_after = Some(not_after);
         obs.disk_not_before = Some(not_before);
         assert!(
-            ok_not_due(&obs).is_none(),
+            ok_not_due(&obs, None).is_none(),
             "a not-yet-valid certificate must not be OK_NOT_DUE"
         );
     }
@@ -860,9 +943,9 @@ mod tests {
         // 20 days remain out of 90: inside the last third (threshold 30), so
         // not OK_NOT_DUE, but every other OK_NOT_DUE condition holds.
         obs.now = from_unix_seconds(70 * 86_400);
-        assert!(ok_not_due(&obs).is_none());
+        assert!(ok_not_due(&obs, None).is_none());
 
-        let finding = insufficient(&obs);
+        let finding = insufficient(&obs, None);
         assert!(
             finding
                 .evidence
@@ -888,7 +971,7 @@ mod tests {
         let mut obs = bare_observations();
         obs.disk_not_after = Some(from_unix_seconds(90 * 86_400));
         obs.live_not_after = Some(from_unix_seconds(91 * 86_400));
-        let finding = insufficient(&obs);
+        let finding = insufficient(&obs, None);
         assert!(
             !finding
                 .evidence
@@ -903,7 +986,7 @@ mod tests {
     fn insufficient_adds_the_failed_note_only_for_a_failed_service() {
         let mut obs = bare_observations();
         obs.service = Some(timer("loaded", "failed", "enabled", "exit-code"));
-        let finding = insufficient(&obs);
+        let finding = insufficient(&obs, None);
         assert!(
             finding
                 .evidence
@@ -915,7 +998,7 @@ mod tests {
 
         let mut healthy = bare_observations();
         healthy.service = Some(timer("loaded", "active", "enabled", "success"));
-        let finding = insufficient(&healthy);
+        let finding = insufficient(&healthy, None);
         assert!(
             finding
                 .evidence

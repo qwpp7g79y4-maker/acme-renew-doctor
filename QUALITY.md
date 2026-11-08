@@ -6,6 +6,13 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-08 (W-55, remaining days, branch prep/w24-fout)
+
+- `--warn-days DAYS` sets the renewal warning threshold. Omit it and the threshold stays one third of the disk certificate lifetime, capped at 30 days. The report states how many calendar days remain. Finding codes stay the same. Exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes. The timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3. SIGINT stays exit 130. Tests use synthetic certificate dates and `ACME_RENEW_DOCTOR_NOW`. No host or chain verdict was added. The clock is not stored on the report.
+- `cargo test --no-fail-fast`: 469 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
 ### 2026-11-08 (W-66, version line, branch prep/w24-fout)
 
 - `--version` and `-V` print the crate version and exit 0. A debug build also prints the git commit when git provides one. A release build prints the crate version only. No commit hash is invented. Exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes. The timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3. SIGINT stays exit 130. No host or chain finding was added.

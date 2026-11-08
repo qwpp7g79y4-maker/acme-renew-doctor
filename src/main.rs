@@ -6,7 +6,7 @@ use std::time::SystemTime;
 use acme_renew_doctor::certtime::{self, CertTime};
 use acme_renew_doctor::model::{ClientKind, ExitStatus, Snapshot};
 use acme_renew_doctor::render;
-use acme_renew_doctor::report_input::build_report;
+use acme_renew_doctor::report_input::build_report_with_warn_days;
 use acme_renew_doctor::safe;
 use clap::builder::TypedValueParser;
 use clap::{Parser, ValueEnum};
@@ -75,6 +75,10 @@ pub(crate) struct Cli {
     #[arg(long, conflicts_with = "quiet")]
     verbose: bool,
 
+    /// Calendar days that must remain before notAfter for OK_NOT_DUE. Equal or fewer is the warning. Omit this to use one third of the disk certificate lifetime, capped at 30
+    #[arg(long, value_name = "DAYS", value_parser = clap::value_parser!(u32))]
+    warn_days: Option<u32>,
+
     /// Certbot log file to analyse, e.g. a copy of /var/log/letsencrypt/letsencrypt.log (- reads standard input)
     #[arg(long, value_name = "FILE", value_parser = AnyPath)]
     from_log: Option<PathBuf>,
@@ -110,6 +114,7 @@ pub(crate) struct Cli {
             "client",
             "quiet",
             "verbose",
+            "warn_days",
         ]
     )]
     example: bool,
@@ -168,7 +173,7 @@ fn run() -> ExitCode {
             return ExitCode::from(3);
         }
     };
-    let mut report = build_report(snapshot, now);
+    let mut report = build_report_with_warn_days(snapshot, now, cli.warn_days);
     let suggested = safe::checks_for(&report);
     let checks = safe::apply_gate(&mut report, suggested);
     let text = if cli.json {
@@ -555,6 +560,19 @@ mod tests {
         assert!(!verbose.quiet);
         assert!(Cli::try_parse_from(["acme-renew-doctor", "--quiet", "--verbose"]).is_err());
         assert!(Cli::try_parse_from(["acme-renew-doctor", "--example", "--quiet"]).is_err());
+    }
+
+    #[test]
+    fn warn_days_parses_a_whole_number_and_rejects_a_negative() {
+        let cli = Cli::try_parse_from(["acme-renew-doctor", "--warn-days", "10"]).unwrap();
+        assert_eq!(cli.warn_days, Some(10));
+        let zero = Cli::try_parse_from(["acme-renew-doctor", "--warn-days", "0"]).unwrap();
+        assert_eq!(zero.warn_days, Some(0));
+        assert!(Cli::try_parse_from(["acme-renew-doctor", "--warn-days", "-1"]).is_err());
+        assert!(Cli::try_parse_from(["acme-renew-doctor", "--warn-days", "10.5"]).is_err());
+        assert!(
+            Cli::try_parse_from(["acme-renew-doctor", "--example", "--warn-days", "10"]).is_err()
+        );
     }
 
     #[test]
