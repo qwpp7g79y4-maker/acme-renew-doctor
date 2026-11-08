@@ -6,6 +6,13 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
 
+### 2026-11-08 (W-66, versieregel, tak prep/w24-fout)
+
+- `--version` en `-V` tonen de crate-versie en eindigen met exit 0. Een debug-build toont ook de git-commit als git die geeft. Een release-build toont alleen de crate-versie. Er wordt geen commit-hash verzonnen. Exitcodes blijven 0, 1, 2 en 3. De loggrens blijft 268435456 bytes. De grens voor timer en certificaten blijft 1048576 bytes. Een ontbrekende bovenliggende map van `--output` blijft exit 3. SIGINT blijft exit 130. Er is geen host- of ketendiagnose toegevoegd.
+- `cargo test --no-fail-fast`: 458 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
 ### 2026-11-08 (W-48, SIGINT, tak prep/w24-fout)
 
 - SIGINT eindigt met exit 130. Stderr is `acme-renew-doctor: interrupted by SIGINT; run the command again`. Er blijft geen half rapport achter. `tests/sigint.rs` stuurt het signaal via een pidfd van het kind dat de test zelf startte. Gewone exitcodes blijven 0, 1, 2 en 3. De loggrens blijft 268435456 bytes. De grens voor timer en certificaten blijft 1048576 bytes. Een ontbrekende bovenliggende map van `--output` blijft exit 3. Er is geen host- of ketendiagnose toegevoegd.

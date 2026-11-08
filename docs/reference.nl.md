@@ -8,7 +8,7 @@ De uitvoer van de tool is Engels. Foutmeldingen en voorbeelden staan hier zoals 
 
 ## Opties
 
-Draai `acme-renew-doctor --help` voor de ingebouwde hulp. `--version` print `acme-renew-doctor 0.1.0` en eindigt met 0. `--help` en `--version` eindigen met 0 als die tekst geschreven is. Als de standaarduitvoer dicht of vol is, eindigen ze met 3 en zegt de standaardfout `acme-renew-doctor: could not write output: ...`. Andere clap-fouten eindigen met 3. Zie [Exitcodes en gebruiksfouten](#exitcodes-en-gebruiksfouten).
+Draai `acme-renew-doctor --help` voor de ingebouwde hulp. `--version` print `acme-renew-doctor 1.0.0` en eindigt met 0. Een debug-build toont ook de git-commit als git die geeft. Een release-build toont alleen de crate-versie. `--help` en `--version` eindigen met 0 als die tekst geschreven is. Als de standaarduitvoer dicht of vol is, eindigen ze met 3 en zegt de standaardfout `acme-renew-doctor: could not write output: ...`. Andere clap-fouten eindigen met 3. Zie [Exitcodes en gebruiksfouten](#exitcodes-en-gebruiksfouten).
 
 | Optie | Wat het doet |
 | --- | --- |
@@ -25,7 +25,7 @@ Draai `acme-renew-doctor --help` voor de ingebouwde hulp. `--version` print `acm
 | `--client` | `certbot`, `acme.sh` of `auto`. Standaard `auto`. In 0.1.0 worden alleen Certbot-logs gelezen. |
 | `--example` | Schrijf een synthetische Certbot-log naar `example-log.txt` in de huidige map en stop; zo werkt Snel aan de slag ook zonder kloon van de repository. Kan niet samen met een andere optie. |
 | `--help` | Toon hulp en eindig met 0 als die tekst geschreven is. Als de standaarduitvoer dicht of vol is, eindig met 3. |
-| `--version` | Toon de versie en eindig met 0 als die tekst geschreven is. Als de standaarduitvoer dicht of vol is, eindig met 3. |
+| `--version` | Toon de versie (`acme-renew-doctor 1.0.0`) en eindig met 0 als die tekst geschreven is. Een debug-build toont ook de git-commit als git die geeft. Als de standaarduitvoer dicht of vol is, eindig met 3. |
 
 `ACME_RENEW_DOCTOR_NOW` is geen vlag. Het is een omgevingsvariabele voor tests: een geheel getal van Unix-seconden, gebruikt door de 30-dagencheck, nooit afgedrukt. `1,5` en `1.5` zijn geen gehele getallen, dus ze blijven ongeldig. De UTC-datum van die seconde moet in 1970-01-01 tot en met 9999-12-31 vallen. `0` is 1970-01-01 00:00:00 UTC. `-1` en `253402300800` vallen buiten dat bereik. De waarde in de fout wordt ge-escaped zoals bestandstekst, zodat een stuurteken niet rauw wordt afgedrukt. Een systeemklok vóór 1970-01-01 UTC wordt niet seconde 0; de fout is `system clock is outside 1970-01-01 through 9999-12-31 UTC`.
 

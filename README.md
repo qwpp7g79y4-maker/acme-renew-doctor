@@ -12,7 +12,7 @@ acme-renew-doctor is a local, read-only command-line tool written in Rust. It ex
 
 **Warning:** the report quotes the files you pass back verbatim; it does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, especially before you forward the report to anyone else. See [Privacy](#privacy).
 
-Tests: `cargo test --no-fail-fast` gives 457 passed, 0 failed, 1 ignored (measured on this SIGINT change, parent `d6193b0`; see [QUALITY.md](QUALITY.md)).
+Tests: `cargo test --no-fail-fast` gives 458 passed, 0 failed, 1 ignored (measured on this version-line change, parent `66a9193`; see [QUALITY.md](QUALITY.md)).
 
 ## Why
 
@@ -221,7 +221,7 @@ Every option in `acme-renew-doctor --help`:
 | `--client <CLIENT>` | ACME client that wrote the files: `certbot`, `acme.sh` or `auto` (default). Only Certbot logs are parsed. |
 | `--example` | Write a synthetic Certbot log to `example-log.txt` in the current directory and exit. Cannot be combined with any other option. |
 | `-h`, `--help` | Print help. |
-| `-V`, `--version` | Print the version. |
+| `-V`, `--version` | Print the version (`acme-renew-doctor 1.0.0`) and exit 0. A debug build also prints the git commit when git provides one. |
 
 Exit codes: 0 `OK_NOT_DUE`, 1 a problem with a named layer, 2 insufficient evidence, 3 usage error, 130 SIGINT (no half-written report). Details are in the [reference](docs/reference.md).
 

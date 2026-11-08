@@ -12,7 +12,7 @@ acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. He
 
 **Waarschuwing:** het rapport citeert de bestanden die je meegeeft woordelijk terug; het redigeert niet. Verwijder tokens, wachtwoorden en API-sleutels uit een log of andere opgeslagen opdrachtuitvoer voordat je die meegeeft, zeker voordat je het rapport doorstuurt. Zie [Privacy](#privacy).
 
-Tests: `cargo test --no-fail-fast` geeft 457 geslaagd, 0 mislukt, 1 genegeerd (gemeten op deze SIGINT-wijziging, ouder `d6193b0`; zie [QUALITY.nl.md](QUALITY.nl.md)).
+Tests: `cargo test --no-fail-fast` geeft 458 geslaagd, 0 mislukt, 1 genegeerd (gemeten op deze versieregel, ouder `66a9193`; zie [QUALITY.nl.md](QUALITY.nl.md)).
 
 De uitvoer van de tool is Engels; de voorbeelden hieronder tonen die precies zoals de binary hem schrijft.
 
@@ -223,7 +223,7 @@ Elke optie uit `acme-renew-doctor --help`:
 | `--client <CLIENT>` | ACME-client die de bestanden schreef: `certbot`, `acme.sh` of `auto` (standaard). Alleen Certbot-logs worden geparsed. |
 | `--example` | Schrijf een synthetische Certbot-log naar `example-log.txt` in de huidige map en stop. Niet te combineren met een andere optie. |
 | `-h`, `--help` | Toon de hulp. |
-| `-V`, `--version` | Toon de versie. |
+| `-V`, `--version` | Toon de versie (`acme-renew-doctor 1.0.0`) en eindig met 0. Een debug-build toont ook de git-commit als git die geeft. |
 
 Exitcodes: 0 `OK_NOT_DUE`, 1 een probleem met een benoemde laag, 2 onvoldoende bewijs, 3 gebruiksfout, 130 SIGINT (geen half rapport). Details staan in de [referentie](docs/reference.nl.md).
 

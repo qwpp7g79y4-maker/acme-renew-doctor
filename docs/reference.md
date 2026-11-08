@@ -6,7 +6,7 @@ This page has the complete details. For an overview, see the [README](../README.
 
 ## Options
 
-Run `acme-renew-doctor --help` for the built-in help. `--version` prints `acme-renew-doctor 0.1.0` and exits 0. `--help` and `--version` exit 0 when that text is written. If standard output is closed or full, they exit 3 and standard error says `acme-renew-doctor: could not write output: ...`. Other clap mistakes exit 3. See [Exit codes and usage errors](#exit-codes-and-usage-errors).
+Run `acme-renew-doctor --help` for the built-in help. `--version` prints `acme-renew-doctor 1.0.0` and exits 0. A debug build also prints the git commit when git provides one. A release build prints the crate version only. `--help` and `--version` exit 0 when that text is written. If standard output is closed or full, they exit 3 and standard error says `acme-renew-doctor: could not write output: ...`. Other clap mistakes exit 3. See [Exit codes and usage errors](#exit-codes-and-usage-errors).
 
 | Option | What it does |
 | --- | --- |
@@ -23,7 +23,7 @@ Run `acme-renew-doctor --help` for the built-in help. `--version` prints `acme-r
 | `--client` | `certbot`, `acme.sh` or `auto`. Default `auto`. Only Certbot logs are parsed in 0.1.0. |
 | `--example` | Write a synthetic Certbot log to `example-log.txt` in the current directory and exit; lets the Quick start work without a clone of the repository. Cannot be combined with any other option. |
 | `--help` | Show help and exit 0 when that text is written. If standard output is closed or full, exit 3. |
-| `--version` | Show the version and exit 0 when that text is written. If standard output is closed or full, exit 3. |
+| `--version` | Show the version (`acme-renew-doctor 1.0.0`) and exit 0 when that text is written. A debug build also prints the git commit when git provides one. If standard output is closed or full, exit 3. |
 
 `ACME_RENEW_DOCTOR_NOW` is not a flag. It is an environment variable for tests: a whole number of Unix seconds, used by the 30-day check, never printed. `1,5` and `1.5` are not whole numbers, so they stay invalid. The UTC date of that second must fall in 1970-01-01 through 9999-12-31. `0` is 1970-01-01 00:00:00 UTC. `-1` and `253402300800` are outside that range. The value in the error is escaped like file text, so a control character is not printed raw. A system clock before 1970-01-01 UTC is not treated as second 0; the error is `system clock is outside 1970-01-01 through 9999-12-31 UTC`.
 

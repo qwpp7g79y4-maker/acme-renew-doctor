@@ -34,12 +34,20 @@ impl TypedValueParser for AnyPath {
     }
 }
 
+/// Crate version. A debug build appends the git commit when git printed one.
+/// A release build stays the crate version. No hash is invented.
+#[cfg(all(debug_assertions, has_git_sha))]
+const VERSION: &str = concat!(env!("CARGO_PKG_VERSION"), " (", env!("GIT_SHA"), ")");
+
+#[cfg(not(all(debug_assertions, has_git_sha)))]
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 #[derive(Parser, Debug)]
 #[command(
     name = "acme-renew-doctor",
     // Fixed so usage text is the same on every OS (no ".exe" on Windows).
     bin_name = "acme-renew-doctor",
-    version,
+    version = VERSION,
     about = "Explains why ACME certificate renewal failed (read-only)."
 )]
 pub(crate) struct Cli {
