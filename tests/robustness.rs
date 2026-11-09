@@ -1939,7 +1939,7 @@ fn refuse_each_flag(path: &OsStr, needle: &str, hold_stdin: bool) {
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(coverage)))]
 #[test]
 fn each_input_refuses_a_fifo_with_no_writer() {
     let temp = TempDir::new("fifo");

@@ -1892,7 +1892,7 @@ mod tests {
         );
     }
 
-    #[cfg(unix)]
+    #[cfg(all(unix, not(coverage)))]
     #[test]
     fn finding_for_failed_open_names_a_fifo_as_not_a_regular_file() {
         let dir = std::env::temp_dir().join(format!(
