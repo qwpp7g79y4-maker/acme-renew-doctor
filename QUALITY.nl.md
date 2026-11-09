@@ -6,6 +6,12 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
 
+### 2026-11-09 (releasekandidaat 1.0.0, tak prep/w24-fout)
+
+- `cargo test --no-fail-fast`: 469 geslaagd / 0 mislukt / 1 genegeerd. Gemeten op commit `4e954d5` plus deze wijzigingen.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
 ### 2026-11-08 (W-55, resterende dagen, tak prep/w24-fout)
 
 - `--warn-days DAYS` zet de waarschuwingsdrempel voor verlenging. Weglaten houdt de drempel op een derde van de looptijd van het certificaat op schijf, met een maximum van 30 dagen. Het rapport noemt hoeveel kalenderdagen er over zijn. Bestaande codes blijven. Exitcodes blijven 0, 1, 2 en 3. De loggrens blijft 268435456 bytes. De grens voor timer en certificaten blijft 1048576 bytes. Een ontbrekende bovenliggende map van `--output` blijft exit 3. SIGINT blijft exit 130. De tests gebruiken synthetische certificaatdatums en `ACME_RENEW_DOCTOR_NOW`. Er is geen host- of ketenoordeel toegevoegd. De klok staat niet in het rapport.

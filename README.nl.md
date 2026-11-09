@@ -12,7 +12,7 @@ acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. He
 
 **Waarschuwing:** het rapport citeert de bestanden die je meegeeft woordelijk terug; het redigeert niet. Verwijder tokens, wachtwoorden en API-sleutels uit een log of andere opgeslagen opdrachtuitvoer voordat je die meegeeft, zeker voordat je het rapport doorstuurt. Zie [Privacy](#privacy).
 
-Tests: `cargo test --no-fail-fast` geeft 469 geslaagd, 0 mislukt, 1 genegeerd (gemeten op deze resterende-dagen-wijziging, ouder `b70989d`; zie [QUALITY.nl.md](QUALITY.nl.md)).
+Tests: `cargo test --no-fail-fast` geeft 469 geslaagd, 0 mislukt, 1 genegeerd (gemeten op commit `4e954d5` plus deze wijzigingen; zie [QUALITY.nl.md](QUALITY.nl.md)).
 
 De uitvoer van de tool is Engels; de voorbeelden hieronder tonen die precies zoals de binary hem schrijft.
 
@@ -253,7 +253,7 @@ Andere aanpakken en waarom deze tool ze niet kiest. Voor de producten hieronder 
 
 **Een cloud-monitor voor verloopdatums, bijvoorbeeld Red Sift.** Zulke diensten bestaan en bewaken verloopdatums van buitenaf, maar geven geen lokale oorzaak. Niet geverifieerd: er is geen pagina nagelezen.
 
-**Caddy, Traefik en cert-manager.** Niet in 0.1.0. Ze hebben hun eigen ACME-implementaties. Misschien later.
+**Caddy, Traefik en cert-manager.** Niet in 1.0.0. Ze hebben hun eigen ACME-implementaties. Misschien later.
 
 **acme-renew-doctor** is MIT OR Apache-2.0, één binary, geen account, geen netwerk. Het leest bestanden die je meegeeft en noemt een laag met de bewijsregel.
 

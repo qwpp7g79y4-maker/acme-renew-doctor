@@ -12,7 +12,7 @@ acme-renew-doctor is a local, read-only command-line tool written in Rust. It ex
 
 **Warning:** the report quotes the files you pass back verbatim; it does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, especially before you forward the report to anyone else. See [Privacy](#privacy).
 
-Tests: `cargo test --no-fail-fast` gives 469 passed, 0 failed, 1 ignored (measured on this remaining-days change, parent `b70989d`; see [QUALITY.md](QUALITY.md)).
+Tests: `cargo test --no-fail-fast` gives 469 passed, 0 failed, 1 ignored (measured on commit `4e954d5` plus these changes; see [QUALITY.md](QUALITY.md)).
 
 ## Why
 
@@ -251,7 +251,7 @@ Other approaches and why this tool does not take them. No vendor page was checke
 
 **A cloud monitor for expiry dates, for example Red Sift.** Such services exist and watch expiry dates from outside, but do not give a local cause. Not verified: no page was checked.
 
-**Caddy, Traefik and cert-manager.** Not in 0.1.0. They have their own ACME implementations. Maybe later.
+**Caddy, Traefik and cert-manager.** Not in 1.0.0. They have their own ACME implementations. Maybe later.
 
 **acme-renew-doctor** is MIT OR Apache-2.0, a single binary, no account, no network. It reads files you pass and names a layer with the evidence line.
 

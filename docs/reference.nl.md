@@ -23,7 +23,7 @@ Draai `acme-renew-doctor --help` voor de ingebouwde hulp. `--version` print `acm
 | `--from-timer-status` | Opgeslagen uitvoer van `systemctl show certbot.timer` om te analyseren. |
 | `--from-cert-disk` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat op schijf. |
 | `--from-cert-live` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat dat de server stuurt. |
-| `--client` | `certbot`, `acme.sh` of `auto`. Standaard `auto`. In 0.1.0 worden alleen Certbot-logs gelezen. |
+| `--client` | `certbot`, `acme.sh` of `auto`. Standaard `auto`. In 1.0.0 worden alleen Certbot-logs gelezen. |
 | `--example` | Schrijf een synthetische Certbot-log naar `example-log.txt` in de huidige map en stop; zo werkt Snel aan de slag ook zonder kloon van de repository. Kan niet samen met een andere optie. |
 | `--help` | Toon hulp en eindig met 0 als die tekst geschreven is. Als de standaarduitvoer dicht of vol is, eindig met 3. |
 | `--version` | Toon de versie (`acme-renew-doctor 1.0.0`) en eindig met 0 als die tekst geschreven is. Een debug-build toont ook de git-commit als git die geeft. Als de standaarduitvoer dicht of vol is, eindig met 3. |

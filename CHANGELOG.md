@@ -4,29 +4,38 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.0.0] - unreleased (release candidate)
+
+The previous version is 0.2.0. Nothing in this section is tagged or published.
+
 ### Added
 
 - `--warn-days DAYS` sets the renewal warning threshold in calendar days. Omit it and the threshold stays one third of the disk certificate lifetime, capped at 30 days. The report states how many days remain. Finding codes stay the same. Exit codes stay 0, 1, 2 and 3. A missing parent directory for `--output` stays exit 3. The log limit stays 268435456 bytes and the timer and certificate limit stays 1048576 bytes. SIGINT stays exit 130. Tests use synthetic certificate dates and `ACME_RENEW_DOCTOR_NOW`. No host or chain verdict is invented. The clock is not stored on the report.
 - `--version` and `-V` print the crate version and exit 0. A debug build also prints the git commit when git provides one. A release build prints the crate version only. No commit hash is invented. Exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes and the timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3. SIGINT stays exit 130. No host or chain finding was added.
 - SIGINT exits 130. Stderr is `acme-renew-doctor: interrupted by SIGINT; run the command again`. The report is not left half-written: `--output` keeps the previous file until the new report is complete, and a signal before that writes nothing. Ordinary exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes and the timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3.
-- The log limit stays 268435456 bytes (256 MiB) and the timer and certificate limit stays 1048576 bytes (1 MiB). A larger regular file exits 2 with `over the 268435456 byte limit` or `over the 1048576 byte limit` and is not loaded. Neither limit was raised. The over-limit file is created in `/tmp` by the test and is not committed. Exit codes stay 0, 1, 2 and 3. A missing parent directory for `--output` stays exit 3.
 - `--quiet` and `--verbose`. A pipe or a redirect omits the `hint:` line. `--verbose` prints that line, and when the report was written one `context:` line on stderr (`files` and `findings`). `--quiet` omits the hint even on a terminal. The report on stdout is unchanged. Exit codes stay 0, 1, 2 and 3. `--quiet` together with `--verbose` is exit 3. A missing parent directory for `--output` stays exit 3.
 - `--output PATH` writes the report to that file instead of standard output. An existing file is replaced. A missing parent directory is exit 3, the same code as a failed write to standard output, and is not created. The diagnosis exit code is unchanged when the write succeeds.
 - README.md and README.nl.md: section "Aan de slag in 5 minuten" with five offline commands on the fixtures in `tests/fixtures`. `tests/readme.rs` runs them literally.
 - `tests/offline_certs.rs`: offline tests with synthetic certificate text in a temporary directory, with the clock fixed by `ACME_RENEW_DOCTOR_NOW`. No network and no real certificate. An expired certificate is diagnosed. For a wrong host and a broken chain the tool only reads dates, so it does not invent a verdict and says the evidence is not recognised.
 - `tests/offline_certs.rs`: `expired_certificate_is_reported_with_outgoing_connections_blocked` runs that expired-certificate report in a network namespace (`unshare --user --map-root-user --net`) whose route table is empty. The findings stay the date findings. No host or chain verdict.
-
 - `man/acme-renew-doctor.1`, generated from the CLI definition with `clap_mangen`, and bash and zsh completions from `clap_complete`. Both come from `cargo run --example gen_assets -- man` and `cargo run --example gen_assets -- completions DIR`. The crates are dev-dependencies; the binary and `--help` are unchanged. `tests/man_page.rs` checks the man page against `--help`.
+- `tests/json_schema.rs` pins the `--json` keys and types.
+- Rustdoc comments on the library. On commit `d6193b0`, `cargo doc --no-deps` was clean.
 
 ### Changed
 
 - `SECURITY.md` lists 1.0.x as the supported version, replacing 0.1.x.
+- The package version is 1.0.0. The previous version is 0.2.0.
+- The log limit stays 268435456 bytes (256 MiB) and the timer and certificate limit stays 1048576 bytes (1 MiB). A larger regular file exits 2 with `over the 268435456 byte limit` or `over the 1048576 byte limit` and is not loaded. Neither limit was raised. The over-limit file is created in `/tmp` by the test and is not committed. Exit codes stay 0, 1, 2 and 3. A missing parent directory for `--output` stays exit 3.
+- Read and output errors name the next step for an empty path, a directory, a file over the size limit, non-UTF-8 text, unrecognised or ambiguous timer status, unrecognised certificate dates, ambiguous ACME JSON, `example-log.txt` write and read failures, closed or full output, and an out-of-range system clock. Exit codes are unchanged. `tests/error_messages.rs` covers each path.
+- `deny.toml` no longer allows the licenses cargo deny does not encounter: `Apache-2.0 WITH LLVM-exception`, `BSD-3-Clause`, `ISC`, `Zlib`, `Unlicense`, `BSL-1.0` and `CDLA-Permissive-2.0`. `MIT`, `Apache-2.0` and `Unicode-3.0` stay.
+- `fifo_swapped_over_a_regular_file_does_not_block`, `each_input_refuses_a_fifo_with_no_writer`, `finding_for_failed_open_names_a_fifo_as_not_a_regular_file` and `sigint_on_blocked_stdin_writes_no_report_and_exits_130` stay on for a normal `cargo test` and are off when `cfg(coverage)` is set. `unexpected_cfgs` accepts `cfg(coverage)` at warn.
+- `QUALITY.md` records a synthetic log of 104857600 bytes: three release-build wall times of 0.54, 0.54 and 0.55 seconds, and a peak of 207076 KB in one earlier run. The file is not committed.
+- `README.md` and `README.nl.md` state the measured test count on commit `4e954d5` plus these changes: 469 passed, 0 failed, 1 ignored.
 
-## [1.0.0] - 2026-11-08
+### Fixed
 
-### Changed
-
-- The package version is 1.0.0. This is the v1 proposal of 0.2.0. Behaviour is unchanged from 0.2.0.
+- `tests/closed_output.rs` locks around creating the pipe and around `spawn`, so a child from a parallel test cannot keep the pipe open. On commit `8cf74b0` plus that change, `cargo llvm-cov` printed 97.80% line coverage (5187 lines, 114 missed).
 
 ## [0.2.0] - 2026-10-24
 

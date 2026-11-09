@@ -21,7 +21,7 @@ Run `acme-renew-doctor --help` for the built-in help. `--version` prints `acme-r
 | `--from-timer-status` | Saved output of `systemctl show certbot.timer` to analyse. |
 | `--from-cert-disk` | Saved output of `openssl x509 -noout -dates` for the certificate on disk. |
 | `--from-cert-live` | Saved output of `openssl x509 -noout -dates` for the certificate the server sends. |
-| `--client` | `certbot`, `acme.sh` or `auto`. Default `auto`. Only Certbot logs are parsed in 0.1.0. |
+| `--client` | `certbot`, `acme.sh` or `auto`. Default `auto`. Only Certbot logs are parsed in 1.0.0. |
 | `--example` | Write a synthetic Certbot log to `example-log.txt` in the current directory and exit; lets the Quick start work without a clone of the repository. Cannot be combined with any other option. |
 | `--help` | Show help and exit 0 when that text is written. If standard output is closed or full, exit 3. |
 | `--version` | Show the version (`acme-renew-doctor 1.0.0`) and exit 0 when that text is written. A debug build also prints the git commit when git provides one. If standard output is closed or full, exit 3. |
