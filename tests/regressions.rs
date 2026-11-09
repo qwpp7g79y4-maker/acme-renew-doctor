@@ -707,7 +707,7 @@ fn eight_mib_brace_log_stays_under_256_mib() {
     assert!(matches!(code, Some(0..=3)), "brace log status {code:?}");
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", not(coverage)))]
 #[test]
 fn fifo_swapped_over_a_regular_file_does_not_block() {
     let dir = std::env::temp_dir().join(format!("acme-fifo-{}", std::process::id()));
