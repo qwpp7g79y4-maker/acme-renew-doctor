@@ -6,7 +6,7 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste op
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
 
-### 2026-11-09 (releasekandidaat 1.0.0, tak prep/w24-fout)
+### 2026-11-09 (1.0.0, tak prep/w24-fout)
 
 - `cargo test --no-fail-fast`: 469 geslaagd / 0 mislukt / 1 genegeerd. Gemeten op commit `4e954d5` plus deze wijzigingen.
 - `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.

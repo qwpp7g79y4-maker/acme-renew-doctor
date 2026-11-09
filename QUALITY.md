@@ -6,7 +6,7 @@ This page shows how acme-renew-doctor was checked before its first public releas
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
-### 2026-11-09 (release candidate 1.0.0, branch prep/w24-fout)
+### 2026-11-09 (1.0.0, branch prep/w24-fout)
 
 - `cargo test --no-fail-fast`: 469 passed / 0 failed / 1 ignored. Measured on commit `4e954d5` plus these changes.
 - `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
