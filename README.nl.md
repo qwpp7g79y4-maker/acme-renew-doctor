@@ -24,7 +24,9 @@ Let's Encrypt stopte op 4 juni 2025 met e-mails over verlopende certificaten (ht
 
 ### Vanaf crates.io
 
-Met Rust 1.85 of nieuwer installeer je vanaf [crates.io](https://crates.io/crates/acme-renew-doctor):
+Versie 1.0.0 is release-klaar en nog niet gepubliceerd. `cargo install acme-renew-doctor` vanaf [crates.io](https://crates.io/crates/acme-renew-doctor) geeft nog 0.2.0. Versie 1.0.0 komt uit de bron: `cargo install --locked --path .`.
+
+Met Rust 1.85 of nieuwer is de crate op [crates.io](https://crates.io/crates/acme-renew-doctor) nog 0.2.0:
 
 ```sh
 cargo install --locked acme-renew-doctor
@@ -33,7 +35,7 @@ acme-renew-doctor --help
 
 ### Binary-archief
 
-De [release v1.0.0](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) heeft archieven voor Linux x86_64 (`x86_64-unknown-linux-gnu` en `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` en `aarch64-apple-darwin`) en Windows (`x86_64-pc-windows-msvc`, een `.zip`), elk met een `.sha256`-checksumbestand. Een archief bevat de binary, de documentatie en de voorbeeldbestanden. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief en de checksum, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`. Voor Linux x86_64:
+De [release v1.0.0](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) is nog niet gepubliceerd. Zodra die er is, heeft hij archieven voor Linux x86_64 (`x86_64-unknown-linux-gnu` en `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` en `aarch64-apple-darwin`) en Windows (`x86_64-pc-windows-msvc`, een `.zip`), elk met een `.sha256`-checksumbestand. Een archief bevat de binary, de documentatie en de voorbeeldbestanden. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief en de checksum, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`. Voor Linux x86_64:
 
 ```sh
 name=acme-renew-doctor-v1.0.0-x86_64-unknown-linux-gnu

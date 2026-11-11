@@ -22,7 +22,9 @@ Let's Encrypt stopped expiration-notification emails on 4 June 2025 (https://let
 
 ### From crates.io
 
-With Rust 1.85 or newer, install from [crates.io](https://crates.io/crates/acme-renew-doctor):
+Version 1.0.0 is release-ready and is not published yet. `cargo install acme-renew-doctor` from [crates.io](https://crates.io/crates/acme-renew-doctor) still installs 0.2.0. Version 1.0.0 comes from the source: `cargo install --locked --path .`.
+
+With Rust 1.85 or newer, the crate on [crates.io](https://crates.io/crates/acme-renew-doctor) is still 0.2.0:
 
 ```sh
 cargo install --locked acme-renew-doctor
@@ -31,7 +33,7 @@ acme-renew-doctor --help
 
 ### Binary archive
 
-The [v1.0.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
+The [v1.0.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) is not published yet. After it is out, it has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
 
 ```sh
 name=acme-renew-doctor-v1.0.0-x86_64-unknown-linux-gnu
