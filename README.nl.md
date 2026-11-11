@@ -6,8 +6,6 @@ Leg uit waarom een Certbot-vernieuwing faalde, of stilletjes nooit draaide, aan 
 
 [![crates.io](https://img.shields.io/crates/v/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![downloads](https://img.shields.io/crates/d/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![CI](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml) [![PEPAI gecontroleerd](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.nl.md) [![MSRV 1.85](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/blob/main/Cargo.toml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#licentie)
 
-[Installatie](#installatie) • [Snel aan de slag](#snel-aan-de-slag) • [Voorbeeld](#voorbeeld) • [Opties](#opties) • [Hoe het werkt](#hoe-het-werkt) • [Alternatieven](#vergelijking-met-alternatieven) • [Beperkingen](#beperkingen) • [Referentie](docs/reference.nl.md)
-
 acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. Het legt uit waarom een Certbot-TLS-vernieuwing faalde, of stilletjes nooit draaide. Het verzamelt niets. Het leest alleen bestanden die je meegeeft: opgeslagen opdrachtuitvoer, of tekst die je in een bestand plakte. Het voert geen opdracht uit, forceert nooit een vernieuwing en herlaadt nooit een service. Het schrijft alleen een bestand als je daar om vraagt. `--output PATH` schrijft het rapport daarheen en vervangt een bestaand bestand; een ontbrekende bovenliggende map wordt niet aangemaakt. De bytes gaan eerst naar een nieuw tijdelijk bestand naast dat pad, zodat een vooraf geplaatst bestand of een symlink op de tijdelijke naam ongemoeid blijft. Op Unix blijven de rechten van een bestaand doelbestand behouden. SIGINT eindigt met 130 en laat geen half rapport achter; een bestaand `--output`-bestand blijft staan tot het nieuwe rapport af is. `--example` schrijft `example-log.txt` in de huidige map.  Een bevinding is een vaste code plus het bewijs daarvoor. Codes die een laag noemen gebruiken scheduler, validation of deployment. Het heeft geen account nodig en maakt geen netwerkverbinding.
 
 **Waarschuwing:** het rapport citeert de bestanden die je meegeeft woordelijk terug; het redigeert niet. Verwijder tokens, wachtwoorden en API-sleutels uit een log of andere opgeslagen opdrachtuitvoer voordat je die meegeeft, zeker voordat je het rapport doorstuurt. Zie [Privacy](#privacy).
@@ -16,26 +14,22 @@ Tests: `cargo test --no-fail-fast` geeft 473 geslaagd, 0 mislukt, 1 genegeerd (g
 
 De uitvoer van de tool is Engels; de voorbeelden hieronder tonen die precies zoals de binary hem schrijft.
 
-## Waarom
-
-Let's Encrypt stopte op 4 juni 2025 met e-mails over verlopende certificaten (https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended.html). Sindsdien valt een vernieuwing die mislukt, of een timer die stil stopt, makkelijk pas op als het certificaat verloopt. De oorzaak zit in een van drie lagen: de planner, de ACME-validatie of de uitrol. acme-renew-doctor leest het bewijs dat je hebt opgeslagen en noemt die laag, met de regel die het aantoont.
-
 ## Installatie
 
 ### Vanaf crates.io
 
-Versie 1.0.0 is release-klaar en nog niet gepubliceerd. `cargo install acme-renew-doctor` vanaf [crates.io](https://crates.io/crates/acme-renew-doctor) geeft nog 0.2.0. Versie 1.0.0 komt uit de bron: `cargo install --locked --path .`.
-
-Met Rust 1.85 of nieuwer is de crate op [crates.io](https://crates.io/crates/acme-renew-doctor) nog 0.2.0:
+Versie 1.0.0 staat op [crates.io](https://crates.io/crates/acme-renew-doctor). Met Rust 1.85 of nieuwer:
 
 ```sh
-cargo install --locked acme-renew-doctor
+cargo install acme-renew-doctor
 acme-renew-doctor --help
 ```
 
+`cargo install --locked acme-renew-doctor` gebruikt het lockbestand van de crate.
+
 ### Binary-archief
 
-De [release v1.0.0](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) is nog niet gepubliceerd. Zodra die er is, heeft hij archieven voor Linux x86_64 (`x86_64-unknown-linux-gnu` en `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` en `aarch64-apple-darwin`) en Windows (`x86_64-pc-windows-msvc`, een `.zip`), elk met een `.sha256`-checksumbestand. Een archief bevat de binary, de documentatie en de voorbeeldbestanden. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief en de checksum, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`. Voor Linux x86_64:
+De [release v1.0.0](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) heeft archieven voor Linux x86_64 (`x86_64-unknown-linux-gnu` en `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` en `aarch64-apple-darwin`) en Windows (`x86_64-pc-windows-msvc`, een `.zip`), elk met een `.sha256`-checksumbestand. Een archief bevat de binary, de documentatie en de voorbeeldbestanden. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief en de checksum, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`. Voor Linux x86_64:
 
 ```sh
 name=acme-renew-doctor-v1.0.0-x86_64-unknown-linux-gnu
@@ -194,6 +188,10 @@ acme-renew-doctor example.com --json --from-log tests/fixtures/certbot/http01-ti
 5. Dezelfde bevinding als opdracht 2 als één JSON-object, exit 1.
 
 Sla voor je eigen server de uitvoer van de opdrachten die het rapport onder "Next" afdrukt op in bestanden en geef ze door met de `--from-*`-opties. Zie [Snel aan de slag](#snel-aan-de-slag).
+
+## Waarom
+
+Let's Encrypt stopte op 4 juni 2025 met e-mails over verlopende certificaten (https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended.html). Sindsdien valt een vernieuwing die mislukt, of een timer die stil stopt, makkelijk pas op als het certificaat verloopt. De oorzaak zit in een van drie lagen: de planner, de ACME-validatie of de uitrol. acme-renew-doctor leest het bewijs dat je hebt opgeslagen en noemt die laag, met de regel die het aantoont.
 
 ## Voorbeeld
 

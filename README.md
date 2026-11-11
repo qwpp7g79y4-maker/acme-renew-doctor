@@ -6,34 +6,28 @@ Explain why a Certbot renewal failed, or quietly never ran, from files you pass.
 
 [![crates.io](https://img.shields.io/crates/v/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![downloads](https://img.shields.io/crates/d/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![CI](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml) [![PEPAI checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.md) [![MSRV 1.85](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/blob/main/Cargo.toml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-[Installation](#installation) • [Quick start](#quick-start) • [Example](#example) • [Options](#options) • [How it works](#how-it-works) • [Alternatives](#compared-with-alternatives) • [Limitations](#limitations) • [Reference](docs/reference.md)
-
 acme-renew-doctor is a local, read-only command-line tool written in Rust. It explains why a Certbot TLS renewal failed, or quietly never ran. It collects nothing. It only reads files you pass in: saved command output, or text you pasted into a file. It runs no command, never forces a renewal, and never reloads a service. It writes a file only when you ask. `--output PATH` writes the report there and replaces an existing file; a missing parent directory is not created. The bytes go first to a new temporary file next to that path, so a pre-placed file or symlink at the temporary name is left untouched. On Unix, the permission bits of an existing destination file are kept. SIGINT exits 130 and leaves no half-written report; an existing `--output` file stays until the new report is complete. `--example` writes `example-log.txt` in the current directory.  A finding is a fixed code plus the evidence for it. Codes that name a layer use scheduler, validation, or deployment. It needs no account and makes no network connection.
 
 **Warning:** the report quotes the files you pass back verbatim; it does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, especially before you forward the report to anyone else. See [Privacy](#privacy).
 
 Tests: `cargo test --no-fail-fast` gives 473 passed, 0 failed, 1 ignored (measured on commit `bc09604` plus these changes; see [QUALITY.md](QUALITY.md)).
 
-## Why
-
-Let's Encrypt stopped expiration-notification emails on 4 June 2025 (https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended.html). Since then a renewal that fails, or a timer that quietly stops, is easy to miss until the certificate expires. The cause sits in one of three layers: the scheduler, the ACME validation or the deployment. acme-renew-doctor reads the evidence you saved and names that layer, with the line that proves it.
-
 ## Installation
 
 ### From crates.io
 
-Version 1.0.0 is release-ready and is not published yet. `cargo install acme-renew-doctor` from [crates.io](https://crates.io/crates/acme-renew-doctor) still installs 0.2.0. Version 1.0.0 comes from the source: `cargo install --locked --path .`.
-
-With Rust 1.85 or newer, the crate on [crates.io](https://crates.io/crates/acme-renew-doctor) is still 0.2.0:
+Version 1.0.0 is on [crates.io](https://crates.io/crates/acme-renew-doctor). With Rust 1.85 or newer:
 
 ```sh
-cargo install --locked acme-renew-doctor
+cargo install acme-renew-doctor
 acme-renew-doctor --help
 ```
 
+`cargo install --locked acme-renew-doctor` pins the crate's lockfile.
+
 ### Binary archive
 
-The [v1.0.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) is not published yet. After it is out, it has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
+The [v1.0.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
 
 ```sh
 name=acme-renew-doctor-v1.0.0-x86_64-unknown-linux-gnu
@@ -192,6 +186,10 @@ acme-renew-doctor example.com --json --from-log tests/fixtures/certbot/http01-ti
 5. The same finding as command 2 as one JSON object, exit 1.
 
 For your own server, save the output of the commands the report prints under "Next" to files and pass them with the `--from-*` options. See [Quick start](#quick-start).
+
+## Why
+
+Let's Encrypt stopped expiration-notification emails on 4 June 2025 (https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended.html). Since then a renewal that fails, or a timer that quietly stops, is easy to miss until the certificate expires. The cause sits in one of three layers: the scheduler, the ACME validation or the deployment. acme-renew-doctor reads the evidence you saved and names that layer, with the line that proves it.
 
 ## Example
 
