@@ -81,6 +81,7 @@ jobs:
           cp README.md README.nl.md QUALITY.md QUALITY.nl.md LICENSE-MIT LICENSE-APACHE THIRD-PARTY-LICENSES.html CHANGELOG.md CONTRIBUTING.md SECURITY.md "dist/$name/"
           cp -R docs "dist/$name/"
           cp -R tests/fixtures "dist/$name/tests/"
+          cp -R examples "dist/$name/"
           cd dist
           if [ "${{ runner.os }}" = "Windows" ]; then
             cp "../target/${{ matrix.target }}/release/acme-renew-doctor.exe" "$name/"
@@ -124,6 +125,9 @@ jobs:
           test -f SECURITY.md
           test -f QUALITY.md
           test -f QUALITY.nl.md
+          test -f examples/README.md
+          test -d examples/http01-timeout
+          test -d examples/ok-not-due
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.target }}

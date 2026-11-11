@@ -31,12 +31,13 @@ The previous version is 0.2.0. Nothing in this section is tagged or published.
 - `deny.toml` no longer allows the licenses cargo deny does not encounter: `Apache-2.0 WITH LLVM-exception`, `BSD-3-Clause`, `ISC`, `Zlib`, `Unlicense`, `BSL-1.0` and `CDLA-Permissive-2.0`. `MIT`, `Apache-2.0` and `Unicode-3.0` stay.
 - `fifo_swapped_over_a_regular_file_does_not_block`, `each_input_refuses_a_fifo_with_no_writer`, `finding_for_failed_open_names_a_fifo_as_not_a_regular_file` and `sigint_on_blocked_stdin_writes_no_report_and_exits_130` stay on for a normal `cargo test` and are off when `cfg(coverage)` is set. `unexpected_cfgs` accepts `cfg(coverage)` at warn.
 - `QUALITY.md` records a synthetic log of 104857600 bytes: three release-build wall times of 0.54, 0.54 and 0.55 seconds, and a peak of 207076 KB in one earlier run. The file is not committed.
-- `README.md` and `README.nl.md` state the measured test count on commit `9959bda` plus these changes: 472 passed, 0 failed, 1 ignored.
+- `README.md` and `README.nl.md` state the measured test count on commit `9959bda` plus these changes: 473 passed, 0 failed, 1 ignored.
 
 ### Fixed
 
 - `tests/closed_output.rs` locks around creating the pipe and around `spawn`, so a child from a parallel test cannot keep the pipe open. On commit `8cf74b0` plus that change, `cargo llvm-cov` printed 97.80% line coverage (5187 lines, 114 missed).
 - The Installation binary-archive section in `README.md` and `README.nl.md` named the v0.1.0 tag and archive in the 1.0.0 docs. It now uses v1.0.0, and `tests/readme.rs` compares that section to `CARGO_PKG_VERSION`.
+- The release archives did not include `examples/`, although `README.md` and `README.nl.md` point at that folder. `.github/workflows/release.yml` now copies `examples/` on every platform, including the Windows zip. The smoke test checks `examples/README.md`, and `tests/readme.rs` compares the relative README links with the copy list.
 - `--output` opened the temporary file with `File::create`, which followed a pre-placed symlink at the predictable temporary name and could overwrite that symlink's target. It now uses `create_new` and a different name on collision.
 
 ## [0.2.0] - 2026-10-24

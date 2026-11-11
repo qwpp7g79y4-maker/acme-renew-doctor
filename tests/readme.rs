@@ -8,7 +8,7 @@
 
 use std::collections::BTreeSet;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 const README: &str = "README.md";
@@ -350,6 +350,161 @@ fn readme_binary_archive_section_matches_package_version() {
             !body.contains("v0.1.0"),
             "{page} binary section still names v0.1.0\n{body}"
         );
+    }
+}
+
+/// The `run:` script of a named step in `.github/workflows/release.yml`.
+fn release_step_script<'a>(workflow: &'a str, name: &str) -> &'a str {
+    let heading = format!("- name: {name}");
+    let from = workflow
+        .find(&heading)
+        .unwrap_or_else(|| panic!("release.yml has no step {name}"));
+    let rest = &workflow[from..];
+    let run = rest
+        .find("run: |")
+        .unwrap_or_else(|| panic!("step {name} has no run: | block"));
+    let body = &rest[run + "run: |".len()..];
+    match body.find("\n      - ") {
+        Some(end) => &body[..end],
+        None => body,
+    }
+}
+
+/// Paths placed in the archive by the Package step's `cp` commands.
+fn archive_copy_roots(package: &str) -> Vec<String> {
+    let mut roots = Vec::new();
+    for line in package.lines() {
+        let line = line.trim();
+        if !line.starts_with("cp ") {
+            continue;
+        }
+        let rest = line
+            .strip_prefix("cp -R ")
+            .or_else(|| line.strip_prefix("cp -r "))
+            .or_else(|| line.strip_prefix("cp "))
+            .expect("cp prefix");
+        let mut words: Vec<String> = rest
+            .split_whitespace()
+            .map(|word| word.trim_matches('"').to_string())
+            .collect();
+        if words.len() < 2 {
+            continue;
+        }
+        let dest = words.pop().expect("dest");
+        if words.iter().any(|src| src.contains("target/")) {
+            continue;
+        }
+        let dest_in_archive = dest
+            .strip_prefix("dist/$name/")
+            .or_else(|| dest.strip_prefix("dist/$name"))
+            .unwrap_or(dest.as_str())
+            .trim_matches('/');
+        for src in words {
+            let name = if dest_in_archive.is_empty() {
+                src
+            } else {
+                let base = src.rsplit('/').next().unwrap_or(src.as_str());
+                format!("{dest_in_archive}/{base}")
+            };
+            roots.push(name);
+        }
+    }
+    roots
+}
+
+fn archive_contains(roots: &[String], rel: &str) -> bool {
+    let rel = rel.trim_start_matches("./");
+    roots
+        .iter()
+        .any(|root| rel == root || rel.starts_with(&format!("{root}/")))
+}
+
+fn relative_markdown_targets(text: &str) -> Vec<&str> {
+    let mut targets = Vec::new();
+    let mut i = 0;
+    while let Some(offset) = text[i..].find("](") {
+        let start = i + offset + 2;
+        if start >= text.len() {
+            break;
+        }
+        let rest = &text[start..];
+        let end = rest.find(')').unwrap_or(rest.len());
+        let raw = rest[..end]
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .trim_matches(['<', '>']);
+        let path = raw.split('#').next().unwrap_or("");
+        let external = path.is_empty()
+            || path.starts_with('#')
+            || path.starts_with("http://")
+            || path.starts_with("https://")
+            || path.starts_with("mailto:");
+        if !external {
+            targets.push(path);
+        }
+        i = start + end + 1;
+        if i > text.len() {
+            break;
+        }
+    }
+    targets
+}
+
+fn resolve_from_page(page: &str, target: &str) -> String {
+    let dir = Path::new(page).parent().unwrap_or_else(|| Path::new(""));
+    let mut out = PathBuf::new();
+    for component in dir.join(target).components() {
+        match component {
+            Component::ParentDir => {
+                let _ = out.pop();
+            }
+            Component::CurDir => {}
+            Component::Normal(part) => out.push(part),
+            Component::Prefix(_) | Component::RootDir => {}
+        }
+    }
+    out.to_string_lossy().replace('\\', "/")
+}
+
+#[test]
+fn readme_relative_links_are_copied_into_the_release_archive() {
+    let workflow = read(".github/workflows/release.yml");
+    let package = release_step_script(&workflow, "Package");
+    let smoke = release_step_script(&workflow, "Smoke test the archive");
+    assert!(
+        package.contains("cp -R examples"),
+        "Package step must copy examples/ into the archive on every platform\n{package}"
+    );
+    assert!(
+        smoke.contains("test -f examples/README.md"),
+        "Smoke test must check examples/README.md is in the archive\n{smoke}"
+    );
+    let roots = archive_copy_roots(package);
+    assert!(
+        !roots.is_empty(),
+        "Package step has no parseable cp commands\n{package}"
+    );
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    for page in [README, README_DUTCH] {
+        let text = read(page);
+        let targets = relative_markdown_targets(&text);
+        assert!(
+            !targets.is_empty(),
+            "{page} has no relative markdown links to check"
+        );
+        for target in targets {
+            let rel = resolve_from_page(page, target);
+            let on_disk = manifest.join(&rel);
+            assert!(
+                on_disk.exists(),
+                "{page} links to {target} → {rel}, which is missing in the tree"
+            );
+            assert!(
+                archive_contains(&roots, &rel),
+                "{page} links to {target} → {rel}, which is not in the release.yml copy list ({roots:?})"
+            );
+        }
     }
 }
 
