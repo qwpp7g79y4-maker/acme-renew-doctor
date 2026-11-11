@@ -12,7 +12,7 @@ acme-renew-doctor is a local, read-only command-line tool written in Rust. It ex
 
 **Warning:** the report quotes the files you pass back verbatim; it does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, especially before you forward the report to anyone else. See [Privacy](#privacy).
 
-Tests: `cargo test --no-fail-fast` gives 473 passed, 0 failed, 1 ignored (measured on commit `9959bda` plus these changes; see [QUALITY.md](QUALITY.md)).
+Tests: `cargo test --no-fail-fast` gives 473 passed, 0 failed, 1 ignored (measured on commit `bc09604` plus these changes; see [QUALITY.md](QUALITY.md)).
 
 ## Why
 

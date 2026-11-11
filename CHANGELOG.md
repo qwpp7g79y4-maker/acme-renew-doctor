@@ -31,7 +31,7 @@ The previous version is 0.2.0. Nothing in this section is tagged or published.
 - `deny.toml` no longer allows the licenses cargo deny does not encounter: `Apache-2.0 WITH LLVM-exception`, `BSD-3-Clause`, `ISC`, `Zlib`, `Unlicense`, `BSL-1.0` and `CDLA-Permissive-2.0`. `MIT`, `Apache-2.0` and `Unicode-3.0` stay.
 - `fifo_swapped_over_a_regular_file_does_not_block`, `each_input_refuses_a_fifo_with_no_writer`, `finding_for_failed_open_names_a_fifo_as_not_a_regular_file` and `sigint_on_blocked_stdin_writes_no_report_and_exits_130` stay on for a normal `cargo test` and are off when `cfg(coverage)` is set. `unexpected_cfgs` accepts `cfg(coverage)` at warn.
 - `QUALITY.md` records a synthetic log of 104857600 bytes: three release-build wall times of 0.54, 0.54 and 0.55 seconds, and a peak of 207076 KB in one earlier run. The file is not committed.
-- `README.md` and `README.nl.md` state the measured test count on commit `9959bda` plus these changes: 473 passed, 0 failed, 1 ignored.
+- `README.md` and `README.nl.md` state the measured test count on commit `bc09604` plus these changes: 473 passed, 0 failed, 1 ignored.
 
 ### Fixed
 
