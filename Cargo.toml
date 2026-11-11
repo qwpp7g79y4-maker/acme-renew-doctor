@@ -10,7 +10,27 @@ repository = "https://github.com/qwpp7g79y4-maker/acme-renew-doctor"
 readme = "README.md"
 keywords = ["acme", "certbot", "letsencrypt", "tls", "cli"]
 categories = ["command-line-utilities"]
-exclude = [".github/", ".gitattributes", "claude-plugin/"]
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/docs/**",
+    "/man/**",
+    "/scripts/**",
+    "/Cargo.toml",
+    "/Cargo.lock",
+    "/build.rs",
+    "/deny.toml",
+    "/about.toml",
+    "/about.hbs",
+    "/README*",
+    "/LICENSE*",
+    "/CHANGELOG*",
+    "/QUALITY*",
+    "/CONTRIBUTING.md",
+    "/SECURITY.md",
+    "/.gitignore",
+]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
