@@ -1,9 +1,15 @@
+//! Read-only commands the report may suggest, and the gate that drops the rest.
+
 use crate::model::{Code, Confidence, Evidence, EvidenceSource, Finding, Report};
 use crate::rules::FAILED_SERVICE_NOTE_SUFFIX;
 
+/// One read-only command the report may suggest, tied to a finding code.
 pub struct SafeCheck {
+    /// Finding code this command belongs to.
     pub for_code: Code,
+    /// Command text. The tool does not run it.
     pub command: String,
+    /// Why the report suggests this command.
     pub why: String,
 }
 
@@ -53,6 +59,7 @@ const FORBIDDEN_TEXT: &[&str] = &[
     "rm -",
 ];
 
+/// `Ok(())` when every pipe segment is allowed and no denied word appears.
 pub fn check_command(cmd: &str) -> Result<(), String> {
     if let Some(reason) = forbidden_syntax(cmd) {
         return Err(reason.to_string());
@@ -66,6 +73,7 @@ pub fn check_command(cmd: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// Forbidden phrases and rejected commands found in rendered report text.
 pub fn output_violations(text: &str) -> Vec<String> {
     let mut violations = Vec::new();
     let lower = text.to_ascii_lowercase();
@@ -95,6 +103,7 @@ pub fn output_violations(text: &str) -> Vec<String> {
     violations
 }
 
+/// Commands that pass [`check_command`], and how many were dropped.
 pub fn gate(checks: Vec<SafeCheck>) -> (Vec<SafeCheck>, usize) {
     let mut kept = Vec::new();
     let mut blocked = 0;
@@ -108,6 +117,9 @@ pub fn gate(checks: Vec<SafeCheck>) -> (Vec<SafeCheck>, usize) {
     (kept, blocked)
 }
 
+/// Drop commands [`check_command`] rejects.
+///
+/// A dropped command adds [`Code::DangerousForceBlocked`] to `report`.
 pub fn apply_gate(report: &mut Report, checks: Vec<SafeCheck>) -> Vec<SafeCheck> {
     let (kept, blocked) = gate(checks);
     if blocked > 0 {
@@ -126,6 +138,7 @@ pub fn apply_gate(report: &mut Report, checks: Vec<SafeCheck>) -> Vec<SafeCheck>
     kept
 }
 
+/// `domain` when it is a hostname the suggested commands may quote.
 pub fn safe_domain(domain: Option<&str>) -> Option<&str> {
     let domain = domain?;
     if domain.len() > 253 || !domain.contains('.') || domain.contains('*') {
@@ -151,6 +164,7 @@ pub fn safe_domain(domain: Option<&str>) -> Option<&str> {
     }
 }
 
+/// Suggested checks for the report's findings. The same command is kept once.
 pub fn checks_for(report: &Report) -> Vec<SafeCheck> {
     let domain = safe_domain(report.snapshot.domain.as_deref()).unwrap_or("YOUR_DOMAIN");
     let mut checks = Vec::new();

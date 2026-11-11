@@ -6,34 +6,32 @@ Explain why a Certbot renewal failed, or quietly never ran, from files you pass.
 
 [![crates.io](https://img.shields.io/crates/v/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![downloads](https://img.shields.io/crates/d/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![CI](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml) [![PEPAI checked](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.md) [![MSRV 1.85](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/blob/main/Cargo.toml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
-[Installation](#installation) • [Quick start](#quick-start) • [How it works](#how-it-works) • [Alternatives](#compared-with-alternatives) • [Limitations](#limitations) • [Reference](docs/reference.md)
-
-acme-renew-doctor is a local, read-only command-line tool written in Rust. It explains why a Certbot TLS renewal failed, or quietly never ran. It collects nothing. It only reads files you pass in: saved command output, or text you pasted into a file. It runs no command, never forces a renewal, and never reloads a service. The only file it writes is `example-log.txt` in the current directory, and only when you pass `--example`.  A finding is a fixed code plus the evidence for it. Codes that name a layer use scheduler, validation, or deployment. It needs no account and makes no network connection.
+acme-renew-doctor is a local, read-only command-line tool written in Rust. It explains why a Certbot TLS renewal failed, or quietly never ran. It collects nothing. It only reads files you pass in: saved command output, or text you pasted into a file. It runs no command, never forces a renewal, and never reloads a service. It writes a file only when you ask. `--output PATH` writes the report there and replaces an existing file; a missing parent directory is not created. The bytes go first to a new temporary file next to that path, so a pre-placed file or symlink at the temporary name is left untouched. On Unix, the permission bits of an existing destination file are kept. SIGINT exits 130 and leaves no half-written report; an existing `--output` file stays until the new report is complete. `--example` writes `example-log.txt` in the current directory.  A finding is a fixed code plus the evidence for it. Codes that name a layer use scheduler, validation, or deployment. It needs no account and makes no network connection.
 
 **Warning:** the report quotes the files you pass back verbatim; it does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, especially before you forward the report to anyone else. See [Privacy](#privacy).
 
-## Why
-
-Let's Encrypt stopped expiration-notification emails on 4 June 2025 (https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended.html). Since then a renewal that fails, or a timer that quietly stops, is easy to miss until the certificate expires. The cause sits in one of three layers: the scheduler, the ACME validation or the deployment. acme-renew-doctor reads the evidence you saved and names that layer, with the line that proves it.
+Tests: `cargo test --no-fail-fast` gives 473 passed, 0 failed, 1 ignored (measured on commit `bc09604` plus these changes; see [QUALITY.md](QUALITY.md)).
 
 ## Installation
 
 ### From crates.io
 
-With Rust 1.85 or newer, install from [crates.io](https://crates.io/crates/acme-renew-doctor):
+Version 1.0.0 is on [crates.io](https://crates.io/crates/acme-renew-doctor). With Rust 1.85 or newer:
 
 ```sh
-cargo install --locked acme-renew-doctor
+cargo install acme-renew-doctor
 acme-renew-doctor --help
 ```
 
+`cargo install --locked acme-renew-doctor` pins the crate's lockfile.
+
 ### Binary archive
 
-The [v0.2.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.2.0) has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
+The [v1.0.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
 
 ```sh
-name=acme-renew-doctor-v0.2.0-x86_64-unknown-linux-gnu
-base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v0.2.0
+name=acme-renew-doctor-v1.0.0-x86_64-unknown-linux-gnu
+base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v1.0.0
 curl -q -fsSL -O "$base/$name.tar.gz" -O "$base/$name.tar.gz.sha256"
 sha256sum -c "$name.tar.gz.sha256"
 tar -xzf "$name.tar.gz"
@@ -69,7 +67,7 @@ With no files, the report asks for them and exits 2:
 
 ```console
 $ acme-renew-doctor example.com
-acme-renew-doctor 0.2.0 (read-only, nothing was changed)
+acme-renew-doctor 1.0.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=(none) · timer status=(none) · cert disk=(none) · cert live=(none)
 
@@ -101,7 +99,7 @@ A saved Certbot log and a saved timer status, both synthetic:
 
 ```console
 $ acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout-repeated.log --from-timer-status tests/fixtures/timer/certbot-timer-disabled.txt
-acme-renew-doctor 0.2.0 (read-only, nothing was changed)
+acme-renew-doctor 1.0.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=tests/fixtures/certbot/http01-timeout-repeated.log · timer status=tests/fixtures/timer/certbot-timer-disabled.txt · cert disk=(none) · cert live=(none)
 
@@ -145,7 +143,7 @@ Certificate dates that are equal and not yet due, with the clock pinned for the 
 
 ```console
 $ ACME_RENEW_DOCTOR_NOW=1791273600 acme-renew-doctor example.com --from-timer-status tests/fixtures/timer/certbot-timer-enabled.txt --from-cert-disk tests/fixtures/certs/dates-current.txt --from-cert-live tests/fixtures/certs/dates-current.txt
-acme-renew-doctor 0.2.0 (read-only, nothing was changed)
+acme-renew-doctor 1.0.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=(none) · timer status=tests/fixtures/timer/certbot-timer-enabled.txt · cert disk=tests/fixtures/certs/dates-current.txt · cert live=tests/fixtures/certs/dates-current.txt
 
@@ -169,16 +167,75 @@ exit 0: ok, not due
 
 `1791273600` is 2026-10-06 08:00:00 UTC. `--json` prints one JSON object instead of this text. All options, exit codes and error messages are listed in the [reference](docs/reference.md) and in `acme-renew-doctor --help`.
 
+## Aan de slag in 5 minuten
+
+Five commands, offline and read-only, on the synthetic fixtures in `tests/fixtures`. They read no `/var/log`, call no `journalctl`, make no network connection and open no TUI. Run them from the root of a clone, with `acme-renew-doctor` on your `PATH` (after `cargo install --locked --path .`, or use `target/release/acme-renew-doctor`). A test runs the commands in this block literally.
+
+```sh
+acme-renew-doctor --help
+acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout.log
+acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout-repeated.log --from-timer-status tests/fixtures/timer/certbot-timer-disabled.txt
+ACME_RENEW_DOCTOR_NOW=1791273600 acme-renew-doctor example.com --from-timer-status tests/fixtures/timer/certbot-timer-enabled.txt --from-cert-disk tests/fixtures/certs/dates-current.txt --from-cert-live tests/fixtures/certs/dates-current.txt
+acme-renew-doctor example.com --json --from-log tests/fixtures/certbot/http01-timeout.log
+```
+
+1. Shows the options. Exit 0.
+2. One saved Certbot log: `LAYER2_HTTP01_TIMEOUT`, exit 1 (problem found).
+3. A log plus a saved timer status: `LAYER1_TIMER_DISABLED` and `LAYER2_HTTP01_TIMEOUT`, exit 1.
+4. Equal, not yet due certificate dates with the clock pinned: `OK_NOT_DUE`, exit 0.
+5. The same finding as command 2 as one JSON object, exit 1.
+
+For your own server, save the output of the commands the report prints under "Next" to files and pass them with the `--from-*` options. See [Quick start](#quick-start).
+
+## Why
+
+Let's Encrypt stopped expiration-notification emails on 4 June 2025 (https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended.html). Since then a renewal that fails, or a timer that quietly stops, is easy to miss until the certificate expires. The cause sits in one of three layers: the scheduler, the ACME validation or the deployment. acme-renew-doctor reads the evidence you saved and names that layer, with the line that proves it.
+
+## Example
+
+The `examples/` folder has two synthetic cases with their input files and the exact expected output. `tests/examples.rs` runs both and compares the output, so they cannot drift.
+
+```sh
+cd examples/http01-timeout
+acme-renew-doctor example.com --from-log letsencrypt.log --from-timer-status timer-status.txt
+```
+
+This prints `LAYER1_TIMER_DISABLED` and `LAYER2_HTTP01_TIMEOUT` and exits 1; the full text is in `examples/http01-timeout/expected-output.txt`. The second case, `examples/ok-not-due`, ends in `OK_NOT_DUE` and exit 0. See [examples/README.md](examples/README.md).
+
+## Options
+
+Every option in `acme-renew-doctor --help`:
+
+| Option | What it does |
+| --- | --- |
+| `[DOMAIN]` | Domain to diagnose. Shown in the report; the log is not filtered by domain. Cannot be combined with `--all`. |
+| `--all` | Diagnose all certificates. Live collection is not built yet; use the `--from-*` files. Cannot be combined with `[DOMAIN]`. |
+| `--json` | Print the report as JSON (with `schema_version`) instead of text. |
+| `--output <PATH>` | Write the report to this file instead of standard output. An existing file is replaced. A missing parent directory is an error and is not created. The bytes go first to a new temporary file next to that path; a pre-placed file or symlink at the temporary name is left untouched. On Unix, the permission bits of an existing destination file are kept. |
+| `--quiet` | Hide the hint line, even on a terminal. No context line. A pipe already omits both. |
+| `--verbose` | Print the hint line, and when the report was written one `context:` line on stderr, even on a pipe. Not with `--quiet`. |
+| `--warn-days <DAYS>` | Calendar days that must remain before notAfter for `OK_NOT_DUE`. Equal or fewer is the warning. Omit this to use one third of the disk certificate lifetime, capped at 30. |
+| `--from-log <FILE>` | Certbot log file to analyse, for example a copy of `/var/log/letsencrypt/letsencrypt.log`. `-` reads standard input. |
+| `--from-timer-status <FILE>` | Saved output of `systemctl show certbot.timer`. |
+| `--from-cert-disk <FILE>` | Saved output of `openssl x509 -noout -dates` for the certificate on disk, for example `/etc/letsencrypt/live/DOMAIN/fullchain.pem`. |
+| `--from-cert-live <FILE>` | Saved output of `openssl x509 -noout -dates` for the certificate the server sends (from `openssl s_client`). |
+| `--client <CLIENT>` | ACME client that wrote the files: `certbot`, `acme.sh` or `auto` (default). Only Certbot logs are parsed. |
+| `--example` | Write a synthetic Certbot log to `example-log.txt` in the current directory and exit. Cannot be combined with any other option. |
+| `-h`, `--help` | Print help. |
+| `-V`, `--version` | Print the version (`acme-renew-doctor 1.0.0`) and exit 0. A debug build also prints the git commit when git provides one. |
+
+Exit codes: 0 `OK_NOT_DUE`, 1 a problem with a named layer, 2 insufficient evidence, 3 usage error, 130 SIGINT (no half-written report). Details are in the [reference](docs/reference.md).
+
 ## How it works
 
 Every code can be traced back to these rules. The full match text, file formats and error messages are in the [reference](docs/reference.md#how-a-code-is-chosen).
 
 - **One validation code.** The ACME error with the latest timestamp wins (`YYYY-MM-DD HH:MM:SS,mmm:`, Certbot `log.py` r.47). A line without a timestamp belongs to the last timestamped line above it. Equal timestamps, or no timestamps at all, keep the bottom line when the findings have the same depth. A nested subproblem outranks its parent when the timestamp is the same. The prefix `During secondary validation: ` is removed before the match. The evidence line keeps the original text. JSON `type` and `detail` come from the same object, in either order. Text after that object's `}` is not part of it. The same `type` or `detail` twice with the same value counts as one. Whitespace, including a newline, may sit between the key, the colon and the value. Two different values of any JSON kind in one object are not a layer code; the report says `ACME JSON is ambiguous (the same object has type or detail more than once with different values)`. Another object, or a Certbot summary, can still be a validation code. A blank Domain, Identifier, Type or Detail value is not a summary.
 - **Timer.** Saved `systemctl show` output is read only for `certbot.timer`, `certbot.service` and `snap.certbot.renew.timer`. Any other unit is ignored. The same unit twice with the same state counts as one. The same unit twice with different states is `INSUFFICIENT_EVIDENCE` (`timer status is ambiguous (the same unit appears more than once with different states)`). `Id=` lines that name none of those three units are `INSUFFICIENT_EVIDENCE` (`timer status not recognised (no certbot.timer, certbot.service or snap.certbot.renew.timer)`). `LAYER1_TIMER_DISABLED` when LoadState is `masked`, or when the timer is `loaded` and UnitFileState is `disabled` or `masked`. `LAYER1_TIMER_NOT_FIRING` when it is loaded and not disabled or masked, and it is not `active` or its Result is non-empty and not `success`. The same key twice in one block with a different value is the same ambiguous result; the same value twice counts as one. A missing ActiveState or UnitFileState is not a high-confidence `LAYER1_TIMER_NOT_FIRING`. A failed `certbot.service` keeps its evidence line on the first layer diagnosis, not on a read error. When there is no layer diagnosis and no read error, the line stays on the insufficient-evidence finding.
-- **Certificates.** Dates come from saved `openssl x509 -noout -dates` output. A year outside 1970 through 9999 is not recognised, and two `notAfter` lines that are not the same instant are not recognised. `LAYER3_NO_RELOAD` when the disk notAfter is later than the live notAfter. `OK_NOT_DUE` when disk and live notAfter are equal, enough calendar days remain, the disk certificate's notBefore (when known) is not after `now`, there is no ACME error, the service unit is not `failed`, this is not the unsupported snap-timer case, a snap timer that is the only timer and is not loaded and active is not `OK_NOT_DUE`, and a timer if present is loaded, enabled and active. "Enough days" is a third of the disk certificate's own lifetime (notAfter minus notBefore, from the same saved `-dates` output), capped at 30 days, or the fixed 30 days when notBefore is missing or not before notAfter. The cap matters because no publicly trusted certificate is longer-lived than Certbot's 90-day default, so a longer implied lifetime must not relax the threshold; the lifetime scaling matters because Let's Encrypt also issues 6-day short-lived certificates, for which a fixed 30 days is longer than the certificate's entire life and `OK_NOT_DUE` would never be reachable. As retrieved on 2026-10-17, https://letsencrypt.org/docs/faq/ says "Our default certificates are valid for 90 days." and "Subscribers can opt in to short-lived certificates which are valid for six days."
+- **Certificates.** Dates come from saved `openssl x509 -noout -dates` output. A year outside 1970 through 9999 is not recognised, and two `notAfter` lines that are not the same instant are not recognised. `LAYER3_NO_RELOAD` when the disk notAfter is later than the live notAfter. `OK_NOT_DUE` when disk and live notAfter are equal, enough calendar days remain, the disk certificate's notBefore (when known) is not after `now`, there is no ACME error, the service unit is not `failed`, this is not the unsupported snap-timer case, a snap timer that is the only timer and is not loaded and active is not `OK_NOT_DUE`, and a timer if present is loaded, enabled and active. "Enough days" is a third of the disk certificate's own lifetime (notAfter minus notBefore, from the same saved `-dates` output), capped at 30 days, or the fixed 30 days when notBefore is missing or not before notAfter. The cap matters because no publicly trusted certificate is longer-lived than Certbot's 90-day default, so a longer implied lifetime must not relax the threshold; the lifetime scaling matters because Let's Encrypt also issues 6-day short-lived certificates, for which a fixed 30 days is longer than the certificate's entire life and `OK_NOT_DUE` would never be reachable. As retrieved on 2026-10-17, https://letsencrypt.org/docs/faq/ says "Our default certificates are valid for 90 days." and "Subscribers can opt in to short-lived certificates which are valid for six days." `--warn-days DAYS` replaces that threshold with DAYS calendar days. The report states how many days remain. Finding codes and exit codes stay the same. The flag does not judge a host or a chain.
 - **Client.** With `--client auto`, a log is Certbot only when a line has that timestamp form, a level, and a logger name starting with `certbot` or `acme`. Otherwise the code is `CLIENT_UNKNOWN` (exit 3). `--client acme.sh` is not parsed.
 - **Checks.** The human report lists read-only copy-paste checks. Doctor does not run them. A check has to pass the allowlist and the word denylist. A short denylist flag is matched exactly, so `-i` is denied and `-I` is a different flag. A word or a long flag is matched without regard to ASCII case. A check that fails is left out, and its command is not shown. The evidence then says `1 suggested check` or `2 suggested checks`, so the word matches the number. A finding that carries the note that `certbot.service` failed also suggests `journalctl -u certbot.service -n 50 --no-pager`, once, including when that finding is a layer code.
-- **Exit.** 0 ok, not due. 1 a layer was found. 2 insufficient evidence. 3 usage, including `CLIENT_UNKNOWN`. `CLIENT_UNKNOWN` is checked before any layer code. If the text report, `--json`, `--help` or `--version` cannot be written because standard output is closed or full, the tool does not panic: it writes `acme-renew-doctor: could not write output: ...` to standard error and exits 3. A usage message that cannot be written does the same. `--help` and `--version` exit 0 only when that text was written. If standard error is closed or full, the message for an invalid `ACME_RENEW_DOCTOR_NOW` does not panic, and the process still exits 3.
+- **Exit.** 0 ok, not due. 1 a layer was found. 2 insufficient evidence. 3 usage, including `CLIENT_UNKNOWN`. `CLIENT_UNKNOWN` is checked before any layer code. On a terminal, an error on standard error also prints a `hint:` line with the next step already in that error. A pipe, a redirect, or `--quiet` keeps the error line only. `--verbose` prints the hint even on a pipe, and when the report was written one `context:` line on standard error (`files` and `findings`). The report on standard output is unchanged. `--quiet` together with `--verbose` is exit 3. If the text report, `--json`, `--help` or `--version` cannot be written because standard output is closed or full, the tool does not panic: it writes `acme-renew-doctor: could not write output: ...` to standard error and exits 3. If `--output` cannot be written, including when the parent directory is missing, the tool uses that same exit 3, leaves standard output empty, and does not create the directory. A usage message that cannot be written does the same. `--help` and `--version` exit 0 only when that text was written. If standard error is closed or full, the message for an invalid `ACME_RENEW_DOCTOR_NOW` does not panic, and the process still exits 3. SIGINT exits 130 and leaves no half-written report. An existing `--output` file stays when the new report was not finished. On a pipe, stderr is `acme-renew-doctor: interrupted by SIGINT; run the command again`. Exit codes 0, 1, 2 and 3 stay as they are. A missing parent directory for `--output` stays exit 3.
 
 `DOMAIN` is shown on the report and does not filter the log. `[DOMAIN]` and `--all` cannot be used together. `--client` defaults to `auto`.
 
@@ -194,7 +251,7 @@ Other approaches and why this tool does not take them. No vendor page was checke
 
 **A cloud monitor for expiry dates, for example Red Sift.** Such services exist and watch expiry dates from outside, but do not give a local cause. Not verified: no page was checked.
 
-**Caddy, Traefik and cert-manager.** Not in 0.1.0. They have their own ACME implementations. Maybe later.
+**Caddy, Traefik and cert-manager.** Not in 1.0.0. They have their own ACME implementations. Maybe later.
 
 **acme-renew-doctor** is MIT OR Apache-2.0, a single binary, no account, no network. It reads files you pass and names a layer with the evidence line.
 

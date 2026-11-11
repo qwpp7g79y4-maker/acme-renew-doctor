@@ -1,3 +1,5 @@
+//! Text and JSON for a [`crate::model::Report`].
+
 use std::path::PathBuf;
 
 use crate::model::{
@@ -5,12 +7,14 @@ use crate::model::{
 };
 use crate::safe::{self, SafeCheck};
 
+/// `schema_version` written in the JSON report. The value is 1.
 pub const SCHEMA_VERSION: u32 = 1;
 
 const LIVE_NOTE: &str = "note: live collection is not built yet; pass --from-log, --from-timer-status, --from-cert-disk and/or --from-cert-live.";
 const INVALID_DOMAIN_NOTE: &str = "note: the domain is not a valid hostname (it needs at least two labels of 1 to 63 characters, no label may start or end with '-', and the name may be at most 253 characters); replace YOUR_DOMAIN yourself.";
 const UNSAFE_DOMAIN_NOTE: &str = "note: the domain contains characters that are unsafe in a shell command; replace YOUR_DOMAIN yourself.";
 
+/// Text report. It ends with `exit N: ...` and a newline.
 pub fn human(report: &Report, checks: &[SafeCheck]) -> String {
     let snapshot = &report.snapshot;
     let mut lines = vec![
@@ -115,6 +119,7 @@ pub fn human(report: &Report, checks: &[SafeCheck]) -> String {
     text
 }
 
+/// JSON report for the same findings. `schema_version` is [`SCHEMA_VERSION`].
 pub fn json(report: &Report, checks: &[SafeCheck]) -> String {
     let snapshot = &report.snapshot;
     let mut out = String::new();

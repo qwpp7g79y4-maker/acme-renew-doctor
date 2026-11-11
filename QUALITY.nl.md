@@ -1,10 +1,94 @@
 # Kwaliteitsrapport
 
-Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste openbare release, en wat er is opgelost. Ze beschrijft de controles die we deden. Het is geen garantie dat de software vrij is van fouten of veilig is.
+Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd, ook na de publicatie van 0.1.0 en 0.2.0, en wat er is opgelost. Ze beschrijft de controles die we deden. Het is geen garantie dat de software vrij is van fouten of veilig is.
 
 ## Verificatielog
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
+
+### 2026-11-11 (1.0.0, tak fix/docs-v1.0.0)
+
+- De sectie Binary-archief in `README.md` en `README.nl.md` noemt nu v1.0.0 (tag, archiefnaam en download-URL), in overeenstemming met Cargo.toml 1.0.0. `tests/readme.rs` legt die sectie naast `CARGO_PKG_VERSION`.
+- Het release-archief bevat nu `examples/`. `.github/workflows/release.yml` kopieert die map op elk platform, de smoke-test controleert `examples/README.md`, en `tests/readme.rs` legt de relatieve links in `README.md` en `README.nl.md` naast de kopieerlijst.
+- `--output` maakt het tijdelijke bestand met `create_new`, probeert een andere naam als de eerste al bestaat, en houdt op Unix de rechten van een bestaand gewoon doelbestand. Een vooraf geplaatste symlink op de tijdelijke naam wordt niet gevolgd. De schrijffout vermeldt dat er een tijdelijk bestand naast het doel wordt aangemaakt.
+- De offline-unshare-test slaat over als `unshare` ontbreekt, en als `unshare -rn true` faalt met EPERM, uid_map of permission denied (het overslaan bij EPERM stond al in `bc09604`). Anders draait de test nog steeds in een netwerk-namespace met een lege routetabel.
+- GitHub CI-run 42943099185 was groen op commit `9959bda`. Deze tip is niet gepusht; die run dekt deze wijzigingen niet.
+- `cargo test --no-fail-fast`: 473 geslaagd / 0 mislukt / 1 genegeerd. Gemeten op commit `bc09604` plus deze wijzigingen.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
+### 2026-11-09 (1.0.0, tak prep/w24-fout)
+
+- `cargo test --no-fail-fast`: 469 geslaagd / 0 mislukt / 1 genegeerd. Gemeten op commit `4e954d5` plus deze wijzigingen.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
+### 2026-11-08 (W-55, resterende dagen, tak prep/w24-fout)
+
+- `--warn-days DAYS` zet de waarschuwingsdrempel voor verlenging. Weglaten houdt de drempel op een derde van de looptijd van het certificaat op schijf, met een maximum van 30 dagen. Het rapport noemt hoeveel kalenderdagen er over zijn. Bestaande codes blijven. Exitcodes blijven 0, 1, 2 en 3. De loggrens blijft 268435456 bytes. De grens voor timer en certificaten blijft 1048576 bytes. Een ontbrekende bovenliggende map van `--output` blijft exit 3. SIGINT blijft exit 130. De tests gebruiken synthetische certificaatdatums en `ACME_RENEW_DOCTOR_NOW`. Er is geen host- of ketenoordeel toegevoegd. De klok staat niet in het rapport.
+- `cargo test --no-fail-fast`: 469 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
+### 2026-11-08 (W-66, versieregel, tak prep/w24-fout)
+
+- `--version` en `-V` tonen de crate-versie en eindigen met exit 0. Een debug-build toont ook de git-commit als git die geeft. Een release-build toont alleen de crate-versie. Er wordt geen commit-hash verzonnen. Exitcodes blijven 0, 1, 2 en 3. De loggrens blijft 268435456 bytes. De grens voor timer en certificaten blijft 1048576 bytes. Een ontbrekende bovenliggende map van `--output` blijft exit 3. SIGINT blijft exit 130. Er is geen host- of ketendiagnose toegevoegd.
+- `cargo test --no-fail-fast`: 458 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
+### 2026-11-08 (W-48, SIGINT, tak prep/w24-fout)
+
+- SIGINT eindigt met exit 130. Stderr is `acme-renew-doctor: interrupted by SIGINT; run the command again`. Er blijft geen half rapport achter. `tests/sigint.rs` stuurt het signaal via een pidfd van het kind dat de test zelf startte. Gewone exitcodes blijven 0, 1, 2 en 3. De loggrens blijft 268435456 bytes. De grens voor timer en certificaten blijft 1048576 bytes. Een ontbrekende bovenliggende map van `--output` blijft exit 3. Er is geen host- of ketendiagnose toegevoegd.
+- `cargo test --no-fail-fast`: 457 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
+### 2026-11-08 (W-46, invoerlimiet, tak prep/w24-fout)
+
+- `--from-log` blijft hoogstens 268435456 bytes (256 MiB). Een timerbestand en beide certificaatbestanden blijven hoogstens 1048576 bytes (1 MiB). Een groter gewoon bestand eindigt met exit 2 en `over the 268435456 byte limit` of `over the 1048576 byte limit`, en wordt niet ingelezen. Geen van beide grenzen is verhoogd. De gemeten invoer van 100 MiB blijft onder de loggrens. Het te grote bestand maakt de test in `/tmp` en wordt niet gecommit. Exitcodes blijven 0, 1, 2 en 3. Een ontbrekende bovenliggende map van `--output` blijft exit 3.
+- `cargo test --no-fail-fast`: 456 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
+### 2026-11-08 (W-44, `--quiet` en `--verbose`, tak prep/w24-fout)
+
+- `--quiet` verbergt de hintregel. Een pipe of een redirect laat die al weg. `--verbose` toont de hint en, na een geslaagde rapportschrijfactie, één `context:`-regel op stderr (`files` en `findings`). Standaarduitvoer blijft het rapport. `--quiet` samen met `--verbose` is exit 3. Een ontbrekende bovenliggende map van `--output` blijft exit 3 en wordt niet aangemaakt.
+- `cargo test --no-fail-fast`: 455 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
+### 2026-11-08 (W-43, `--output PATH`, tak prep/w24-fout)
+
+- `--output PATH` schrijft het rapport naar dat bestand in plaats van standaarduitvoer. Een bestaand bestand wordt vervangen. Een ontbrekende bovenliggende map eindigt met 3, dezelfde code als een mislukte schrijfactie naar standaarduitvoer, en wordt niet aangemaakt.
+- `cargo test --no-fail-fast`: 447 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
+### 2026-11-08 (W-45, offline rapport met uitgaande verbindingen geblokkeerd, tak prep/w24-fout)
+
+- `tests/offline_certs.rs`: `expired_certificate_is_reported_with_outgoing_connections_blocked` draait het offline rapport van een verlopen certificaat in `unshare --user --map-root-user --net`. Die netwerk-namespace heeft een lege routetabel. De bevindingen blijven de datums. Het rapport noemt geen host- of ketenprobleem.
+- `cargo test --no-fail-fast`: 444 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
+
+### 2026-11-08 (W-12, "Aan de slag in 5 minuten", tak prep/w07-offline)
+
+- `cargo test --no-fail-fast` op commit `f3c6178` plus de werkboomwijziging: 423 geslaagd / 0 mislukt / 1 genegeerd. De nieuwe test `five_minute_section_commands_run_literally` draait de vijf opdrachten van de sectie zoals geschreven.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Het getal 416 hieronder is op een andere tak gemeten; het beschrijft deze tak niet.
+
+### 2026-11-08 (kwaliteitsronde voor de release, tak prep/v1-kwaliteit)
+
+- `cargo test --no-fail-fast` op commit `de0d994`: 416 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Alleen deze drie controles zijn voor dit item uitgevoerd; de eerdere items hieronder zijn niet herhaald.
+
+### 2026-11-07 (releasecontrole van 0.2.0)
+
+- `cargo test --no-fail-fast` op commit `e564dcc`: 413 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo clippy --all-targets -- -D warnings`: schoon.
+- Alleen deze twee controles zijn voor deze invoer uitgevoerd; de onderstaande eerdere invoer is niet herhaald.
 
 ### 2026-10-17 (wekelijks)
 

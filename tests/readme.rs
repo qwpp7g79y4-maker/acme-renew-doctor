@@ -8,7 +8,7 @@
 
 use std::collections::BTreeSet;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 
 const README: &str = "README.md";
@@ -312,6 +312,203 @@ fn readme_separates_source_install_from_the_binary_archive() {
 }
 
 #[test]
+fn readme_binary_archive_section_matches_package_version() {
+    let version = env!("CARGO_PKG_VERSION");
+    let tag = format!("v{version}");
+    let archive = format!("acme-renew-doctor-{tag}-x86_64-unknown-linux-gnu");
+    let tag_url =
+        format!("https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/{tag}");
+    let download =
+        format!("https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/{tag}");
+    for (page, heading) in [
+        (README, "### Binary archive"),
+        (README_DUTCH, "### Binary-archief"),
+    ] {
+        let text = read(page);
+        let start = text
+            .find(heading)
+            .unwrap_or_else(|| panic!("{page} is missing {heading}"));
+        let rest = &text[start + heading.len()..];
+        let end = rest
+            .find("\n### ")
+            .or_else(|| rest.find("\n## "))
+            .unwrap_or(rest.len());
+        let body = &rest[..end];
+        assert!(
+            body.contains(&tag_url),
+            "{page} binary section is missing {tag_url}\n{body}"
+        );
+        assert!(
+            body.contains(&format!("name={archive}")),
+            "{page} binary section is missing name={archive}\n{body}"
+        );
+        assert!(
+            body.contains(&format!("base={download}")),
+            "{page} binary section is missing base={download}\n{body}"
+        );
+        assert!(
+            !body.contains("v0.1.0"),
+            "{page} binary section still names v0.1.0\n{body}"
+        );
+    }
+}
+
+/// The `run:` script of a named step in `.github/workflows/release.yml`.
+fn release_step_script<'a>(workflow: &'a str, name: &str) -> &'a str {
+    let heading = format!("- name: {name}");
+    let from = workflow
+        .find(&heading)
+        .unwrap_or_else(|| panic!("release.yml has no step {name}"));
+    let rest = &workflow[from..];
+    let run = rest
+        .find("run: |")
+        .unwrap_or_else(|| panic!("step {name} has no run: | block"));
+    let body = &rest[run + "run: |".len()..];
+    match body.find("\n      - ") {
+        Some(end) => &body[..end],
+        None => body,
+    }
+}
+
+/// Paths placed in the archive by the Package step's `cp` commands.
+fn archive_copy_roots(package: &str) -> Vec<String> {
+    let mut roots = Vec::new();
+    for line in package.lines() {
+        let line = line.trim();
+        if !line.starts_with("cp ") {
+            continue;
+        }
+        let rest = line
+            .strip_prefix("cp -R ")
+            .or_else(|| line.strip_prefix("cp -r "))
+            .or_else(|| line.strip_prefix("cp "))
+            .expect("cp prefix");
+        let mut words: Vec<String> = rest
+            .split_whitespace()
+            .map(|word| word.trim_matches('"').to_string())
+            .collect();
+        if words.len() < 2 {
+            continue;
+        }
+        let dest = words.pop().expect("dest");
+        if words.iter().any(|src| src.contains("target/")) {
+            continue;
+        }
+        let dest_in_archive = dest
+            .strip_prefix("dist/$name/")
+            .or_else(|| dest.strip_prefix("dist/$name"))
+            .unwrap_or(dest.as_str())
+            .trim_matches('/');
+        for src in words {
+            let name = if dest_in_archive.is_empty() {
+                src
+            } else {
+                let base = src.rsplit('/').next().unwrap_or(src.as_str());
+                format!("{dest_in_archive}/{base}")
+            };
+            roots.push(name);
+        }
+    }
+    roots
+}
+
+fn archive_contains(roots: &[String], rel: &str) -> bool {
+    let rel = rel.trim_start_matches("./");
+    roots
+        .iter()
+        .any(|root| rel == root || rel.starts_with(&format!("{root}/")))
+}
+
+fn relative_markdown_targets(text: &str) -> Vec<&str> {
+    let mut targets = Vec::new();
+    let mut i = 0;
+    while let Some(offset) = text[i..].find("](") {
+        let start = i + offset + 2;
+        if start >= text.len() {
+            break;
+        }
+        let rest = &text[start..];
+        let end = rest.find(')').unwrap_or(rest.len());
+        let raw = rest[..end]
+            .split_whitespace()
+            .next()
+            .unwrap_or("")
+            .trim_matches(['<', '>']);
+        let path = raw.split('#').next().unwrap_or("");
+        let external = path.is_empty()
+            || path.starts_with('#')
+            || path.starts_with("http://")
+            || path.starts_with("https://")
+            || path.starts_with("mailto:");
+        if !external {
+            targets.push(path);
+        }
+        i = start + end + 1;
+        if i > text.len() {
+            break;
+        }
+    }
+    targets
+}
+
+fn resolve_from_page(page: &str, target: &str) -> String {
+    let dir = Path::new(page).parent().unwrap_or_else(|| Path::new(""));
+    let mut out = PathBuf::new();
+    for component in dir.join(target).components() {
+        match component {
+            Component::ParentDir => {
+                let _ = out.pop();
+            }
+            Component::CurDir => {}
+            Component::Normal(part) => out.push(part),
+            Component::Prefix(_) | Component::RootDir => {}
+        }
+    }
+    out.to_string_lossy().replace('\\', "/")
+}
+
+#[test]
+fn readme_relative_links_are_copied_into_the_release_archive() {
+    let workflow = read(".github/workflows/release.yml");
+    let package = release_step_script(&workflow, "Package");
+    let smoke = release_step_script(&workflow, "Smoke test the archive");
+    assert!(
+        package.contains("cp -R examples"),
+        "Package step must copy examples/ into the archive on every platform\n{package}"
+    );
+    assert!(
+        smoke.contains("test -f examples/README.md"),
+        "Smoke test must check examples/README.md is in the archive\n{smoke}"
+    );
+    let roots = archive_copy_roots(package);
+    assert!(
+        !roots.is_empty(),
+        "Package step has no parseable cp commands\n{package}"
+    );
+    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    for page in [README, README_DUTCH] {
+        let text = read(page);
+        let targets = relative_markdown_targets(&text);
+        assert!(
+            !targets.is_empty(),
+            "{page} has no relative markdown links to check"
+        );
+        for target in targets {
+            let rel = resolve_from_page(page, target);
+            let on_disk = manifest.join(&rel);
+            assert!(
+                on_disk.exists(),
+                "{page} links to {target} → {rel}, which is missing in the tree"
+            );
+            assert!(
+                archive_contains(&roots, &rel),
+                "{page} links to {target} → {rel}, which is not in the release.yml copy list ({roots:?})"
+            );
+        }
+    }
+}
+
+#[test]
 fn language_switch_on_top_of_every_page() {
     for (rel, line) in [
         (README, "English · [Nederlands](README.nl.md)"),
@@ -527,9 +724,9 @@ fn option_and_error_tables_match_the_binary() {
             "cannot be used with '--all'\n",
             "a value is required for '--from-log <FILE>' but none was supplied\n",
             "unexpected argument '--bogus' found\n",
-            "got 1,5\n",
-            "got 1.5\n",
-            "got not-a-timestamp\n",
+            "got 1,5; unset ACME_RENEW_DOCTOR_NOW to use the system clock\n",
+            "got 1.5; unset ACME_RENEW_DOCTOR_NOW to use the system clock\n",
+            "got not-a-timestamp; unset ACME_RENEW_DOCTOR_NOW to use the system clock\n",
         ] {
             assert!(
                 usage_messages
@@ -559,7 +756,7 @@ fn option_and_error_tables_match_the_binary() {
             report_messages.insert(row.message);
         }
         for needed in [
-            "does-not-exist.log: NotFound\n",
+            "does-not-exist.log: NotFound (no such file; check the path, or save the command output to a file first)\n",
             "tests/fixtures/certbot: is a directory\n",
             "timer status not recognised (no Id= line in systemctl show output)\n",
             "certificate dates not recognised (no notAfter= line in openssl x509 -dates output)\n",
@@ -630,5 +827,95 @@ fn walk(dir: &std::path::Path, root: &std::path::Path, names: &mut Vec<String>) 
             .expect("utf-8")
             .replace('\\', "/");
         names.push(rel);
+    }
+}
+
+/// Every option that `--help` prints must be named in both READMEs.
+#[test]
+fn every_help_option_is_in_both_readmes() {
+    let output = bin().arg("--help").output().expect("start binary");
+    let help = String::from_utf8_lossy(&output.stdout).into_owned();
+    let mut options = Vec::new();
+    for line in help.lines().skip_while(|line| *line != "Options:").skip(1) {
+        for word in line.split_whitespace().take(3) {
+            let word = word.trim_end_matches(',');
+            if word.starts_with('-') {
+                options.push(word.to_string());
+            }
+        }
+    }
+    for expected in [
+        "--all",
+        "--json",
+        "--from-log",
+        "--from-timer-status",
+        "--from-cert-disk",
+        "--from-cert-live",
+        "--client",
+        "--example",
+        "--help",
+        "--version",
+    ] {
+        assert!(
+            options.iter().any(|o| o == expected),
+            "{expected} not parsed from --help:\n{help}"
+        );
+    }
+    for page in [README, README_DUTCH] {
+        let text = read(page);
+        for option in &options {
+            assert!(
+                text.contains(option.as_str()),
+                "{page} does not mention {option}"
+            );
+        }
+    }
+}
+
+/// The commands of the "Aan de slag in 5 minuten" section, run literally
+/// through `sh` with the freshly built binary first on `PATH`.
+#[test]
+fn five_minute_section_commands_run_literally() {
+    // (exit code, text that must be on stdout) per command, in order.
+    let expected: [(i32, &str); 5] = [
+        (0, "Usage: acme-renew-doctor"),
+        (1, "LAYER2_HTTP01_TIMEOUT"),
+        (1, "LAYER1_TIMER_DISABLED"),
+        (0, "OK_NOT_DUE"),
+        (1, "\"LAYER2_HTTP01_TIMEOUT\""),
+    ];
+    let bin_dir = PathBuf::from(env!("CARGO_BIN_EXE_acme-renew-doctor"))
+        .parent()
+        .expect("binary directory")
+        .to_path_buf();
+    let mut path = std::ffi::OsString::from(&bin_dir);
+    path.push(":");
+    path.push(std::env::var_os("PATH").unwrap_or_default());
+    for page in [README, README_DUTCH] {
+        let text = read(page);
+        let part = section(&text, "## Aan de slag in 5 minuten");
+        let block: Vec<&str> = part
+            .split("```sh\n")
+            .nth(1)
+            .and_then(|rest| rest.split("\n```").next())
+            .unwrap_or_else(|| panic!("{page}: no sh block"))
+            .lines()
+            .collect();
+        assert_eq!(block.len(), expected.len(), "{page}: command count");
+        for (line, (code, needle)) in block.iter().zip(expected) {
+            for banned in ["/var/log", "journalctl", "http://", "https://", "sudo"] {
+                assert!(!line.contains(banned), "{page}: {line} uses {banned}");
+            }
+            let out = Command::new("sh")
+                .arg("-c")
+                .arg(line)
+                .current_dir(env!("CARGO_MANIFEST_DIR"))
+                .env("PATH", &path)
+                .output()
+                .expect("start sh");
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            assert_eq!(out.status.code(), Some(code), "{page}: {line}\n{stdout}");
+            assert!(stdout.contains(needle), "{page}: {line}\n{stdout}");
+        }
     }
 }

@@ -1,10 +1,109 @@
 # Quality report
 
-This page shows how acme-renew-doctor was checked before its first public release, and what was fixed. It describes checks we did. It is not a guarantee that the software is free of bugs or secure.
+This page shows how acme-renew-doctor was checked, including after 0.1.0 and 0.2.0 were published, and what was fixed. It describes checks we did. It is not a guarantee that the software is free of bugs or secure.
 
 ## Verification log
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
+
+### 2026-11-11 (1.0.0, branch fix/docs-v1.0.0)
+
+- The Installation binary-archive section in `README.md` and `README.nl.md` now names v1.0.0 (tag, archive name, and download URL), matching Cargo.toml 1.0.0. `tests/readme.rs` compares that section to `CARGO_PKG_VERSION`.
+- The release archive now includes `examples/`. `.github/workflows/release.yml` copies that folder on every platform, the smoke test checks `examples/README.md`, and `tests/readme.rs` compares the relative links in `README.md` and `README.nl.md` with the copy list.
+- `--output` creates the temporary file with `create_new`, tries another name if the first exists, and on Unix keeps the permission bits of an existing regular destination. A pre-placed symlink at the temporary name is not followed. The write error mentions that a temporary file is created next to the destination.
+- The offline unshare test skips when `unshare` is missing, and when `unshare -rn true` fails with EPERM, uid_map, or permission denied (the EPERM skip was already in `bc09604`). Otherwise the test still runs in a network namespace with an empty route table.
+- GitHub CI run 42943099185 was green on commit `9959bda`. This tip is not pushed; that run does not cover these changes.
+- `cargo test --no-fail-fast`: 473 passed / 0 failed / 1 ignored. Measured on commit `bc09604` plus these changes.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
+### 2026-11-09 (1.0.0, branch prep/w24-fout)
+
+- `cargo test --no-fail-fast`: 469 passed / 0 failed / 1 ignored. Measured on commit `4e954d5` plus these changes.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
+### 2026-11-08 (W-55, remaining days, branch prep/w24-fout)
+
+- `--warn-days DAYS` sets the renewal warning threshold. Omit it and the threshold stays one third of the disk certificate lifetime, capped at 30 days. The report states how many calendar days remain. Finding codes stay the same. Exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes. The timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3. SIGINT stays exit 130. Tests use synthetic certificate dates and `ACME_RENEW_DOCTOR_NOW`. No host or chain verdict was added. The clock is not stored on the report.
+- `cargo test --no-fail-fast`: 469 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
+### 2026-11-08 (W-66, version line, branch prep/w24-fout)
+
+- `--version` and `-V` print the crate version and exit 0. A debug build also prints the git commit when git provides one. A release build prints the crate version only. No commit hash is invented. Exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes. The timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3. SIGINT stays exit 130. No host or chain finding was added.
+- `cargo test --no-fail-fast`: 458 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
+### 2026-11-08 (W-48, SIGINT, branch prep/w24-fout)
+
+- SIGINT exits 130. Stderr is `acme-renew-doctor: interrupted by SIGINT; run the command again`. The report is not left half-written. `tests/sigint.rs` sends the signal through a pidfd of the child it spawned. Ordinary exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes. The timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3. No host or chain finding was added.
+- `cargo test --no-fail-fast`: 457 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
+### 2026-11-08 (W-46, input limit, branch prep/w24-fout)
+
+- `--from-log` stays at most 268435456 bytes (256 MiB). A timer file and both certificate files stay at most 1048576 bytes (1 MiB). A larger regular file exits 2 with `over the 268435456 byte limit` or `over the 1048576 byte limit` and is not loaded. Neither limit was raised. The measured 100 MiB input stays under the log limit. The over-limit file is created in `/tmp` by the test and is not committed. Exit codes stay 0, 1, 2 and 3. A missing parent directory for `--output` stays exit 3.
+- `cargo test --no-fail-fast`: 456 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
+### 2026-11-08 (W-44, `--quiet` and `--verbose`, branch prep/w24-fout)
+
+- `--quiet` hides the hint line. A pipe or a redirect already omits it. `--verbose` prints the hint and, after a successful report write, one `context:` line on stderr (`files` and `findings`). Standard output stays the report. `--quiet` together with `--verbose` is exit 3. A missing parent directory of `--output` stays exit 3 and is not created.
+- `cargo test --no-fail-fast`: 455 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
+### 2026-11-08 (W-43, `--output PATH`, branch prep/w24-fout)
+
+- `--output PATH` writes the report to that file instead of standard output. An existing file is replaced. A missing parent directory exits 3, the same code as a failed write to standard output, and is not created.
+- `cargo test --no-fail-fast`: 447 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
+### 2026-11-08 (W-45, offline report with outgoing connections blocked, branch prep/w24-fout)
+
+- `tests/offline_certs.rs`: `expired_certificate_is_reported_with_outgoing_connections_blocked` runs the offline expired-certificate report inside `unshare --user --map-root-user --net`. That namespace has an empty route table. The findings stay the date findings. The report does not name a host or a chain problem.
+- `cargo test --no-fail-fast`: 444 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
+
+### 2026-11-08 (W-28, line coverage, branch prep/w24-fout)
+
+- Command: `cargo llvm-cov` (cargo-llvm-cov 0.9.1, stable toolchain), on tip `8cf74b0` plus the working-tree change below.
+- Line coverage printed by the command: 97.80% (5187 lines, 114 missed). It was above 90%, so no tests were added to raise it. The same figure came out in five runs in a row.
+- The first `cargo llvm-cov` run failed `unix::version_on_a_closed_pipe_exits_three` (exit 0 instead of 3). It passed in `cargo test`, and in three isolated runs of that test file. This was not a `.profraw` problem: the test helper made the pipe and spawned children from parallel tests, so a child could inherit the read end and keep the pipe open. `tests/closed_output.rs` now has a lock around creating the pipe and around `spawn`. No test uses sleep for this, no time or network was added, and `--ignore-run-fail` was not used. I did not prove the race by reproducing it on demand; the evidence is the one failure and five clean runs after the change.
+- `cargo test --no-fail-fast`: 443 passed / 0 failed / 1 ignored. `cargo llvm-cov` gives the same counts.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+
+### 2026-11-08 (W-26, speed on a 100 MiB input, branch prep/w24-fout)
+
+- Input: a synthetic log of exactly 104857600 bytes (100 MiB), built by repeating `examples/http01-timeout/letsencrypt.log` (3332 bytes) and cutting at the byte count. It lives in `/tmp` and is not committed. The repeated lines are almost identical (the same block over and over, so the last block is cut off mid-line); this is a best case for the parser, not a typical log. The tool accepted it (the log limit is 256 MiB) and reported the same findings as for the small example, with 62940 attempts counted.
+- Command: `/usr/bin/time -f "%e" target/release/acme-renew-doctor example.com --from-log big.log --from-timer-status timer-status.txt` on the release build, exit status 1 (problem found) as for the small example.
+- Measured wall seconds, three runs: 0.54, 0.54, 0.55. Peak memory in one earlier run: 207076 KB.
+- One machine, no other load recorded; no throughput figure is derived from this.
+
+### 2026-11-08 (W-12, "Aan de slag in 5 minuten", branch prep/w07-offline)
+
+- `cargo test --no-fail-fast` on commit `f3c6178` plus the working-tree change: 423 passed / 0 failed / 1 ignored. The new test `five_minute_section_commands_run_literally` runs the five commands of the section as written.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- The 416 figure below was measured on another branch; it does not describe this one.
+
+### 2026-11-08 (pre-release quality pass, branch prep/v1-kwaliteit)
+
+- `cargo test --no-fail-fast` on commit `de0d994`: 416 passed / 0 failed / 1 ignored.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Only these three checks were run for this entry; the earlier entries below were not repeated.
+
+### 2026-11-07 (release check of 0.2.0)
+
+- `cargo test --no-fail-fast` on commit `e564dcc`: 413 passed / 0 failed / 1 ignored.
+- `cargo clippy --all-targets -- -D warnings`: clean.
+- Only these two checks were run for this entry; the earlier entries below were not repeated.
 
 ### 2026-10-17 (weekly)
 

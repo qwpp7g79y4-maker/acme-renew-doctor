@@ -6,36 +6,34 @@ Leg uit waarom een Certbot-vernieuwing faalde, of stilletjes nooit draaide, aan 
 
 [![crates.io](https://img.shields.io/crates/v/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![downloads](https://img.shields.io/crates/d/acme-renew-doctor.svg)](https://crates.io/crates/acme-renew-doctor) [![CI](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml/badge.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/actions/workflows/ci.yml) [![PEPAI gecontroleerd](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fqwpp7g79y4-maker%2Facme-renew-doctor%2Fmain%2F.github%2Fbadge.json)](QUALITY.nl.md) [![MSRV 1.85](https://img.shields.io/badge/MSRV-1.85-blue.svg)](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/blob/main/Cargo.toml) [![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#licentie)
 
-[Installatie](#installatie) • [Snel aan de slag](#snel-aan-de-slag) • [Hoe het werkt](#hoe-het-werkt) • [Alternatieven](#vergelijking-met-alternatieven) • [Beperkingen](#beperkingen) • [Referentie](docs/reference.nl.md)
-
-acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. Het legt uit waarom een Certbot-TLS-vernieuwing faalde, of stilletjes nooit draaide. Het verzamelt niets. Het leest alleen bestanden die je meegeeft: opgeslagen opdrachtuitvoer, of tekst die je in een bestand plakte. Het voert geen opdracht uit, forceert nooit een vernieuwing en herlaadt nooit een service. Het enige bestand dat het schrijft is `example-log.txt` in de huidige map, en alleen als je `--example` meegeeft.  Een bevinding is een vaste code plus het bewijs daarvoor. Codes die een laag noemen gebruiken scheduler, validation of deployment. Het heeft geen account nodig en maakt geen netwerkverbinding.
+acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. Het legt uit waarom een Certbot-TLS-vernieuwing faalde, of stilletjes nooit draaide. Het verzamelt niets. Het leest alleen bestanden die je meegeeft: opgeslagen opdrachtuitvoer, of tekst die je in een bestand plakte. Het voert geen opdracht uit, forceert nooit een vernieuwing en herlaadt nooit een service. Het schrijft alleen een bestand als je daar om vraagt. `--output PATH` schrijft het rapport daarheen en vervangt een bestaand bestand; een ontbrekende bovenliggende map wordt niet aangemaakt. De bytes gaan eerst naar een nieuw tijdelijk bestand naast dat pad, zodat een vooraf geplaatst bestand of een symlink op de tijdelijke naam ongemoeid blijft. Op Unix blijven de rechten van een bestaand doelbestand behouden. SIGINT eindigt met 130 en laat geen half rapport achter; een bestaand `--output`-bestand blijft staan tot het nieuwe rapport af is. `--example` schrijft `example-log.txt` in de huidige map.  Een bevinding is een vaste code plus het bewijs daarvoor. Codes die een laag noemen gebruiken scheduler, validation of deployment. Het heeft geen account nodig en maakt geen netwerkverbinding.
 
 **Waarschuwing:** het rapport citeert de bestanden die je meegeeft woordelijk terug; het redigeert niet. Verwijder tokens, wachtwoorden en API-sleutels uit een log of andere opgeslagen opdrachtuitvoer voordat je die meegeeft, zeker voordat je het rapport doorstuurt. Zie [Privacy](#privacy).
 
+Tests: `cargo test --no-fail-fast` geeft 473 geslaagd, 0 mislukt, 1 genegeerd (gemeten op commit `bc09604` plus deze wijzigingen; zie [QUALITY.nl.md](QUALITY.nl.md)).
+
 De uitvoer van de tool is Engels; de voorbeelden hieronder tonen die precies zoals de binary hem schrijft.
-
-## Waarom
-
-Let's Encrypt stopte op 4 juni 2025 met e-mails over verlopende certificaten (https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended.html). Sindsdien valt een vernieuwing die mislukt, of een timer die stil stopt, makkelijk pas op als het certificaat verloopt. De oorzaak zit in een van drie lagen: de planner, de ACME-validatie of de uitrol. acme-renew-doctor leest het bewijs dat je hebt opgeslagen en noemt die laag, met de regel die het aantoont.
 
 ## Installatie
 
 ### Vanaf crates.io
 
-Met Rust 1.85 of nieuwer installeer je vanaf [crates.io](https://crates.io/crates/acme-renew-doctor):
+Versie 1.0.0 staat op [crates.io](https://crates.io/crates/acme-renew-doctor). Met Rust 1.85 of nieuwer:
 
 ```sh
-cargo install --locked acme-renew-doctor
+cargo install acme-renew-doctor
 acme-renew-doctor --help
 ```
 
+`cargo install --locked acme-renew-doctor` gebruikt het lockbestand van de crate.
+
 ### Binary-archief
 
-De [release v0.2.0](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.2.0) heeft archieven voor Linux x86_64 (`x86_64-unknown-linux-gnu` en `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` en `aarch64-apple-darwin`) en Windows (`x86_64-pc-windows-msvc`, een `.zip`), elk met een `.sha256`-checksumbestand. Een archief bevat de binary, de documentatie en de voorbeeldbestanden. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief en de checksum, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`. Voor Linux x86_64:
+De [release v1.0.0](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) heeft archieven voor Linux x86_64 (`x86_64-unknown-linux-gnu` en `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` en `aarch64-apple-darwin`) en Windows (`x86_64-pc-windows-msvc`, een `.zip`), elk met een `.sha256`-checksumbestand. Een archief bevat de binary, de documentatie en de voorbeeldbestanden. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief en de checksum, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`. Voor Linux x86_64:
 
 ```sh
-name=acme-renew-doctor-v0.2.0-x86_64-unknown-linux-gnu
-base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v0.2.0
+name=acme-renew-doctor-v1.0.0-x86_64-unknown-linux-gnu
+base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v1.0.0
 curl -q -fsSL -O "$base/$name.tar.gz" -O "$base/$name.tar.gz.sha256"
 sha256sum -c "$name.tar.gz.sha256"
 tar -xzf "$name.tar.gz"
@@ -71,7 +69,7 @@ Zonder bestanden vraagt het rapport erom en eindigt het met exit 2:
 
 ```console
 $ acme-renew-doctor example.com
-acme-renew-doctor 0.2.0 (read-only, nothing was changed)
+acme-renew-doctor 1.0.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=(none) · timer status=(none) · cert disk=(none) · cert live=(none)
 
@@ -103,7 +101,7 @@ Een opgeslagen Certbot-log en een opgeslagen timerstatus, allebei synthetisch:
 
 ```console
 $ acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout-repeated.log --from-timer-status tests/fixtures/timer/certbot-timer-disabled.txt
-acme-renew-doctor 0.2.0 (read-only, nothing was changed)
+acme-renew-doctor 1.0.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=tests/fixtures/certbot/http01-timeout-repeated.log · timer status=tests/fixtures/timer/certbot-timer-disabled.txt · cert disk=(none) · cert live=(none)
 
@@ -147,7 +145,7 @@ Certificaatdatums die gelijk zijn en nog niet aan de beurt, met de klok vastgeze
 
 ```console
 $ ACME_RENEW_DOCTOR_NOW=1791273600 acme-renew-doctor example.com --from-timer-status tests/fixtures/timer/certbot-timer-enabled.txt --from-cert-disk tests/fixtures/certs/dates-current.txt --from-cert-live tests/fixtures/certs/dates-current.txt
-acme-renew-doctor 0.2.0 (read-only, nothing was changed)
+acme-renew-doctor 1.0.0 (read-only, nothing was changed)
 target: example.com · client: auto
 inputs: log=(none) · timer status=tests/fixtures/timer/certbot-timer-enabled.txt · cert disk=tests/fixtures/certs/dates-current.txt · cert live=tests/fixtures/certs/dates-current.txt
 
@@ -171,16 +169,75 @@ exit 0: ok, not due
 
 `1791273600` is 2026-10-06 08:00:00 UTC. `--json` schrijft één JSON-object in plaats van deze tekst. Alle opties, exitcodes en foutmeldingen staan in de [referentie](docs/reference.nl.md) en in `acme-renew-doctor --help`.
 
+## Aan de slag in 5 minuten
+
+Vijf opdrachten, offline en alleen-lezen, op de synthetische fixtures in `tests/fixtures`. Ze lezen geen `/var/log`, roepen geen `journalctl` aan, maken geen netwerkverbinding en openen geen TUI. Draai ze in de hoofdmap van een kloon, met `acme-renew-doctor` op je `PATH` (na `cargo install --locked --path .`, of gebruik `target/release/acme-renew-doctor`). Een test draait de opdrachten in dit blok letterlijk.
+
+```sh
+acme-renew-doctor --help
+acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout.log
+acme-renew-doctor example.com --from-log tests/fixtures/certbot/http01-timeout-repeated.log --from-timer-status tests/fixtures/timer/certbot-timer-disabled.txt
+ACME_RENEW_DOCTOR_NOW=1791273600 acme-renew-doctor example.com --from-timer-status tests/fixtures/timer/certbot-timer-enabled.txt --from-cert-disk tests/fixtures/certs/dates-current.txt --from-cert-live tests/fixtures/certs/dates-current.txt
+acme-renew-doctor example.com --json --from-log tests/fixtures/certbot/http01-timeout.log
+```
+
+1. Toont de opties. Exit 0.
+2. Eén opgeslagen Certbot-log: `LAYER2_HTTP01_TIMEOUT`, exit 1 (probleem gevonden).
+3. Een log plus een opgeslagen timerstatus: `LAYER1_TIMER_DISABLED` en `LAYER2_HTTP01_TIMEOUT`, exit 1.
+4. Gelijke, nog niet verlopen certificaatdatums met vastgezette klok: `OK_NOT_DUE`, exit 0.
+5. Dezelfde bevinding als opdracht 2 als één JSON-object, exit 1.
+
+Sla voor je eigen server de uitvoer van de opdrachten die het rapport onder "Next" afdrukt op in bestanden en geef ze door met de `--from-*`-opties. Zie [Snel aan de slag](#snel-aan-de-slag).
+
+## Waarom
+
+Let's Encrypt stopte op 4 juni 2025 met e-mails over verlopende certificaten (https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended.html). Sindsdien valt een vernieuwing die mislukt, of een timer die stil stopt, makkelijk pas op als het certificaat verloopt. De oorzaak zit in een van drie lagen: de planner, de ACME-validatie of de uitrol. acme-renew-doctor leest het bewijs dat je hebt opgeslagen en noemt die laag, met de regel die het aantoont.
+
+## Voorbeeld
+
+De map `examples/` bevat twee synthetische gevallen met invoerbestanden en de exacte verwachte uitvoer. `tests/examples.rs` draait beide en vergelijkt de uitvoer, zodat ze niet kunnen afwijken.
+
+```sh
+cd examples/http01-timeout
+acme-renew-doctor example.com --from-log letsencrypt.log --from-timer-status timer-status.txt
+```
+
+Dit toont `LAYER1_TIMER_DISABLED` en `LAYER2_HTTP01_TIMEOUT` en eindigt met exit 1; de volledige tekst staat in `examples/http01-timeout/expected-output.txt`. Het tweede geval, `examples/ok-not-due`, eindigt in `OK_NOT_DUE` en exit 0. Zie [examples/README.md](examples/README.md) (Engels).
+
+## Opties
+
+Elke optie uit `acme-renew-doctor --help`:
+
+| Optie | Wat het doet |
+| --- | --- |
+| `[DOMAIN]` | Domein om te diagnosticeren. Staat in het rapport; de log wordt niet op domein gefilterd. Niet te combineren met `--all`. |
+| `--all` | Diagnosticeer alle certificaten. Live verzamelen is nog niet gebouwd; gebruik de `--from-*`-bestanden. Niet te combineren met `[DOMAIN]`. |
+| `--json` | Druk het rapport af als JSON (met `schema_version`) in plaats van tekst. |
+| `--output <PATH>` | Schrijf het rapport naar dit bestand in plaats van standaarduitvoer. Een bestaand bestand wordt vervangen. Een ontbrekende bovenliggende map is een fout en wordt niet aangemaakt. De bytes gaan eerst naar een nieuw tijdelijk bestand naast dat pad; een vooraf geplaatst bestand of een symlink op de tijdelijke naam blijft ongemoeid. Op Unix blijven de rechten van een bestaand doelbestand behouden. |
+| `--quiet` | Verberg de hintregel, ook op een terminal. Geen contextregel. Een pipe laat beide al weg. |
+| `--verbose` | Toon de hintregel, en als het rapport geschreven is één `context:`-regel op stderr, ook bij een pipe. Niet samen met `--quiet`. |
+| `--warn-days <DAYS>` | Kalenderdagen die vóór notAfter over moeten zijn voor `OK_NOT_DUE`. Evenveel of minder is de waarschuwing. Weglaten gebruikt een derde van de looptijd van het certificaat op schijf, met een maximum van 30. |
+| `--from-log <FILE>` | Certbot-logbestand om te analyseren, bijvoorbeeld een kopie van `/var/log/letsencrypt/letsencrypt.log`. `-` leest standaardinvoer. |
+| `--from-timer-status <FILE>` | Opgeslagen uitvoer van `systemctl show certbot.timer`. |
+| `--from-cert-disk <FILE>` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat op schijf, bijvoorbeeld `/etc/letsencrypt/live/DOMAIN/fullchain.pem`. |
+| `--from-cert-live <FILE>` | Opgeslagen uitvoer van `openssl x509 -noout -dates` voor het certificaat dat de server stuurt (uit `openssl s_client`). |
+| `--client <CLIENT>` | ACME-client die de bestanden schreef: `certbot`, `acme.sh` of `auto` (standaard). Alleen Certbot-logs worden geparsed. |
+| `--example` | Schrijf een synthetische Certbot-log naar `example-log.txt` in de huidige map en stop. Niet te combineren met een andere optie. |
+| `-h`, `--help` | Toon de hulp. |
+| `-V`, `--version` | Toon de versie (`acme-renew-doctor 1.0.0`) en eindig met 0. Een debug-build toont ook de git-commit als git die geeft. |
+
+Exitcodes: 0 `OK_NOT_DUE`, 1 een probleem met een benoemde laag, 2 onvoldoende bewijs, 3 gebruiksfout, 130 SIGINT (geen half rapport). Details staan in de [referentie](docs/reference.nl.md).
+
 ## Hoe het werkt
 
 Elke code is terug te voeren op deze regels. De volledige herkenningstekst, de bestandsformaten en de foutmeldingen staan in de [referentie](docs/reference.nl.md#hoe-een-code-gekozen-wordt).
 
 - **Eén validatiecode.** De ACME-fout met het nieuwste tijdstempel wint (`YYYY-MM-DD HH:MM:SS,mmm:`, Certbot `log.py` r.47). Een regel zonder tijdstempel hoort bij de laatste regel met tijdstempel erboven. Bij gelijk tijdstempel, of zonder tijdstempels, blijft de onderste regel als de diepte gelijk is. Een genest subprobleem wint van zijn ouder bij hetzelfde tijdstempel. Het voorvoegsel `During secondary validation: ` wordt vóór de herkenning weggehaald. De bewijsregel houdt de originele tekst. JSON-`type` en `detail` komen uit hetzelfde object, in beide volgordes. Tekst na de `}` van dat object hoort er niet bij. Dezelfde `type` of `detail` twee keer met dezelfde waarde telt als één. Witruimte, ook een newline, mag tussen de sleutel, de dubbele punt en de waarde staan. Twee verschillende waarden van elke JSON-soort in één object zijn geen laagcode; het rapport zegt `ACME JSON is ambiguous (the same object has type or detail more than once with different values)`. Een ander object, of een Certbot-samenvatting, kan nog wel een validatiecode zijn. Een lege waarde bij Domain, Identifier, Type of Detail is geen samenvatting.
 - **Timer.** Opgeslagen uitvoer van `systemctl show` wordt alleen gelezen voor `certbot.timer`, `certbot.service` en `snap.certbot.renew.timer`. Elke andere unit wordt genegeerd. Dezelfde unit twee keer met dezelfde toestand telt als één. Dezelfde unit twee keer met verschillende toestanden is `INSUFFICIENT_EVIDENCE` (`timer status is ambiguous (the same unit appears more than once with different states)`). `Id=`-regels die geen van die drie units noemen zijn `INSUFFICIENT_EVIDENCE` (`timer status not recognised (no certbot.timer, certbot.service or snap.certbot.renew.timer)`). `LAYER1_TIMER_DISABLED` als LoadState `masked` is, of als de timer `loaded` is en UnitFileState `disabled` of `masked` is. `LAYER1_TIMER_NOT_FIRING` als hij loaded is en niet disabled of masked, en hij niet `active` is of zijn Result niet leeg is en niet `success`. Dezelfde sleutel twee keer in één blok met een andere waarde is hetzelfde dubbelzinnige resultaat; dezelfde waarde twee keer telt als één. Een ontbrekende ActiveState of UnitFileState is geen `LAYER1_TIMER_NOT_FIRING` met hoge zekerheid. Een gefaalde `certbot.service` houdt zijn bewijsregel op de eerste laagdiagnose, niet op een leesfout. Zonder laagdiagnose en zonder leesfout blijft de regel op de onvoldoende-bewijs-bevinding.
-- **Certificaten.** Datums komen uit opgeslagen uitvoer van `openssl x509 -noout -dates`. Een jaar buiten 1970 tot en met 9999 wordt niet herkend, en twee `notAfter`-regels die niet hetzelfde tijdstip zijn worden niet herkend. `LAYER3_NO_RELOAD` als de notAfter op schijf later is dan de live notAfter. `OK_NOT_DUE` als schijf en live notAfter gelijk zijn, er genoeg kalenderdagen over zijn, de notBefore van het certificaat op schijf (als die bekend is) niet na `now` ligt, er geen ACME-fout is, de service-unit niet `failed` is, dit niet het niet-ondersteunde snap-timergeval is, een snap-timer die de enige timer is en niet loaded en active is geen `OK_NOT_DUE`, en een timer als die er is loaded, enabled en active is. "Genoeg dagen" is een derde van de looptijd van het certificaat op schijf zelf (notAfter minus notBefore, uit dezelfde opgeslagen `-dates`-uitvoer), met een maximum van 30 dagen, of de vaste 30 dagen als notBefore ontbreekt of niet vóór notAfter ligt. Het maximum is nodig omdat geen publiek vertrouwd certificaat langer loopt dan Certbot's standaard van 90 dagen, dus een langere looptijd mag de drempel niet soepeler maken; het schalen naar de looptijd is nodig omdat Let's Encrypt ook certificaten van 6 dagen uitgeeft, waarbij een vaste 30 dagen langer is dan de hele levensduur van het certificaat en `OK_NOT_DUE` nooit haalbaar zou zijn. Op 2026-10-17 geraadpleegd, staat op https://letsencrypt.org/docs/faq/ "Our default certificates are valid for 90 days." en "Subscribers can opt in to short-lived certificates which are valid for six days."
+- **Certificaten.** Datums komen uit opgeslagen uitvoer van `openssl x509 -noout -dates`. Een jaar buiten 1970 tot en met 9999 wordt niet herkend, en twee `notAfter`-regels die niet hetzelfde tijdstip zijn worden niet herkend. `LAYER3_NO_RELOAD` als de notAfter op schijf later is dan de live notAfter. `OK_NOT_DUE` als schijf en live notAfter gelijk zijn, er genoeg kalenderdagen over zijn, de notBefore van het certificaat op schijf (als die bekend is) niet na `now` ligt, er geen ACME-fout is, de service-unit niet `failed` is, dit niet het niet-ondersteunde snap-timergeval is, een snap-timer die de enige timer is en niet loaded en active is geen `OK_NOT_DUE`, en een timer als die er is loaded, enabled en active is. "Genoeg dagen" is een derde van de looptijd van het certificaat op schijf zelf (notAfter minus notBefore, uit dezelfde opgeslagen `-dates`-uitvoer), met een maximum van 30 dagen, of de vaste 30 dagen als notBefore ontbreekt of niet vóór notAfter ligt. Het maximum is nodig omdat geen publiek vertrouwd certificaat langer loopt dan Certbot's standaard van 90 dagen, dus een langere looptijd mag de drempel niet soepeler maken; het schalen naar de looptijd is nodig omdat Let's Encrypt ook certificaten van 6 dagen uitgeeft, waarbij een vaste 30 dagen langer is dan de hele levensduur van het certificaat en `OK_NOT_DUE` nooit haalbaar zou zijn. Op 2026-10-17 geraadpleegd, staat op https://letsencrypt.org/docs/faq/ "Our default certificates are valid for 90 days." en "Subscribers can opt in to short-lived certificates which are valid for six days." `--warn-days DAYS` vervangt die drempel door DAYS kalenderdagen. Het rapport noemt hoeveel dagen er over zijn. Bestaande codes en exitcodes blijven. De vlag velt geen oordeel over een host of een keten.
 - **Client.** Met `--client auto` is een log alleen Certbot als een regel die tijdstempelvorm heeft, een level, en een loggernaam die met `certbot` of `acme` begint. Anders is de code `CLIENT_UNKNOWN` (exit 3). `--client acme.sh` wordt niet gelezen.
 - **Checks.** Het menselijke rapport toont alleen-lezen copy-paste-checks. Doctor voert ze niet uit. Een check moet door de allowlist en de woorden-denylist. Een korte denylist-vlag wordt exact vergeleken, dus `-i` wordt geweigerd en `-I` is een andere vlag. Een woord of een lange vlag wordt vergeleken zonder op ASCII-hoofdletters te letten. Wat niet doorkomt wordt weggelaten, en het commando wordt niet getoond. Het bewijs zegt dan `1 suggested check` of `2 suggested checks`, zodat het woord bij het getal past. Een bevinding met de notitie dat `certbot.service` faalde stelt ook `journalctl -u certbot.service -n 50 --no-pager` voor, één keer, ook als die bevinding een laagcode is.
-- **Exit.** 0 ok, nog niet aan de beurt. 1 er is een laag gevonden. 2 onvoldoende bewijs. 3 gebruik, inclusief `CLIENT_UNKNOWN`. `CLIENT_UNKNOWN` wordt vóór elke laagcode bekeken. Als het tekstrapport, `--json`, `--help` of `--version` niet geschreven kan worden omdat de standaarduitvoer dicht of vol is, panict de tool niet: hij schrijft `acme-renew-doctor: could not write output: ...` naar de standaardfout en eindigt met 3. Een gebruiksmelding die niet geschreven kan worden doet hetzelfde. `--help` en `--version` eindigen alleen met 0 als die tekst geschreven is. Als de standaardfout dicht of vol is, panict de melding voor een ongeldige `ACME_RENEW_DOCTOR_NOW` niet, en het proces eindigt nog steeds met 3.
+- **Exit.** 0 ok, nog niet aan de beurt. 1 er is een laag gevonden. 2 onvoldoende bewijs. 3 gebruik, inclusief `CLIENT_UNKNOWN`. `CLIENT_UNKNOWN` wordt vóór elke laagcode bekeken. Op een terminal print een fout op de standaardfout ook een `hint:`-regel met de vervolgstap die al in die fout staat. Een pipe, een redirect of `--quiet` houdt alleen de foutregel. `--verbose` toont de hint ook bij een pipe, en als het rapport geschreven is één `context:`-regel op de standaardfout (`files` en `findings`). Het rapport op standaarduitvoer blijft gelijk. `--quiet` samen met `--verbose` is exit 3. Als het tekstrapport, `--json`, `--help` of `--version` niet geschreven kan worden omdat de standaarduitvoer dicht of vol is, panict de tool niet: hij schrijft `acme-renew-doctor: could not write output: ...` naar de standaardfout en eindigt met 3. Als `--output` niet geschreven kan worden, ook als de bovenliggende map ontbreekt, gebruikt de tool diezelfde exit 3, laat de standaarduitvoer leeg en maakt de map niet aan. Een gebruiksmelding die niet geschreven kan worden doet hetzelfde. `--help` en `--version` eindigen alleen met 0 als die tekst geschreven is. Als de standaardfout dicht of vol is, panict de melding voor een ongeldige `ACME_RENEW_DOCTOR_NOW` niet, en het proces eindigt nog steeds met 3. SIGINT eindigt met 130 en laat geen half rapport achter. Een bestaand `--output`-bestand blijft staan als het nieuwe rapport niet af was. Op een pipe is stderr `acme-renew-doctor: interrupted by SIGINT; run the command again`. Exitcodes 0, 1, 2 en 3 blijven gelijk. Een ontbrekende bovenliggende map van `--output` blijft exit 3.
 
 `DOMAIN` staat op het rapport en filtert de log niet. `[DOMAIN]` en `--all` kunnen niet samen. `--client` is standaard `auto`.
 
@@ -196,7 +253,7 @@ Andere aanpakken en waarom deze tool ze niet kiest. Voor de producten hieronder 
 
 **Een cloud-monitor voor verloopdatums, bijvoorbeeld Red Sift.** Zulke diensten bestaan en bewaken verloopdatums van buitenaf, maar geven geen lokale oorzaak. Niet geverifieerd: er is geen pagina nagelezen.
 
-**Caddy, Traefik en cert-manager.** Niet in 0.1.0. Ze hebben hun eigen ACME-implementaties. Misschien later.
+**Caddy, Traefik en cert-manager.** Niet in 1.0.0. Ze hebben hun eigen ACME-implementaties. Misschien later.
 
 **acme-renew-doctor** is MIT OR Apache-2.0, één binary, geen account, geen netwerk. Het leest bestanden die je meegeeft en noemt een laag met de bewijsregel.
 

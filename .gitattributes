@@ -4,3 +4,6 @@
 # Fixtures and snapshots are byte-exact test data: never convert them.
 tests/fixtures/** -text
 tests/snapshots/** -text
+
+# Example inputs and expected outputs are byte-exact, like the fixtures.
+examples/** -text

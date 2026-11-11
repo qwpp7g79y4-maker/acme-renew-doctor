@@ -2,6 +2,44 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+## [1.0.0] - 2026-11-09
+
+The previous version is 0.2.0. Nothing in this section is tagged or published.
+
+### Added
+
+- `--warn-days DAYS` sets the renewal warning threshold in calendar days. Omit it and the threshold stays one third of the disk certificate lifetime, capped at 30 days. The report states how many days remain. Finding codes stay the same. Exit codes stay 0, 1, 2 and 3. A missing parent directory for `--output` stays exit 3. The log limit stays 268435456 bytes and the timer and certificate limit stays 1048576 bytes. SIGINT stays exit 130. Tests use synthetic certificate dates and `ACME_RENEW_DOCTOR_NOW`. No host or chain verdict is invented. The clock is not stored on the report.
+- `--version` and `-V` print the crate version and exit 0. A debug build also prints the git commit when git provides one. A release build prints the crate version only. No commit hash is invented. Exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes and the timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3. SIGINT stays exit 130. No host or chain finding was added.
+- SIGINT exits 130. Stderr is `acme-renew-doctor: interrupted by SIGINT; run the command again`. The report is not left half-written: `--output` keeps the previous file until the new report is complete, and a signal before that writes nothing. Ordinary exit codes stay 0, 1, 2 and 3. The log limit stays 268435456 bytes and the timer and certificate limit stays 1048576 bytes. A missing parent directory for `--output` stays exit 3.
+- `--quiet` and `--verbose`. A pipe or a redirect omits the `hint:` line. `--verbose` prints that line, and when the report was written one `context:` line on stderr (`files` and `findings`). `--quiet` omits the hint even on a terminal. The report on stdout is unchanged. Exit codes stay 0, 1, 2 and 3. `--quiet` together with `--verbose` is exit 3. A missing parent directory for `--output` stays exit 3.
+- `--output PATH` writes the report to that file instead of standard output. An existing file is replaced. A missing parent directory is exit 3, the same code as a failed write to standard output, and is not created. The diagnosis exit code is unchanged when the write succeeds. The bytes go first to a new temporary file next to the destination (`create_new`), so a pre-placed file or symlink at that name is left untouched and another name is tried. On Unix, the permission bits of an existing regular destination file are kept.
+- README.md and README.nl.md: section "Aan de slag in 5 minuten" with five offline commands on the fixtures in `tests/fixtures`. `tests/readme.rs` runs them literally.
+- `tests/offline_certs.rs`: offline tests with synthetic certificate text in a temporary directory, with the clock fixed by `ACME_RENEW_DOCTOR_NOW`. No network and no real certificate. An expired certificate is diagnosed. For a wrong host and a broken chain the tool only reads dates, so it does not invent a verdict and says the evidence is not recognised.
+- `tests/offline_certs.rs`: `expired_certificate_is_reported_with_outgoing_connections_blocked` runs that expired-certificate report in a network namespace (`unshare --user --map-root-user --net`) whose route table is empty. The findings stay the date findings. No host or chain verdict. If `unshare` is missing, or `unshare -rn true` fails with EPERM, uid_map, or permission denied, the test prints `overgeslagen` and returns; any other `unshare` error still fails the test.
+- `man/acme-renew-doctor.1`, generated from the CLI definition with `clap_mangen`, and bash and zsh completions from `clap_complete`. Both come from `cargo run --example gen_assets -- man` and `cargo run --example gen_assets -- completions DIR`. The crates are dev-dependencies; the binary and `--help` are unchanged. `tests/man_page.rs` checks the man page against `--help`.
+- `tests/json_schema.rs` pins the `--json` keys and types.
+- Rustdoc comments on the library. On commit `d6193b0`, `cargo doc --no-deps` was clean.
+
+### Changed
+
+- `SECURITY.md` lists 1.0.x as the supported version, replacing 0.1.x.
+- The package version is 1.0.0. The previous version is 0.2.0.
+- The log limit stays 268435456 bytes (256 MiB) and the timer and certificate limit stays 1048576 bytes (1 MiB). A larger regular file exits 2 with `over the 268435456 byte limit` or `over the 1048576 byte limit` and is not loaded. Neither limit was raised. The over-limit file is created in `/tmp` by the test and is not committed. Exit codes stay 0, 1, 2 and 3. A missing parent directory for `--output` stays exit 3.
+- Read and output errors name the next step for an empty path, a directory, a file over the size limit, non-UTF-8 text, unrecognised or ambiguous timer status, unrecognised certificate dates, ambiguous ACME JSON, `example-log.txt` write and read failures, closed or full output, and an out-of-range system clock. Exit codes are unchanged. `tests/error_messages.rs` covers each path.
+- `deny.toml` no longer allows the licenses cargo deny does not encounter: `Apache-2.0 WITH LLVM-exception`, `BSD-3-Clause`, `ISC`, `Zlib`, `Unlicense`, `BSL-1.0` and `CDLA-Permissive-2.0`. `MIT`, `Apache-2.0` and `Unicode-3.0` stay.
+- `fifo_swapped_over_a_regular_file_does_not_block`, `each_input_refuses_a_fifo_with_no_writer`, `finding_for_failed_open_names_a_fifo_as_not_a_regular_file` and `sigint_on_blocked_stdin_writes_no_report_and_exits_130` stay on for a normal `cargo test` and are off when `cfg(coverage)` is set. `unexpected_cfgs` accepts `cfg(coverage)` at warn.
+- `QUALITY.md` records a synthetic log of 104857600 bytes: three release-build wall times of 0.54, 0.54 and 0.55 seconds, and a peak of 207076 KB in one earlier run. The file is not committed.
+- `README.md` and `README.nl.md` state the measured test count on commit `bc09604` plus these changes: 473 passed, 0 failed, 1 ignored.
+
+### Fixed
+
+- `tests/closed_output.rs` locks around creating the pipe and around `spawn`, so a child from a parallel test cannot keep the pipe open. On commit `8cf74b0` plus that change, `cargo llvm-cov` printed 97.80% line coverage (5187 lines, 114 missed).
+- The Installation binary-archive section in `README.md` and `README.nl.md` named the v0.1.0 tag and archive in the 1.0.0 docs. It now uses v1.0.0, and `tests/readme.rs` compares that section to `CARGO_PKG_VERSION`.
+- The release archives did not include `examples/`, although `README.md` and `README.nl.md` point at that folder. `.github/workflows/release.yml` now copies `examples/` on every platform, including the Windows zip. The smoke test checks `examples/README.md`, and `tests/readme.rs` compares the relative README links with the copy list.
+- `--output` opened the temporary file with `File::create`, which followed a pre-placed symlink at the predictable temporary name and could overwrite that symlink's target. It now uses `create_new` and a different name on collision.
+
 ## [0.2.0] - 2026-10-24
 
 ### Changed
@@ -9,6 +47,10 @@ All notable changes to this project are documented in this file.
 - `OK_NOT_DUE` now requires a third of the disk certificate's own lifetime (notAfter minus notBefore) to remain, capped at 30 days, instead of a fixed 30 days. The fixed threshold is longer than Let's Encrypt's 6-day short-lived certificate option, so `OK_NOT_DUE` could never be reached for one. The cap keeps a 90-day Certbot default certificate's behaviour unchanged, and falls back to the fixed 30 days when the saved `-dates` output has no `notBefore=` line.
 - `OK_NOT_DUE` now also requires the disk certificate's notBefore, when known, to not be after `now`. Before, a not-yet-valid certificate (clock skew, or a misdeployed certificate) with a far-off notAfter could be reported `OK_NOT_DUE`.
 - When every `OK_NOT_DUE` condition holds except the remaining-days threshold, `INSUFFICIENT_EVIDENCE` adds the known date: `notAfter=<date>, <days> day(s) remain, at or under the <threshold>-day renewal threshold`.
+- Read errors now say what to do. A missing file, a file you may not read and any other read failure each add a short hint after the kind, for example `cannot read PATH: NotFound (no such file; check the path, or save the command output to a file first)`. An invalid `ACME_RENEW_DOCTOR_NOW` adds `unset ACME_RENEW_DOCTOR_NOW to use the system clock`. Exit codes are unchanged. The reference pages and their tests carry the new text.
+- `--help` no longer says Certbot logs are parsed "in v0.1".
+- `README.md` and `README.nl.md` have Example and Options sections; every option from `--help` is listed in both, and a test checks it.
+- `examples/` has two synthetic cases with their input files and expected output, compared by the golden test `tests/examples.rs`.
 
 ### Added
 
@@ -28,6 +70,8 @@ All notable changes to this project are documented in this file.
 - CI builds the fuzz targets with `--target x86_64-unknown-linux-gnu`. Without it, the prebuilt `cargo-fuzz` defaulted to the musl target, and the sanitizer does not support a statically linked libc.
 - The reference pages now say a label is at most 63 characters, and quote the invalid-hostname note next to the unsafe-characters note. `tests/readme.rs` checks both note texts against `src/render.rs` verbatim.
 - A domain containing `*`, such as `*.example.com`, keeps the unsafe-characters note, not the invalid-hostname one: an unquoted `*` glob-expands in a shell, which is what that note warns about. This is now documented and has a regression test.
+- `QUALITY.md` and `QUALITY.nl.md` now record the current test count: 413 passed, 0 failed, 1 ignored, with clippy clean. The latest entry said 385.
+- `README.md` and `README.nl.md` now state the same measured test count: 413 passed, 0 failed, 1 ignored.
 - Two `tests/regressions.rs` tests did not exercise what their names and comments claimed: one compared a byte-identical string to itself instead of an uppercase and a lowercase `\uXXXX` hex escape, and the other used a plain `"type"`/`"detail"` key instead of a key spelled entirely in `\uXXXX` escapes. Both are rewritten to use real escapes, with key-order and whitespace (space, tab, CR, LF) variants, plus a mixed-case surrogate-pair case.
 - CI now runs `cargo clippy` on the `fuzz/` crate and runs `cargo test --release` on the MSRV toolchain, matching the stable job.
 - `tests/ROBUSTHEID.md` said opening a path that is a fifo only does not block "on Linux"; it now says Linux, macOS and the BSDs, matching README.md and CHANGELOG.md.

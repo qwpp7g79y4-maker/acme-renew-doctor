@@ -2,7 +2,7 @@
 
 Expected stdout of the binary `acme-renew-doctor`, captured after running from the repository root with relative fixture paths. `tests/snapshots.rs` sets `current_dir` to the repository and compares stdout exactly, plus the exit code.
 
-The version from `Cargo.toml` is in the text (`acme-renew-doctor 0.1.0`) and in the JSON (`"version": "0.1.0"`). A version change has to update these files too.
+The version from `Cargo.toml` is in the text (`acme-renew-doctor 1.0.0`) and in the JSON (`"version": "1.0.0"`). A version change has to update these files too.
 
 No clock in the text and no absolute paths: the paths are the arguments as they stood on the command line. Scenarios with certificate dates set `ACME_RENEW_DOCTOR_NOW=1791273600` (2026-10-06 08:00:00 UTC). That value is not in the output.
 

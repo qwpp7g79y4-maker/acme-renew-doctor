@@ -1,3 +1,5 @@
+//! Certbot log text: ACME errors, and the byte limits for a log, a timer file and certificate dates.
+
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::io::Read;
@@ -5,15 +7,20 @@ use std::path::Path;
 
 use crate::model::{Code, Confidence, Evidence, EvidenceSource, Finding};
 
+/// Prefix of an ACME problem type: `urn:ietf:params:acme:error:`.
 pub const ACME_ERROR_PREFIX: &str = "urn:ietf:params:acme:error:";
 
 /// One JSON object repeated `type` or `detail` with two different values.
-pub const AMBIGUOUS_ACME_JSON: &str = "ACME JSON is ambiguous (the same object has type or detail more than once with different values)";
+pub const AMBIGUOUS_ACME_JSON: &str = "ACME JSON is ambiguous (the same object has type or detail more than once with different values); check that the log was not edited or merged by hand, or pass the original log";
 
+/// One ACME error found in a Certbot log.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct AcmeProblem {
+    /// ACME problem type. [`ACME_ERROR_PREFIX`] is kept when the log had it.
     pub problem_type: String,
+    /// ACME `detail`, or the Certbot summary detail.
     pub detail: String,
+    /// Identifier from the ACME object, when the log had one.
     pub identifier: Option<String>,
     /// Line of the finding that wins: latest timestamp, otherwise the bottom line.
     pub line: usize,
@@ -36,6 +43,7 @@ pub struct AcmeProblem {
 }
 
 impl AcmeProblem {
+    /// Type without [`ACME_ERROR_PREFIX`], or the whole type when that prefix is absent.
     pub fn short_type(&self) -> &str {
         self.problem_type
             .strip_prefix(ACME_ERROR_PREFIX)
@@ -48,20 +56,25 @@ impl AcmeProblem {
     }
 }
 
+/// True when `text` has a Certbot-style log line whose logger starts with `certbot` or `acme`.
 pub fn has_certbot_lines(text: &str) -> bool {
     text.lines().any(is_certbot_line)
 }
 
 /// Problems from a Certbot log, plus whether one ACME object contradicted itself.
 pub struct LogParse {
+    /// One entry per distinct error, in diagnosis order.
     pub problems: Vec<AcmeProblem>,
+    /// True when one ACME object repeated `type` or `detail` with two different values.
     pub ambiguous_json: bool,
 }
 
+/// Problems from a Certbot log. A contradictory ACME object is only reported by [`parse_log`].
 pub fn parse(text: &str) -> Vec<AcmeProblem> {
     parse_log(text).problems
 }
 
+/// Problems from a Certbot log, and whether one ACME object contradicted itself.
 pub fn parse_log(text: &str) -> LogParse {
     let scan = scan_json(text);
     let mut hits = scan.hits;
@@ -113,7 +126,9 @@ pub fn parse_log(text: &str) -> LogParse {
 /// A log that was read. Invalid UTF-8 sequences are U+FFFD; `replaced_invalid_utf8_bytes` counts the bytes those sequences replaced.
 #[derive(Debug)]
 pub struct DecodedLog {
+    /// Log text. Each invalid UTF-8 sequence is one U+FFFD.
     pub text: String,
+    /// Invalid bytes those U+FFFD characters replaced.
     pub replaced_invalid_utf8_bytes: usize,
 }
 
@@ -171,23 +186,28 @@ pub fn read_log(path: &Path) -> Result<DecodedLog, Finding> {
 /// Read at most `max_bytes` from `reader`, with the same over-the-limit
 /// message `read_regular_bytes` uses for a file.
 fn read_capped(
-    mut reader: impl Read,
+    reader: impl Read,
     max_bytes: u64,
     source: EvidenceSource,
     what: &str,
 ) -> Result<Vec<u8>, Finding> {
+    if crate::interrupt::interrupted() {
+        return Err(sigint_finding(source, what));
+    }
     let mut bytes = Vec::new();
-    if let Err(err) = reader
-        .by_ref()
+    let read_result = crate::interrupt::StopOnSigint::new(reader)
         .take(max_bytes.saturating_add(1))
-        .read_to_end(&mut bytes)
-    {
+        .read_to_end(&mut bytes);
+    if crate::interrupt::interrupted() {
+        return Err(sigint_finding(source, what));
+    }
+    if let Err(err) = read_result {
         return Err(finding_for_io_kind(source, what, &err));
     }
     if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > max_bytes {
         return Err(read_finding(
             source,
-            format!("cannot read {what}: over the {max_bytes} byte limit"),
+            format!("cannot read {what}: over the {max_bytes} byte limit; pass a smaller excerpt, for example the last part of the log made with tail"),
         ));
     }
     Ok(bytes)
@@ -195,9 +215,13 @@ fn read_capped(
 
 fn finding_for_io_kind(source: EvidenceSource, what: &str, err: &std::io::Error) -> Finding {
     let kind = match err.kind() {
-        std::io::ErrorKind::PermissionDenied => "PermissionDenied",
-        std::io::ErrorKind::NotFound => "NotFound",
-        _ => "other kind",
+        std::io::ErrorKind::PermissionDenied => {
+            "PermissionDenied (you may not read it; copy the file to a place you can read, or run as a user who can)"
+        }
+        std::io::ErrorKind::NotFound => {
+            "NotFound (no such file; check the path, or save the command output to a file first)"
+        }
+        _ => "other kind (the operating system refused the read; check that the path is a readable file)",
     };
     read_finding(source, format!("cannot read {what}: {kind}"))
 }
@@ -220,10 +244,14 @@ pub fn read_regular_bytes(
     max_bytes: u64,
     source: EvidenceSource,
 ) -> Result<Vec<u8>, Finding> {
+    if crate::interrupt::interrupted() {
+        return Err(sigint_finding(source, &path.display().to_string()));
+    }
     if path.as_os_str().is_empty() {
         return Err(read_finding(
             source,
-            "cannot read: the path is empty".to_string(),
+            "cannot read: the path is empty; give the path of a saved file after the option"
+                .to_string(),
         ));
     }
     let file = match open_read(path) {
@@ -237,7 +265,10 @@ pub fn read_regular_bytes(
     if meta.is_dir() {
         return Err(read_finding(
             source,
-            format!("cannot read {}: is a directory", path.display()),
+            format!(
+                "cannot read {}: is a directory; give the path of a file, not a folder",
+                path.display()
+            ),
         ));
     }
     if !meta.is_file() {
@@ -254,23 +285,26 @@ pub fn read_regular_bytes(
         return Err(read_finding(
             source,
             format!(
-                "cannot read {}: the file is {len} bytes, over the {max_bytes} byte limit",
+                "cannot read {}: the file is {len} bytes, over the {max_bytes} byte limit; pass a smaller excerpt of it",
                 path.display()
             ),
         ));
     }
     let mut bytes = Vec::new();
-    if let Err(err) = file
+    let read_result = crate::interrupt::StopOnSigint::new(file)
         .take(max_bytes.saturating_add(1))
-        .read_to_end(&mut bytes)
-    {
+        .read_to_end(&mut bytes);
+    if crate::interrupt::interrupted() {
+        return Err(sigint_finding(source, &path.display().to_string()));
+    }
+    if let Err(err) = read_result {
         return Err(finding_for_io(path, source, &err));
     }
     if u64::try_from(bytes.len()).unwrap_or(u64::MAX) > max_bytes {
         return Err(read_finding(
             source,
             format!(
-                "cannot read {}: the file is over the {max_bytes} byte limit",
+                "cannot read {}: the file is over the {max_bytes} byte limit; pass a smaller excerpt of it",
                 path.display()
             ),
         ));
@@ -319,7 +353,10 @@ fn finding_for_failed_open(path: &Path, source: EvidenceSource, err: &std::io::E
     match std::fs::metadata(path) {
         Ok(meta) if meta.is_dir() => read_finding(
             source,
-            format!("cannot read {}: is a directory", path.display()),
+            format!(
+                "cannot read {}: is a directory; give the path of a file, not a folder",
+                path.display()
+            ),
         ),
         Ok(meta) if !meta.is_file() => read_finding(
             source,
@@ -330,6 +367,10 @@ fn finding_for_failed_open(path: &Path, source: EvidenceSource, err: &std::io::E
         ),
         _ => finding_for_io(path, source, err),
     }
+}
+
+fn sigint_finding(source: EvidenceSource, what: &str) -> Finding {
+    read_finding(source, format!("cannot read {what}: interrupted by SIGINT"))
 }
 
 fn read_finding(source: EvidenceSource, text: String) -> Finding {
@@ -376,7 +417,7 @@ pub fn read_strict_text(
         Err(_) => Err(read_finding(
             source,
             format!(
-                "cannot read {}: the file is not valid UTF-8",
+                "cannot read {}: the file is not valid UTF-8; save it as UTF-8 and run again",
                 path.display()
             ),
         )),
@@ -468,6 +509,7 @@ fn utf8_with_replacement(bytes: &[u8]) -> (String, usize) {
     (text, replaced)
 }
 
+/// Read error for a log path, as a [`crate::model::Finding`] with source `log`.
 pub fn finding_for_read_error(path: &Path, err: &std::io::Error) -> Finding {
     finding_for_io(path, EvidenceSource::Log, err)
 }
@@ -669,50 +711,11 @@ struct OpenObject {
     depth: u32,
 }
 
-/// A decoded string, or the byte span of a non-string JSON value.
-///
-/// A `Nested` object/array value's end is *not* found here: finding it
-/// requires a scan of the whole value, and doing that eagerly for every
-/// `"type"`/`"detail"` key is what used to make a log with N levels of
-/// `{"detail": {"detail": ...}}` cost O(N * size) instead of O(size) (one
-/// full extra scan, plus a clone, per level). The span is resolved lazily,
-/// in `other_value_text`, only when a second occurrence of the same key in
-/// the same object needs to be compared against it. On that second key,
-/// `discard_unreadable_nested` drops a span `json_value_end` cannot read
-/// (the old `field_value` `None`) before the comparison, so a first broken
-/// value is ignored and a later value stays the first real one. One key
-/// per level still does not scan the nested span.
-#[derive(Clone)]
+/// A decoded string, or the raw text of any other JSON value.
+#[derive(Clone, PartialEq, Eq)]
 enum FieldValue {
     String(String),
-    Nested(usize),
-    Token(usize, usize),
-}
-
-/// The text of a non-string field value, found lazily. `Nested`'s end is
-/// only scanned for here, on comparison — not once per enclosing level.
-fn other_value_text<'a>(text: &'a str, value: &FieldValue) -> Option<&'a str> {
-    match *value {
-        FieldValue::Nested(start) => {
-            let end = json_value_end(text, start)?;
-            text.get(start..end)
-        }
-        FieldValue::Token(start, end) => text.get(start..end),
-        FieldValue::String(_) => None,
-    }
-}
-
-/// The same key twice with the same value counts as one; this is how that
-/// value equality is decided, including the lazy `Nested` lookup above.
-fn field_values_equal(text: &str, left: &FieldValue, right: &FieldValue) -> bool {
-    match (left, right) {
-        (FieldValue::String(left), FieldValue::String(right)) => left == right,
-        (FieldValue::String(_), _) | (_, FieldValue::String(_)) => false,
-        _ => match (other_value_text(text, left), other_value_text(text, right)) {
-            (Some(left), Some(right)) => left == right,
-            _ => false,
-        },
-    }
+    Other(String),
 }
 
 struct PendingHit {
@@ -840,20 +843,13 @@ fn apply_field(
 ) {
     let parsed = field_value(text, value_at);
     if key == "type" {
-        note_type(text, obj, parsed, key_line, order);
+        note_type(obj, parsed, key_line, order);
     } else if key == "detail" {
-        note_detail(text, obj, parsed);
+        note_detail(obj, parsed);
     }
 }
 
-fn note_type(
-    text: &str,
-    obj: &mut OpenObject,
-    parsed: Option<FieldValue>,
-    key_line: usize,
-    order: &mut u64,
-) {
-    discard_unreadable_nested(text, &mut obj.seen_type);
+fn note_type(obj: &mut OpenObject, parsed: Option<FieldValue>, key_line: usize, order: &mut u64) {
     match parsed {
         Some(FieldValue::String(value)) => {
             if obj.problem_type.is_none() && value.starts_with(ACME_ERROR_PREFIX) {
@@ -863,13 +859,12 @@ fn note_type(
                 obj.type_order = *order;
             }
             remember(
-                text,
                 &mut obj.seen_type,
                 &mut obj.type_conflict,
                 FieldValue::String(value),
             );
         }
-        Some(other) => remember(text, &mut obj.seen_type, &mut obj.type_conflict, other),
+        Some(other) => remember(&mut obj.seen_type, &mut obj.type_conflict, other),
         None => {
             if obj.seen_type.is_some() {
                 obj.type_conflict = true;
@@ -878,21 +873,19 @@ fn note_type(
     }
 }
 
-fn note_detail(text: &str, obj: &mut OpenObject, parsed: Option<FieldValue>) {
-    discard_unreadable_nested(text, &mut obj.seen_detail);
+fn note_detail(obj: &mut OpenObject, parsed: Option<FieldValue>) {
     match parsed {
         Some(FieldValue::String(value)) => {
             if obj.seen_detail.is_none() {
                 obj.detail = Some(value.clone());
             }
             remember(
-                text,
                 &mut obj.seen_detail,
                 &mut obj.detail_conflict,
                 FieldValue::String(value),
             );
         }
-        Some(other) => remember(text, &mut obj.seen_detail, &mut obj.detail_conflict, other),
+        Some(other) => remember(&mut obj.seen_detail, &mut obj.detail_conflict, other),
         None => {
             if obj.seen_detail.is_some() {
                 obj.detail_conflict = true;
@@ -901,45 +894,22 @@ fn note_detail(text: &str, obj: &mut OpenObject, parsed: Option<FieldValue>) {
     }
 }
 
-/// An object or array stored before its end was known. `json_value_end`
-/// returning `None` is the old `field_value` `None`: a first unreadable
-/// value is not a value, and only a later key can observe that.
-fn discard_unreadable_nested(text: &str, slot: &mut Option<FieldValue>) {
-    if let Some(FieldValue::Nested(start)) = slot.as_ref() {
-        if json_value_end(text, *start).is_none() {
-            *slot = None;
-        }
-    }
-}
-
 /// The first value is kept. A later different value marks the field as a conflict.
-fn remember(text: &str, slot: &mut Option<FieldValue>, conflict: &mut bool, value: FieldValue) {
+fn remember(slot: &mut Option<FieldValue>, conflict: &mut bool, value: FieldValue) {
     match slot {
-        Some(existing) if !field_values_equal(text, existing, &value) => *conflict = true,
+        Some(existing) if existing != &value => *conflict = true,
         Some(_) => {}
         None => *slot = Some(value),
     }
 }
 
 fn field_value(text: &str, start: usize) -> Option<FieldValue> {
-    match text.as_bytes().get(start) {
-        Some(b'"') => {
-            let (value, _) = parse_json_string(text, start)?;
-            Some(FieldValue::String(value))
-        }
-        // An object/array value's end is not scanned for here: `scan_json`'s
-        // main loop is about to walk it anyway. Finding it eagerly, once per
-        // nesting level, is what used to multiply cost by nesting depth.
-        Some(b'{') | Some(b'[') => Some(FieldValue::Nested(start)),
-        // Short tokens (numbers, `true`/`false`/`null`, unreadable text)
-        // cost nothing to bound eagerly, and keep `None` for an empty/broken
-        // value exact for cases that can still have a later occurrence to
-        // compare against.
-        _ => {
-            let end = json_value_end(text, start)?;
-            Some(FieldValue::Token(start, end))
-        }
+    if text.as_bytes().get(start) == Some(&b'"') {
+        let (value, _) = parse_json_string(text, start)?;
+        return Some(FieldValue::String(value));
     }
+    let end = json_value_end(text, start)?;
+    Some(FieldValue::Other(text[start..end].to_string()))
 }
 
 /// End index of one JSON value. Strings are skipped. `None` when the value is unreadable.
@@ -1585,7 +1555,7 @@ mod tests {
         assert_eq!(denied.evidence[0].source, EvidenceSource::Log);
         assert_eq!(
             denied.evidence[0].text,
-            "cannot read tests/fixtures/certbot/letsencrypt.log: PermissionDenied"
+            "cannot read tests/fixtures/certbot/letsencrypt.log: PermissionDenied (you may not read it; copy the file to a place you can read, or run as a user who can)"
         );
         assert_eq!(report_with(denied).exit_status().code(), 2);
 
@@ -1597,7 +1567,7 @@ mod tests {
         assert_eq!(missing.layer, None);
         assert_eq!(
             missing.evidence[0].text,
-            "cannot read tests/fixtures/certbot/letsencrypt.log: NotFound"
+            "cannot read tests/fixtures/certbot/letsencrypt.log: NotFound (no such file; check the path, or save the command output to a file first)"
         );
         assert_eq!(report_with(missing).exit_status().code(), 2);
     }
@@ -1612,7 +1582,10 @@ mod tests {
         assert_eq!(err.evidence[0].source, EvidenceSource::Log);
         assert_eq!(
             err.evidence[0].text,
-            format!("cannot read {}: NotFound", path.display())
+            format!(
+                "cannot read {}: NotFound (no such file; check the path, or save the command output to a file first)",
+                path.display()
+            )
         );
     }
 
@@ -1651,7 +1624,10 @@ mod tests {
             );
         }
 
-        let expected = format!("cannot read {}: is a directory", path.display());
+        let expected = format!(
+            "cannot read {}: is a directory; give the path of a file, not a folder",
+            path.display()
+        );
         let from_bytes = read_regular_bytes(&path, LOG_MAX_BYTES, EvidenceSource::Log).unwrap_err();
         assert_eq!(from_bytes.code, Code::InsufficientEvidence);
         assert_eq!(from_bytes.layer, None);
@@ -1912,11 +1888,11 @@ mod tests {
         .unwrap_err();
         assert_eq!(
             err.evidence[0].text,
-            "cannot read standard input: over the 10 byte limit"
+            "cannot read standard input: over the 10 byte limit; pass a smaller excerpt, for example the last part of the log made with tail"
         );
     }
 
-    #[cfg(unix)]
+    #[cfg(all(unix, not(coverage)))]
     #[test]
     fn finding_for_failed_open_names_a_fifo_as_not_a_regular_file() {
         let dir = std::env::temp_dir().join(format!(

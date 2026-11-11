@@ -1,0 +1,69 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH acme-renew-doctor 1  "acme-renew-doctor 1.0.0" 
+.SH NAME
+acme\-renew\-doctor \- Explains why ACME certificate renewal failed (read\-only).
+.SH SYNOPSIS
+\fBacme\-renew\-doctor\fR [\fB\-\-all\fR] [\fB\-\-json\fR] [\fB\-\-output\fR] [\fB\-\-quiet\fR] [\fB\-\-verbose\fR] [\fB\-\-warn\-days\fR] [\fB\-\-from\-log\fR] [\fB\-\-from\-timer\-status\fR] [\fB\-\-from\-cert\-disk\fR] [\fB\-\-from\-cert\-live\fR] [\fB\-\-client\fR] [\fB\-\-example\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fIDOMAIN\fR] 
+.SH DESCRIPTION
+Explains why ACME certificate renewal failed (read\-only).
+.SH OPTIONS
+.TP
+\fB\-\-all\fR
+Diagnose all certificates (live collection is not built yet; use \-\-from\-* files)
+.TP
+\fB\-\-json\fR
+Print the report as JSON (with schema_version) instead of text
+.TP
+\fB\-\-output\fR \fI<PATH>\fR
+Write the report to this file instead of standard output. An existing file is replaced. A missing parent directory is an error and is not created
+.TP
+\fB\-\-quiet\fR
+Hide the hint line. No context line. A pipe already omits both
+.TP
+\fB\-\-verbose\fR
+Print the hint line, and on success one context line on stderr. Not with \-\-quiet
+.TP
+\fB\-\-warn\-days\fR \fI<DAYS>\fR
+Calendar days that must remain before notAfter for OK_NOT_DUE. Equal or fewer is the warning. Omit this to use one third of the disk certificate lifetime, capped at 30
+.TP
+\fB\-\-from\-log\fR \fI<FILE>\fR
+Certbot log file to analyse, e.g. a copy of /var/log/letsencrypt/letsencrypt.log (\- reads standard input). A log larger than 268435456 bytes (256 MiB) exits 2 and is not loaded. A timer or certificate file larger than 1048576 bytes (1 MiB) exits 2 and is not loaded.
+.TP
+\fB\-\-from\-timer\-status\fR \fI<FILE>\fR
+Saved output of `systemctl show certbot.timer` to analyse
+.TP
+\fB\-\-from\-cert\-disk\fR \fI<FILE>\fR
+Saved output of `openssl x509 \-noout \-dates` for the certificate on disk (e.g. /etc/letsencrypt/live/DOMAIN/fullchain.pem)
+.TP
+\fB\-\-from\-cert\-live\fR \fI<FILE>\fR
+Saved output of `openssl x509 \-noout \-dates` for the certificate the server sends (from openssl s_client)
+.TP
+\fB\-\-client\fR \fI<CLIENT>\fR [default: auto]
+ACME client that wrote the files (only Certbot logs are parsed; acme.sh logs are recognised but not analysed yet)
+.br
+
+.br
+\fIPossible values:\fR
+.RS 14
+.IP \(bu 2
+certbot
+.IP \(bu 2
+acme.sh
+.IP \(bu 2
+auto
+.RE
+.TP
+\fB\-\-example\fR
+Write a synthetic Certbot log to example\-log.txt in the current directory and exit (lets Quick start work without a clone of the repository); cannot be combined with any other option
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.TP
+[\fIDOMAIN\fR]
+Domain to diagnose (shown in the report; the log is not filtered by domain yet)
+.SH VERSION
+v1.0.0

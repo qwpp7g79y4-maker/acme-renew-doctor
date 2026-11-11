@@ -1,3 +1,5 @@
+//! OpenSSL `notAfter` and `notBefore` lines, and the UTC clock the rules call "now".
+
 use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -6,33 +8,28 @@ const MONTHS: [&str; 12] = [
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+/// UTC timestamp from an OpenSSL date line or from a Unix second.
 pub struct CertTime {
+    /// Year, from 1970 through 9999.
     pub year: i32,
+    /// Month, from 1 through 12.
     pub month: u32,
+    /// Day of the month.
     pub day: u32,
+    /// Hour, from 0 through 23.
     pub hour: u32,
+    /// Minute, from 0 through 59.
     pub minute: u32,
+    /// Second, from 0 through 59.
     pub second: u32,
 }
 
 impl CertTime {
-    /// Whole days remaining until `self`, counted from the exact elapsed
-    /// time (not the bare calendar date): a `now` that is partway through
-    /// its day has already used up those hours, so they are not counted as
-    /// a whole day still remaining. `div_euclid` floors towards negative
-    /// infinity, so a `now` after `self` still gives a correctly negative
-    /// count.
+    /// Whole calendar days from `now`'s date until this date. The clock time is ignored.
+    /// Negative when this date's day is earlier.
     pub fn days_until(&self, now: &CertTime) -> i64 {
-        self.unix_seconds()
-            .saturating_sub(now.unix_seconds())
-            .div_euclid(86_400)
-    }
-
-    fn unix_seconds(&self) -> i64 {
-        days_from_civil(self.year, self.month, self.day) * 86_400
-            + i64::from(self.hour) * 3_600
-            + i64::from(self.minute) * 60
-            + i64::from(self.second)
+        days_from_civil(self.year, self.month, self.day)
+            .saturating_sub(days_from_civil(now.year, now.month, now.day))
     }
 }
 
@@ -59,6 +56,10 @@ impl fmt::Display for CertTime {
 const MIN_YEAR: i32 = 1970;
 const MAX_YEAR: i32 = 9999;
 
+/// `notAfter=` from OpenSSL date text.
+///
+/// `None` when the line is missing, when the same prefix appears twice with
+/// different values, or when the line is not a GMT date in 1970 through 9999.
 pub fn parse_openssl_enddate(text: &str) -> Option<CertTime> {
     parse_openssl_date(text, "notAfter=")
 }
@@ -174,12 +175,15 @@ pub fn try_from_unix_seconds(secs: i64) -> Option<CertTime> {
     })
 }
 
+/// Unix seconds as a [`CertTime`].
+///
+/// Panics when the UTC date is outside 1970-01-01 through 9999-12-31.
 pub fn from_unix_seconds(secs: i64) -> CertTime {
     try_from_unix_seconds(secs).expect("Unix seconds are inside 1970-01-01 through 9999-12-31 UTC")
 }
 
 /// The system clock is not a certificate date, and it is not a Unix second of 0.
-pub const SYSTEM_CLOCK_RANGE: &str = "system clock is outside 1970-01-01 through 9999-12-31 UTC";
+pub const SYSTEM_CLOCK_RANGE: &str = "system clock is outside 1970-01-01 through 9999-12-31 UTC; fix the system clock, or set ACME_RENEW_DOCTOR_NOW to a Unix second";
 
 /// `Err` when `now` is before 1970-01-01 or after 9999-12-31 UTC.
 /// A clock before the epoch is not turned into second 0.
@@ -384,31 +388,6 @@ notAfter=Jun  4 11:04:38 2035 GMT
     }
 
     #[test]
-    fn days_until_counts_an_elapsed_partial_day_not_the_bare_calendar_date() {
-        // notAfter is 64 days (5,529,600s) after notBefore: a test lifetime,
-        // not a Let's Encrypt profile, picked only for not being evenly
-        // divisible by 3. A third of that lifetime is 1,843,200s, i.e.
-        // 21 days and 8 hours, not a whole number of calendar days.
-        let not_after = at(2026, 3, 6, 0, 0, 0);
-        // Exactly 21 days and 8 hours before not_after, but still the same
-        // calendar date (Feb 12) as a point only 8 hours earlier would be.
-        let now = at(2026, 2, 12, 16, 0, 0);
-        assert_eq!(
-            not_after.days_until(&now),
-            21,
-            "8 hours have already elapsed on Feb 12, so only 21 whole days remain, \
-             not 22 as a bare calendar-date subtraction would report"
-        );
-    }
-
-    #[test]
-    fn days_until_for_a_cert_expired_one_hour_ago_is_negative_one() {
-        let now = at(2026, 10, 6, 8, 0, 0);
-        let not_after = at(2026, 10, 6, 7, 0, 0);
-        assert_eq!(not_after.days_until(&now), -1);
-    }
-
-    #[test]
     fn days_from_civil_and_civil_from_days_round_trip_across_eras() {
         // Howard Hinnant's day-count conversion is each other's inverse.
         // Sweeping dates across every kind of boundary the formula has to
@@ -488,7 +467,7 @@ Unable to load certificate
             let not_after =
                 parse_openssl_enddate(&text).unwrap_or_else(|| panic!("{name} notAfter"));
             assert_eq!(
-                not_after.unix_seconds() - not_before.unix_seconds(),
+                unix_seconds(not_after) - unix_seconds(not_before),
                 90 * 86_400 - 1,
                 "{name}"
             );
@@ -496,5 +475,12 @@ Unable to load certificate
         let errors = std::fs::read_to_string(root.join("tests/fixtures/certs/not-a-cert.txt"))
             .expect("not-a-cert");
         assert_eq!(parse_openssl_enddate(&errors), None);
+    }
+
+    fn unix_seconds(time: CertTime) -> i64 {
+        days_from_civil(time.year, time.month, time.day) * 86_400
+            + i64::from(time.hour) * 3_600
+            + i64::from(time.minute) * 60
+            + i64::from(time.second)
     }
 }

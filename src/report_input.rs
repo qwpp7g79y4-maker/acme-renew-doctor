@@ -1,3 +1,5 @@
+//! Read the caller's files and build a [`crate::model::Report`].
+
 use std::path::Path;
 
 use crate::certbot_log::{self, read_log};
@@ -8,7 +10,27 @@ use crate::model::{
 use crate::rules::{self, Observations};
 use crate::timer;
 
+/// Read the snapshot's files and return the report.
+///
+/// `now` is the clock the date rules compare against. It is not stored on
+/// the report. A file that cannot be read becomes a finding. A log above
+/// [`crate::certbot_log::LOG_MAX_BYTES`] (268435456) and a timer or
+/// certificate file above [`crate::certbot_log::SHORT_TEXT_MAX_BYTES`]
+/// (1048576) become findings and are not loaded.
 pub fn build_report(snapshot: Snapshot, now: CertTime) -> Report {
+    build_report_with_warn_days(snapshot, now, None)
+}
+
+/// Same report as [`build_report`].
+///
+/// `warn_days` replaces the renewal threshold when it is set. `None` keeps
+/// one third of the disk certificate lifetime, capped at 30 days. The value
+/// is not stored on the report, and `now` is not stored on it either.
+pub fn build_report_with_warn_days(
+    snapshot: Snapshot,
+    now: CertTime,
+    warn_days: Option<u32>,
+) -> Report {
     let mut read_errors = Vec::new();
     let mut log_read = false;
     let mut log_has_replacement_char = false;
@@ -70,19 +92,22 @@ pub fn build_report(snapshot: Snapshot, now: CertTime) -> Report {
         }
     }
 
-    let findings = rules::analyze(&Observations {
-        timer,
-        service,
-        snap_timer,
-        problems,
-        disk_not_after,
-        live_not_after,
-        disk_not_before,
-        now,
-        read_errors,
-        log_read,
-        log_has_replacement_char,
-    });
+    let findings = rules::analyze_with_warn_days(
+        &Observations {
+            timer,
+            service,
+            snap_timer,
+            problems,
+            disk_not_after,
+            live_not_after,
+            disk_not_before,
+            now,
+            read_errors,
+            log_read,
+            log_has_replacement_char,
+        },
+        warn_days.map(i64::from),
+    );
 
     Report {
         snapshot,
@@ -148,7 +173,7 @@ fn cert_not_recognised(source: EvidenceSource) -> Finding {
         vec![Evidence {
             source,
             text:
-                "certificate dates not recognised (no notAfter= line in openssl x509 -dates output)"
+                "certificate dates not recognised (no notAfter= line in openssl x509 -dates output); save the output of openssl x509 -noout -dates to a file and pass it"
                     .to_string(),
         }],
     )
@@ -307,8 +332,8 @@ mod tests {
             ),
             from_unix_seconds(0),
         );
-        assert!(texts(&report)
-            .contains(&"timer status not recognised (no Id= line in systemctl show output)"));
+        assert!(texts(&report).contains(&crate::timer::NO_ID_LINE));
+        assert!(crate::timer::NO_ID_LINE.contains("save the output of systemctl show"));
     }
 
     #[test]
@@ -416,7 +441,9 @@ mod tests {
                 && finding.evidence.iter().any(|item| {
                     item.source == EvidenceSource::Disk
                         && item.text
-                            == "certificate dates not recognised (no notAfter= line in openssl x509 -dates output)"
+                            .starts_with(
+                                "certificate dates not recognised (no notAfter= line in openssl x509 -dates output); save"
+                            )
                 })
         }));
     }

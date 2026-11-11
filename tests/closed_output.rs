@@ -5,6 +5,7 @@
 mod unix {
     use std::os::fd::{FromRawFd, OwnedFd};
     use std::process::{Command, Output, Stdio};
+    use std::sync::Mutex;
     use std::time::{Duration, Instant};
 
     unsafe extern "C" {
@@ -13,10 +14,16 @@ mod unix {
     }
 
     const BROKEN_PIPE: &str =
-        "acme-renew-doctor: could not write output: Broken pipe (os error 32)\n";
+        "acme-renew-doctor: could not write output: Broken pipe (os error 32); check that the output is not closed or full and run again\n";
+
+    /// `pipe` makes descriptors that a concurrent `spawn` would inherit. A child
+    /// that inherited the read end would keep the pipe open and the write would
+    /// succeed. This lock keeps creating the pipe and spawning apart.
+    static FD_LOCK: Mutex<()> = Mutex::new(());
 
     /// Write end of a pipe whose read end is already closed.
     fn closed_pipe() -> Stdio {
+        let _guard = FD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let mut fds = [0i32; 2];
         // SAFETY: `fds` is a two-int buffer, which is what `pipe` writes.
         let created = unsafe { pipe(fds.as_mut_ptr()) };
@@ -44,7 +51,10 @@ mod unix {
         if let Some(now) = now {
             command.env("ACME_RENEW_DOCTOR_NOW", now);
         }
-        let mut child = command.spawn().expect("spawn acme-renew-doctor");
+        let mut child = {
+            let _guard = FD_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+            command.spawn().expect("spawn acme-renew-doctor")
+        };
         let started = Instant::now();
         loop {
             match child.try_wait() {
@@ -123,7 +133,6 @@ mod unix {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
     fn json_report_on_a_closed_pipe_exits_three() {
         assert_exit_three(
             &["--json", "example.com"],
@@ -172,7 +181,7 @@ mod unix {
 
     #[cfg(target_os = "linux")]
     const FULL_DEVICE: &str =
-        "acme-renew-doctor: could not write output: No space left on device (os error 28)\n";
+        "acme-renew-doctor: could not write output: No space left on device (os error 28); check that the output is not closed or full and run again\n";
 
     #[cfg(target_os = "linux")]
     fn full_device() -> Stdio {

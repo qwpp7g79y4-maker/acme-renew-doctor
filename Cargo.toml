@@ -1,6 +1,6 @@
 [package]
 name = "acme-renew-doctor"
-version = "0.2.0"
+version = "1.0.0"
 edition = "2021"
 rust-version = "1.85"
 authors = ["PEPAI <pep_ai@icloud.com>"]
@@ -10,10 +10,35 @@ repository = "https://github.com/qwpp7g79y4-maker/acme-renew-doctor"
 readme = "README.md"
 keywords = ["acme", "certbot", "letsencrypt", "tls", "cli"]
 categories = ["command-line-utilities"]
-exclude = [".github/", ".gitattributes"]
+include = [
+    "/src/**",
+    "/tests/**",
+    "/examples/**",
+    "/docs/**",
+    "/man/**",
+    "/scripts/**",
+    "/Cargo.toml",
+    "/Cargo.lock",
+    "/build.rs",
+    "/deny.toml",
+    "/about.toml",
+    "/about.hbs",
+    "/README*",
+    "/LICENSE*",
+    "/CHANGELOG*",
+    "/QUALITY*",
+    "/CONTRIBUTING.md",
+    "/SECURITY.md",
+    "/.gitignore",
+]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 
 [dev-dependencies]
+clap_complete = "4.6"
+clap_mangen = "0.3"
 proptest = "1"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(coverage)"] }
