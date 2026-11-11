@@ -1,10 +1,20 @@
 # Quality report
 
-This page shows how acme-renew-doctor was checked before its first public release, and what was fixed. It describes checks we did. It is not a guarantee that the software is free of bugs or secure.
+This page shows how acme-renew-doctor was checked, including after 0.1.0 and 0.2.0 were published, and what was fixed. It describes checks we did. It is not a guarantee that the software is free of bugs or secure.
 
 ## Verification log
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
+
+### 2026-11-11 (1.0.0, branch fix/docs-v1.0.0)
+
+- The Installation binary-archive section in `README.md` and `README.nl.md` now names v1.0.0 (tag, archive name, and download URL), matching Cargo.toml 1.0.0. `tests/readme.rs` compares that section to `CARGO_PKG_VERSION`.
+- `--output` creates the temporary file with `create_new`, tries another name if the first exists, and on Unix keeps the permission bits of an existing regular destination. A pre-placed symlink at the temporary name is not followed. The write error mentions that a temporary file is created next to the destination.
+- The offline unshare test skips when `unshare` is missing, and when `unshare -rn true` fails with EPERM, uid_map, or permission denied (the EPERM skip was already in `9959bda`). Otherwise the test still runs in a network namespace with an empty route table.
+- GitHub CI run 42943099185 was green on commit `9959bda`. This tip is not pushed; that run does not cover these changes.
+- `cargo test --no-fail-fast`: 472 passed / 0 failed / 1 ignored. Measured on commit `9959bda` plus these changes.
+- `cargo fmt --check`: clean. `cargo clippy --all-targets -- -D warnings`: clean.
+- Version stays 1.0.0. `rust-version` stays 1.85.
 
 ### 2026-11-09 (1.0.0, branch prep/w24-fout)
 

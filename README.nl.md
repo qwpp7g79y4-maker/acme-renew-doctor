@@ -8,11 +8,11 @@ Leg uit waarom een Certbot-vernieuwing faalde, of stilletjes nooit draaide, aan 
 
 [Installatie](#installatie) • [Snel aan de slag](#snel-aan-de-slag) • [Voorbeeld](#voorbeeld) • [Opties](#opties) • [Hoe het werkt](#hoe-het-werkt) • [Alternatieven](#vergelijking-met-alternatieven) • [Beperkingen](#beperkingen) • [Referentie](docs/reference.nl.md)
 
-acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. Het legt uit waarom een Certbot-TLS-vernieuwing faalde, of stilletjes nooit draaide. Het verzamelt niets. Het leest alleen bestanden die je meegeeft: opgeslagen opdrachtuitvoer, of tekst die je in een bestand plakte. Het voert geen opdracht uit, forceert nooit een vernieuwing en herlaadt nooit een service. Het schrijft alleen een bestand als je daar om vraagt. `--output PATH` schrijft het rapport daarheen en vervangt een bestaand bestand; een ontbrekende bovenliggende map wordt niet aangemaakt. SIGINT eindigt met 130 en laat geen half rapport achter; een bestaand `--output`-bestand blijft staan tot het nieuwe rapport af is. `--example` schrijft `example-log.txt` in de huidige map.  Een bevinding is een vaste code plus het bewijs daarvoor. Codes die een laag noemen gebruiken scheduler, validation of deployment. Het heeft geen account nodig en maakt geen netwerkverbinding.
+acme-renew-doctor is een lokaal, alleen-lezen opdrachtregelprogramma in Rust. Het legt uit waarom een Certbot-TLS-vernieuwing faalde, of stilletjes nooit draaide. Het verzamelt niets. Het leest alleen bestanden die je meegeeft: opgeslagen opdrachtuitvoer, of tekst die je in een bestand plakte. Het voert geen opdracht uit, forceert nooit een vernieuwing en herlaadt nooit een service. Het schrijft alleen een bestand als je daar om vraagt. `--output PATH` schrijft het rapport daarheen en vervangt een bestaand bestand; een ontbrekende bovenliggende map wordt niet aangemaakt. De bytes gaan eerst naar een nieuw tijdelijk bestand naast dat pad, zodat een vooraf geplaatst bestand of een symlink op de tijdelijke naam ongemoeid blijft. Op Unix blijven de rechten van een bestaand doelbestand behouden. SIGINT eindigt met 130 en laat geen half rapport achter; een bestaand `--output`-bestand blijft staan tot het nieuwe rapport af is. `--example` schrijft `example-log.txt` in de huidige map.  Een bevinding is een vaste code plus het bewijs daarvoor. Codes die een laag noemen gebruiken scheduler, validation of deployment. Het heeft geen account nodig en maakt geen netwerkverbinding.
 
 **Waarschuwing:** het rapport citeert de bestanden die je meegeeft woordelijk terug; het redigeert niet. Verwijder tokens, wachtwoorden en API-sleutels uit een log of andere opgeslagen opdrachtuitvoer voordat je die meegeeft, zeker voordat je het rapport doorstuurt. Zie [Privacy](#privacy).
 
-Tests: `cargo test --no-fail-fast` geeft 469 geslaagd, 0 mislukt, 1 genegeerd (gemeten op commit `4e954d5` plus deze wijzigingen; zie [QUALITY.nl.md](QUALITY.nl.md)).
+Tests: `cargo test --no-fail-fast` geeft 472 geslaagd, 0 mislukt, 1 genegeerd (gemeten op commit `9959bda` plus deze wijzigingen; zie [QUALITY.nl.md](QUALITY.nl.md)).
 
 De uitvoer van de tool is Engels; de voorbeelden hieronder tonen die precies zoals de binary hem schrijft.
 
@@ -33,11 +33,11 @@ acme-renew-doctor --help
 
 ### Binary-archief
 
-De [release v0.1.0](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.1.0) heeft archieven voor Linux x86_64 (`x86_64-unknown-linux-gnu` en `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` en `aarch64-apple-darwin`) en Windows (`x86_64-pc-windows-msvc`, een `.zip`), elk met een `.sha256`-checksumbestand. Een archief bevat de binary, de documentatie en de voorbeeldbestanden. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief en de checksum, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`. Voor Linux x86_64:
+De [release v1.0.0](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) heeft archieven voor Linux x86_64 (`x86_64-unknown-linux-gnu` en `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` en `aarch64-apple-darwin`) en Windows (`x86_64-pc-windows-msvc`, een `.zip`), elk met een `.sha256`-checksumbestand. Een archief bevat de binary, de documentatie en de voorbeeldbestanden. Het heeft geen `Cargo.toml`, dus `cargo install --path .` werkt niet in het archief. Download het archief en de checksum, controleer de sha256-checksum, pak het uit, en zet de binary op je `PATH`. Voor Linux x86_64:
 
 ```sh
-name=acme-renew-doctor-v0.1.0-x86_64-unknown-linux-gnu
-base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v0.1.0
+name=acme-renew-doctor-v1.0.0-x86_64-unknown-linux-gnu
+base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v1.0.0
 curl -q -fsSL -O "$base/$name.tar.gz" -O "$base/$name.tar.gz.sha256"
 sha256sum -c "$name.tar.gz.sha256"
 tar -xzf "$name.tar.gz"
@@ -213,7 +213,7 @@ Elke optie uit `acme-renew-doctor --help`:
 | `[DOMAIN]` | Domein om te diagnosticeren. Staat in het rapport; de log wordt niet op domein gefilterd. Niet te combineren met `--all`. |
 | `--all` | Diagnosticeer alle certificaten. Live verzamelen is nog niet gebouwd; gebruik de `--from-*`-bestanden. Niet te combineren met `[DOMAIN]`. |
 | `--json` | Druk het rapport af als JSON (met `schema_version`) in plaats van tekst. |
-| `--output <PATH>` | Schrijf het rapport naar dit bestand in plaats van standaarduitvoer. Een bestaand bestand wordt vervangen. Een ontbrekende bovenliggende map is een fout en wordt niet aangemaakt. |
+| `--output <PATH>` | Schrijf het rapport naar dit bestand in plaats van standaarduitvoer. Een bestaand bestand wordt vervangen. Een ontbrekende bovenliggende map is een fout en wordt niet aangemaakt. De bytes gaan eerst naar een nieuw tijdelijk bestand naast dat pad; een vooraf geplaatst bestand of een symlink op de tijdelijke naam blijft ongemoeid. Op Unix blijven de rechten van een bestaand doelbestand behouden. |
 | `--quiet` | Verberg de hintregel, ook op een terminal. Geen contextregel. Een pipe laat beide al weg. |
 | `--verbose` | Toon de hintregel, en als het rapport geschreven is één `context:`-regel op stderr, ook bij een pipe. Niet samen met `--quiet`. |
 | `--warn-days <DAYS>` | Kalenderdagen die vóór notAfter over moeten zijn voor `OK_NOT_DUE`. Evenveel of minder is de waarschuwing. Weglaten gebruikt een derde van de looptijd van het certificaat op schijf, met een maximum van 30. |

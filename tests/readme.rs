@@ -312,6 +312,48 @@ fn readme_separates_source_install_from_the_binary_archive() {
 }
 
 #[test]
+fn readme_binary_archive_section_matches_package_version() {
+    let version = env!("CARGO_PKG_VERSION");
+    let tag = format!("v{version}");
+    let archive = format!("acme-renew-doctor-{tag}-x86_64-unknown-linux-gnu");
+    let tag_url =
+        format!("https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/{tag}");
+    let download =
+        format!("https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/{tag}");
+    for (page, heading) in [
+        (README, "### Binary archive"),
+        (README_DUTCH, "### Binary-archief"),
+    ] {
+        let text = read(page);
+        let start = text
+            .find(heading)
+            .unwrap_or_else(|| panic!("{page} is missing {heading}"));
+        let rest = &text[start + heading.len()..];
+        let end = rest
+            .find("\n### ")
+            .or_else(|| rest.find("\n## "))
+            .unwrap_or(rest.len());
+        let body = &rest[..end];
+        assert!(
+            body.contains(&tag_url),
+            "{page} binary section is missing {tag_url}\n{body}"
+        );
+        assert!(
+            body.contains(&format!("name={archive}")),
+            "{page} binary section is missing name={archive}\n{body}"
+        );
+        assert!(
+            body.contains(&format!("base={download}")),
+            "{page} binary section is missing base={download}\n{body}"
+        );
+        assert!(
+            !body.contains("v0.1.0"),
+            "{page} binary section still names v0.1.0\n{body}"
+        );
+    }
+}
+
+#[test]
 fn language_switch_on_top_of_every_page() {
     for (rel, line) in [
         (README, "English · [Nederlands](README.nl.md)"),

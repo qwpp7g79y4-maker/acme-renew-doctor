@@ -161,10 +161,13 @@ fn offline_runs_never_need_a_network_tool() {
 #[test]
 fn expired_certificate_is_reported_with_outgoing_connections_blocked() {
     // GitHub CI / pepai-worker-01 often lack user namespaces (EPERM / uid_map).
-    let probe = Command::new("unshare")
-        .args(["-rn", "true"])
-        .output()
-        .expect("unshare -rn true");
+    let probe = match Command::new("unshare").args(["-rn", "true"]).output() {
+        Ok(out) => out,
+        Err(err) => {
+            eprintln!("overgeslagen: geen unshare ({err})");
+            return;
+        }
+    };
     if !probe.status.success() {
         let err = String::from_utf8_lossy(&probe.stderr);
         let low = err.to_ascii_lowercase();

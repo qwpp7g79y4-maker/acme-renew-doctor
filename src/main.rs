@@ -1,3 +1,4 @@
+use std::fs::{File, OpenOptions};
 use std::io::{self, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -343,7 +344,10 @@ enum ReportWrite {
 /// Path of a temporary file next to `path`, on the same filesystem, so the
 /// finished report can replace `path` in one rename. SIGINT before that
 /// rename deletes the temporary file and leaves `path` as it was.
-fn temp_beside(path: &Path) -> PathBuf {
+///
+/// `nonce` 0 keeps the historical name. Later values add a suffix so a
+/// pre-placed file or symlink at the first name is left untouched.
+fn temp_beside(path: &Path, nonce: u32) -> PathBuf {
     let parent = path
         .parent()
         .filter(|parent| !parent.as_os_str().is_empty())
@@ -353,8 +357,54 @@ fn temp_beside(path: &Path) -> PathBuf {
         path.file_name()
             .unwrap_or_else(|| std::ffi::OsStr::new("report")),
     );
-    name.push(format!(".acme-renew-doctor-{}.tmp", std::process::id()));
+    if nonce == 0 {
+        name.push(format!(".acme-renew-doctor-{}.tmp", std::process::id()));
+    } else {
+        name.push(format!(
+            ".acme-renew-doctor-{}-{nonce}.tmp",
+            std::process::id()
+        ));
+    }
     parent.join(name)
+}
+
+/// Create a new temporary file next to `path`. Never truncates an existing
+/// path, so a pre-placed symlink is not followed. On a name collision, try
+/// another name.
+fn create_temp_report(path: &Path) -> io::Result<(PathBuf, File)> {
+    let mut last_exists = None;
+    for nonce in 0..32u32 {
+        let tmp = temp_beside(path, nonce);
+        match OpenOptions::new().write(true).create_new(true).open(&tmp) {
+            Ok(file) => return Ok((tmp, file)),
+            Err(err) if err.kind() == io::ErrorKind::AlreadyExists => {
+                last_exists = Some(err);
+            }
+            Err(err) => return Err(err),
+        }
+    }
+    Err(last_exists.unwrap_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "could not create a unique temporary report file",
+        )
+    }))
+}
+
+/// Copy the permission bits of an existing regular destination onto the
+/// temporary file, so a replacement keeps that mode. A missing path, a
+/// symlink, or a non-file is left alone.
+#[cfg(unix)]
+fn copy_existing_mode(dest: &Path, file: &File) -> io::Result<()> {
+    let meta = match std::fs::symlink_metadata(dest) {
+        Ok(meta) => meta,
+        Err(err) if err.kind() == io::ErrorKind::NotFound => return Ok(()),
+        Err(err) => return Err(err),
+    };
+    if meta.is_file() {
+        file.set_permissions(meta.permissions())?;
+    }
+    Ok(())
 }
 
 /// Replace `path` with the finished bytes in `tmp`.
@@ -390,17 +440,25 @@ fn write_report(path: Option<&Path>, bytes: &[u8]) -> ReportWrite {
             Err(err) => ReportWrite::Failed(err),
         };
     };
-    let tmp = temp_beside(path);
-    let created = std::fs::File::create(&tmp).and_then(|mut file| {
-        file.write_all(bytes)?;
-        file.flush()
-    });
-    if let Err(err) = created {
+    let (tmp, mut file) = match create_temp_report(path) {
+        Ok(pair) => pair,
+        Err(err) => {
+            if acme_renew_doctor::sigint_caught() {
+                return ReportWrite::Interrupted;
+            }
+            return ReportWrite::Failed(err);
+        }
+    };
+    if let Err(err) = file.write_all(bytes).and_then(|_| file.flush()) {
         let _ = std::fs::remove_file(&tmp);
         if acme_renew_doctor::sigint_caught() {
             return ReportWrite::Interrupted;
         }
         return ReportWrite::Failed(err);
+    }
+    #[cfg(unix)]
+    {
+        let _ = copy_existing_mode(path, &file);
     }
     let renamed = acme_renew_doctor::with_sigint_blocked(|| {
         if acme_renew_doctor::sigint_caught() {
@@ -433,7 +491,7 @@ fn report_write_error(path: Option<&Path>, err: &io::Error, extra: bool) -> Exit
     let shown = render::escape_file_text(&path.to_string_lossy());
     emit_error(
         &format!(
-            "acme-renew-doctor: could not write report to {shown}: {err}; check that the parent directory exists and is writable; the tool does not create it"
+            "acme-renew-doctor: could not write report to {shown}: {err}; check that the parent directory exists and is writable; the tool does not create it; a temporary file is created next to the destination"
         ),
         extra,
     );

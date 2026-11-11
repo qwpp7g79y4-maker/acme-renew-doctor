@@ -1,10 +1,20 @@
 # Kwaliteitsrapport
 
-Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd vóór de eerste openbare release, en wat er is opgelost. Ze beschrijft de controles die we deden. Het is geen garantie dat de software vrij is van fouten of veilig is.
+Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd, ook na de publicatie van 0.1.0 en 0.2.0, en wat er is opgelost. Ze beschrijft de controles die we deden. Het is geen garantie dat de software vrij is van fouten of veilig is.
 
 ## Verificatielog
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
+
+### 2026-11-11 (1.0.0, tak fix/docs-v1.0.0)
+
+- De sectie Binary-archief in `README.md` en `README.nl.md` noemt nu v1.0.0 (tag, archiefnaam en download-URL), in overeenstemming met Cargo.toml 1.0.0. `tests/readme.rs` legt die sectie naast `CARGO_PKG_VERSION`.
+- `--output` maakt het tijdelijke bestand met `create_new`, probeert een andere naam als de eerste al bestaat, en houdt op Unix de rechten van een bestaand gewoon doelbestand. Een vooraf geplaatste symlink op de tijdelijke naam wordt niet gevolgd. De schrijffout vermeldt dat er een tijdelijk bestand naast het doel wordt aangemaakt.
+- De offline-unshare-test slaat over als `unshare` ontbreekt, en als `unshare -rn true` faalt met EPERM, uid_map of permission denied (het overslaan bij EPERM stond al in `9959bda`). Anders draait de test nog steeds in een netwerk-namespace met een lege routetabel.
+- GitHub CI-run 42943099185 was groen op commit `9959bda`. Deze tip is niet gepusht; die run dekt deze wijzigingen niet.
+- `cargo test --no-fail-fast`: 472 geslaagd / 0 mislukt / 1 genegeerd. Gemeten op commit `9959bda` plus deze wijzigingen.
+- `cargo fmt --check`: schoon. `cargo clippy --all-targets -- -D warnings`: schoon.
+- Versie blijft 1.0.0. `rust-version` blijft 1.85.
 
 ### 2026-11-09 (1.0.0, tak prep/w24-fout)
 

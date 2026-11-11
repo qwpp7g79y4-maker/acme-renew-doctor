@@ -15,7 +15,7 @@ Draai `acme-renew-doctor --help` voor de ingebouwde hulp. `--version` print `acm
 | `[DOMAIN]` | Staat op het rapport. De log wordt niet op domein gefilterd. Kan niet samen met `--all`. |
 | `--all` | Stel alle certificaten vast. Live verzamelen is niet gebouwd; geef `--from-*`-bestanden mee. Kan niet samen met `[DOMAIN]`. |
 | `--json` | Eén JSON-object met `schema_version` 1, in plaats van tekst. |
-| `--output` | Schrijf het rapport naar dit bestand in plaats van standaarduitvoer. Een bestaand bestand wordt vervangen. Een ontbrekende bovenliggende map is een fout (exit 3, dezelfde code als een mislukte schrijfactie naar standaarduitvoer) en wordt niet aangemaakt. |
+| `--output` | Schrijf het rapport naar dit bestand in plaats van standaarduitvoer. Een bestaand bestand wordt vervangen. Een ontbrekende bovenliggende map is een fout (exit 3, dezelfde code als een mislukte schrijfactie naar standaarduitvoer) en wordt niet aangemaakt. De bytes gaan eerst naar een nieuw tijdelijk bestand naast dat pad; een vooraf geplaatst bestand of een symlink op de tijdelijke naam blijft ongemoeid. Op Unix blijven de rechten van een bestaand doelbestand behouden. |
 | `--quiet` | Verberg de hintregel, ook op een terminal. Geen contextregel. Een pipe laat beide al weg. |
 | `--verbose` | Toon de hintregel, en als het rapport geschreven is één `context:`-regel op stderr, ook bij een pipe. Niet samen met `--quiet`. |
 | `--warn-days` | Kalenderdagen die vóór notAfter over moeten zijn voor `OK_NOT_DUE`. Evenveel of minder is de waarschuwing en blijft `INSUFFICIENT_EVIDENCE`. Weglaten gebruikt een derde van de looptijd van het certificaat op schijf, met een maximum van 30. Geen nieuwe exitcode. |

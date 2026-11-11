@@ -13,7 +13,7 @@ Run `acme-renew-doctor --help` for the built-in help. `--version` prints `acme-r
 | `[DOMAIN]` | Shown on the report. The log is not filtered by domain. Cannot be combined with `--all`. |
 | `--all` | Diagnose all certificates. Live collection is not built; pass `--from-*` files. Cannot be combined with `[DOMAIN]`. |
 | `--json` | One JSON object with `schema_version` 1, instead of text. |
-| `--output` | Write the report to this file instead of standard output. An existing file is replaced. A missing parent directory is an error (exit 3, the same code as a failed write to standard output) and is not created. |
+| `--output` | Write the report to this file instead of standard output. An existing file is replaced. A missing parent directory is an error (exit 3, the same code as a failed write to standard output) and is not created. The bytes go first to a new temporary file next to that path; a pre-placed file or symlink at the temporary name is left untouched. On Unix, the permission bits of an existing destination file are kept. |
 | `--quiet` | Hide the hint line, even on a terminal. No context line. A pipe already omits both. |
 | `--verbose` | Print the hint line, and when the report was written one `context:` line on stderr, even on a pipe. Not with `--quiet`. |
 | `--warn-days` | Calendar days that must remain before notAfter for `OK_NOT_DUE`. Equal or fewer is the warning and stays `INSUFFICIENT_EVIDENCE`. Omit this to use one third of the disk certificate lifetime, capped at 30. No new exit code. |

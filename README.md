@@ -8,11 +8,11 @@ Explain why a Certbot renewal failed, or quietly never ran, from files you pass.
 
 [Installation](#installation) • [Quick start](#quick-start) • [Example](#example) • [Options](#options) • [How it works](#how-it-works) • [Alternatives](#compared-with-alternatives) • [Limitations](#limitations) • [Reference](docs/reference.md)
 
-acme-renew-doctor is a local, read-only command-line tool written in Rust. It explains why a Certbot TLS renewal failed, or quietly never ran. It collects nothing. It only reads files you pass in: saved command output, or text you pasted into a file. It runs no command, never forces a renewal, and never reloads a service. It writes a file only when you ask. `--output PATH` writes the report there and replaces an existing file; a missing parent directory is not created. SIGINT exits 130 and leaves no half-written report; an existing `--output` file stays until the new report is complete. `--example` writes `example-log.txt` in the current directory.  A finding is a fixed code plus the evidence for it. Codes that name a layer use scheduler, validation, or deployment. It needs no account and makes no network connection.
+acme-renew-doctor is a local, read-only command-line tool written in Rust. It explains why a Certbot TLS renewal failed, or quietly never ran. It collects nothing. It only reads files you pass in: saved command output, or text you pasted into a file. It runs no command, never forces a renewal, and never reloads a service. It writes a file only when you ask. `--output PATH` writes the report there and replaces an existing file; a missing parent directory is not created. The bytes go first to a new temporary file next to that path, so a pre-placed file or symlink at the temporary name is left untouched. On Unix, the permission bits of an existing destination file are kept. SIGINT exits 130 and leaves no half-written report; an existing `--output` file stays until the new report is complete. `--example` writes `example-log.txt` in the current directory.  A finding is a fixed code plus the evidence for it. Codes that name a layer use scheduler, validation, or deployment. It needs no account and makes no network connection.
 
 **Warning:** the report quotes the files you pass back verbatim; it does not redact. Remove tokens, passwords and API keys from a log or any saved command output before you pass it in, especially before you forward the report to anyone else. See [Privacy](#privacy).
 
-Tests: `cargo test --no-fail-fast` gives 469 passed, 0 failed, 1 ignored (measured on commit `4e954d5` plus these changes; see [QUALITY.md](QUALITY.md)).
+Tests: `cargo test --no-fail-fast` gives 472 passed, 0 failed, 1 ignored (measured on commit `9959bda` plus these changes; see [QUALITY.md](QUALITY.md)).
 
 ## Why
 
@@ -31,11 +31,11 @@ acme-renew-doctor --help
 
 ### Binary archive
 
-The [v0.1.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v0.1.0) has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
+The [v1.0.0 release](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/tag/v1.0.0) has archives for Linux x86_64 (`x86_64-unknown-linux-gnu` and `x86_64-unknown-linux-musl`), macOS (`x86_64-apple-darwin` and `aarch64-apple-darwin`) and Windows (`x86_64-pc-windows-msvc`, a `.zip`), each with a `.sha256` checksum file. An archive contains the binary, the documentation and the example files. It has no `Cargo.toml`, so `cargo install --path .` does not work inside the archive. Download the archive and its checksum, check the sha256 checksum, extract it, and put the binary on your `PATH`. For Linux x86_64:
 
 ```sh
-name=acme-renew-doctor-v0.1.0-x86_64-unknown-linux-gnu
-base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v0.1.0
+name=acme-renew-doctor-v1.0.0-x86_64-unknown-linux-gnu
+base=https://github.com/qwpp7g79y4-maker/acme-renew-doctor/releases/download/v1.0.0
 curl -q -fsSL -O "$base/$name.tar.gz" -O "$base/$name.tar.gz.sha256"
 sha256sum -c "$name.tar.gz.sha256"
 tar -xzf "$name.tar.gz"
@@ -211,7 +211,7 @@ Every option in `acme-renew-doctor --help`:
 | `[DOMAIN]` | Domain to diagnose. Shown in the report; the log is not filtered by domain. Cannot be combined with `--all`. |
 | `--all` | Diagnose all certificates. Live collection is not built yet; use the `--from-*` files. Cannot be combined with `[DOMAIN]`. |
 | `--json` | Print the report as JSON (with `schema_version`) instead of text. |
-| `--output <PATH>` | Write the report to this file instead of standard output. An existing file is replaced. A missing parent directory is an error and is not created. |
+| `--output <PATH>` | Write the report to this file instead of standard output. An existing file is replaced. A missing parent directory is an error and is not created. The bytes go first to a new temporary file next to that path; a pre-placed file or symlink at the temporary name is left untouched. On Unix, the permission bits of an existing destination file are kept. |
 | `--quiet` | Hide the hint line, even on a terminal. No context line. A pipe already omits both. |
 | `--verbose` | Print the hint line, and when the report was written one `context:` line on stderr, even on a pipe. Not with `--quiet`. |
 | `--warn-days <DAYS>` | Calendar days that must remain before notAfter for `OK_NOT_DUE`. Equal or fewer is the warning. Omit this to use one third of the disk certificate lifetime, capped at 30. |
