@@ -1,0 +1,22 @@
+{
+  "name": "acme-renew-doctor",
+  "displayName": "ACME Renew Doctor",
+  "version": "0.2.0",
+  "description": "Explain why an ACME or Certbot certificate renewal failed or never ran, from logs and files you already have. The CLI is read-only and does not renew or reload anything.",
+  "author": {
+    "name": "PEPAI",
+    "url": "https://github.com/qwpp7g79y4-maker"
+  },
+  "homepage": "https://github.com/qwpp7g79y4-maker/acme-renew-doctor",
+  "repository": "https://github.com/qwpp7g79y4-maker/acme-renew-doctor",
+  "license": "MIT OR Apache-2.0",
+  "keywords": [
+    "acme",
+    "certbot",
+    "letsencrypt",
+    "tls",
+    "cli"
+  ],
+  "documentationUrl": "https://github.com/qwpp7g79y4-maker/acme-renew-doctor",
+  "supportUrl": "https://github.com/qwpp7g79y4-maker/acme-renew-doctor/issues"
+}
