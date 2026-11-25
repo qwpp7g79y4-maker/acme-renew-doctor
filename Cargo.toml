@@ -30,6 +30,7 @@ include = [
     "/CONTRIBUTING.md",
     "/SECURITY.md",
     "/.gitignore",
+    "/.github/workflows/release.yml",
 ]
 
 [dependencies]
