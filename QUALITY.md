@@ -6,6 +6,17 @@ This page shows how acme-renew-doctor was checked, including after 0.1.0 and 0.2
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-25 (1.0.0, branch pakket-tests-in-crate, commit 44f8df8)
+
+- Fix: with file descriptor 1 closed before the process starts, `--help` and `--version` exited 0 without output, because Rust's runtime reopens it as `/dev/null`. A Linux-only `.init_array` check now records the closed descriptor, and the binary exits 3 with the existing "could not write output" sentence (`Bad file descriptor (os error 9)`). A real `/dev/null` keeps exit 0. New tests in `tests/closed_output.rs`.
+- Measured on commit `44f8df8` with cargo 1.99.0 and rustc 1.99.0, on Linux. The only uncommitted change was `.gitignore`, which is not part of the commit.
+- `cargo fmt --check`: clean.
+- `cargo clippy --all-targets --locked -- -D warnings`: clean.
+- `cargo test --locked`: 477 passed / 0 failed / 1 ignored.
+- `cargo test --release --locked`: 477 passed / 0 failed / 1 ignored.
+- `cargo deny`, `cargo audit`, the MSRV build (Rust 1.85), macOS and Windows builds, and GitHub CI: not run.
+- This commit is not pushed, so no GitHub CI run covers it.
+
 ### 2026-11-25 (1.0.0, branch pakket-tests-in-crate, commit 8fa6080)
 
 - Measured on commit `8fa6080` (clean working tree) with cargo 1.99.0 and rustc 1.99.0, on Linux.

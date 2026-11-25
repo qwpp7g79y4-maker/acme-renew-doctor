@@ -6,6 +6,17 @@ Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd, ook na de publicat
 
 Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitgevoerd, met de cijfers die ze opleverden.
 
+### 2026-11-25 (1.0.0, tak pakket-tests-in-crate, commit 44f8df8)
+
+- Fix: met file descriptor 1 dicht voordat het proces begint, gaven `--help` en `--version` exit 0 zonder uitvoer, omdat de Rust-runtime hem opnieuw als `/dev/null` opent. Een Linux-only `.init_array`-controle legt de dichte descriptor nu vast, en het binary geeft exit 3 met de bestaande zin "could not write output" (`Bad file descriptor (os error 9)`). Een echte `/dev/null` houdt exit 0. Nieuwe tests in `tests/closed_output.rs`.
+- Gemeten op commit `44f8df8` met cargo 1.99.0 en rustc 1.99.0, op Linux. De enige ongecommitte wijziging was `.gitignore`, dat niet in de commit zit.
+- `cargo fmt --check`: schoon.
+- `cargo clippy --all-targets --locked -- -D warnings`: schoon.
+- `cargo test --locked`: 477 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo test --release --locked`: 477 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo deny`, `cargo audit`, de MSRV-build (Rust 1.85), macOS- en Windows-builds en GitHub CI: niet gedraaid (not run).
+- Deze commit is niet gepusht, dus geen GitHub CI-run dekt hem.
+
 ### 2026-11-25 (1.0.0, tak pakket-tests-in-crate, commit 8fa6080)
 
 - Gemeten op commit `8fa6080` (schone werkmap) met cargo 1.99.0 en rustc 1.99.0, op Linux.
