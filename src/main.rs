@@ -320,7 +320,54 @@ fn write_example_log() -> Result<(), String> {
     }
 }
 
+/// Rust's runtime reopens a closed standard output as `/dev/null` before
+/// `main`, so safe code cannot tell that case from a real `/dev/null`. This
+/// constructor runs earlier, in `.init_array`, and records whether fd 1 was
+/// open at process start.
+#[cfg(target_os = "linux")]
+mod closed_stdout {
+    use std::io;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    const EBADF: i32 = 9;
+    const F_GETFD: i32 = 1;
+
+    unsafe extern "C" {
+        fn fcntl(fd: i32, cmd: i32, ...) -> i32;
+    }
+
+    static WAS_CLOSED: AtomicBool = AtomicBool::new(false);
+
+    extern "C" fn record() {
+        // SAFETY: `F_GETFD` only reads the descriptor flags of fd 1.
+        let result = unsafe { fcntl(1, F_GETFD) };
+        WAS_CLOSED.store(result == -1, Ordering::Relaxed);
+    }
+
+    #[used]
+    #[unsafe(link_section = ".init_array")]
+    static RECORD: extern "C" fn() = record;
+
+    pub(super) fn check() -> io::Result<()> {
+        if WAS_CLOSED.load(Ordering::Relaxed) {
+            Err(io::Error::from_raw_os_error(EBADF))
+        } else {
+            Ok(())
+        }
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+mod closed_stdout {
+    use std::io;
+
+    pub(super) fn check() -> io::Result<()> {
+        Ok(())
+    }
+}
+
 fn write_stdout(bytes: &[u8]) -> io::Result<()> {
+    closed_stdout::check()?;
     let result = acme_renew_doctor::with_sigint_blocked(|| {
         if acme_renew_doctor::sigint_caught() {
             return Err(io::Error::other("interrupted by SIGINT"));
@@ -567,7 +614,16 @@ fn finish_parse_error(err: clap::Error) -> ! {
         }
         _ => ExitStatus::Usage.code(),
     };
-    if let Err(io_err) = err.print() {
+    let writes_stdout = matches!(
+        err.kind(),
+        clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion
+    );
+    let printed = if writes_stdout {
+        closed_stdout::check().and_then(|()| err.print())
+    } else {
+        err.print()
+    };
+    if let Err(io_err) = printed {
         if acme_renew_doctor::sigint_caught() {
             note_interrupted();
             std::process::exit(i32::from(acme_renew_doctor::EXIT_SIGINT));

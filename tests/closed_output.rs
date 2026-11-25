@@ -253,4 +253,55 @@ mod unix {
         );
         assert!(out.is_empty(), "stdout:\n{out}");
     }
+
+    /// Runs the binary through `sh` with fd 1 closed before it starts.
+    #[cfg(target_os = "linux")]
+    fn run_with_fd_one_closed(args: &str) -> Output {
+        Command::new("sh")
+            .arg("-c")
+            .arg(format!("exec 1>&-; exec \"$0\" {args}",))
+            .arg(env!("CARGO_BIN_EXE_acme-renew-doctor"))
+            .env_remove("ACME_RENEW_DOCTOR_NOW")
+            .stdin(Stdio::null())
+            .output()
+            .expect("run acme-renew-doctor through sh")
+    }
+
+    #[cfg(target_os = "linux")]
+    fn assert_closed_fd_one(args: &str) {
+        let output = run_with_fd_one_closed(args);
+        let err = String::from_utf8_lossy(&output.stderr);
+        assert!(!err.contains("panicked"), "{err}");
+        assert_eq!(output.status.code(), Some(3), "{args}: {err}");
+        assert_eq!(
+            err.as_ref(),
+            "acme-renew-doctor: could not write output: Bad file descriptor (os error 9); check that the output is not closed or full and run again\n",
+            "{args}"
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn help_with_fd_one_closed_exits_three() {
+        assert_closed_fd_one("--help");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn version_with_fd_one_closed_exits_three() {
+        assert_closed_fd_one("--version");
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn report_with_fd_one_closed_exits_three() {
+        assert_closed_fd_one("--json example.com");
+    }
+
+    #[test]
+    fn dev_null_as_stdout_keeps_the_success_exit() {
+        let output = run(&["--version"], Stdio::null(), Stdio::piped());
+        assert_eq!(output.status.code(), Some(0));
+        assert!(output.stderr.is_empty());
+    }
 }
