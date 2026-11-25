@@ -14,7 +14,12 @@ Dit log wordt wekelijks bijgehouden en noemt alleen controles die echt zijn uitg
 - `cargo clippy --all-targets --locked -- -D warnings`: schoon.
 - `cargo test --locked`: 477 geslaagd / 0 mislukt / 1 genegeerd.
 - `cargo test --release --locked`: 477 geslaagd / 0 mislukt / 1 genegeerd.
-- `cargo deny`, `cargo audit`, de MSRV-build (Rust 1.85), macOS- en Windows-builds en GitHub CI: niet gedraaid (not run).
+- MSRV-build, gemeten op commit `c5cb850` (code gelijk aan `44f8df8`; alleen de docs verschillen) met cargo 1.85.1 en rustc 1.85.1, op Linux, elk in een lege doelmap:
+  - `cargo +1.85 fmt --check`: schoon.
+  - `cargo +1.85 clippy --all-targets --locked -- -D warnings`: schoon.
+  - `cargo +1.85 test --locked`: 477 geslaagd / 0 mislukt / 1 genegeerd.
+  - `cargo +1.85 test --release --locked`: 477 geslaagd / 0 mislukt / 1 genegeerd.
+- `cargo deny`, `cargo audit`, macOS- en Windows-builds en GitHub CI: niet gedraaid (not run).
 - Deze commit is niet gepusht, dus geen GitHub CI-run dekt hem.
 
 ### 2026-11-25 (1.0.0, tak pakket-tests-in-crate, commit 8fa6080)
