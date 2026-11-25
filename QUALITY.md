@@ -6,6 +6,16 @@ This page shows how acme-renew-doctor was checked, including after 0.1.0 and 0.2
 
 This log is updated weekly and lists only checks that actually ran, with the numbers they produced.
 
+### 2026-11-25 (1.0.0, branch pakket-tests-in-crate, commit 8fa6080)
+
+- Measured on commit `8fa6080` (clean working tree) with cargo 1.99.0 and rustc 1.99.0, on Linux.
+- `cargo fmt --check`: clean.
+- `cargo clippy --all-targets --locked -- -D warnings`: clean.
+- `cargo test --locked`: 473 passed / 0 failed / 1 ignored.
+- `cargo test --release --locked`: 473 passed / 0 failed / 1 ignored.
+- `cargo deny`, `cargo audit`, line coverage (`cargo llvm-cov`), fuzzing, the MSRV build (1.85), Windows and macOS builds, and GitHub CI: not run.
+- This commit is not pushed, so no GitHub CI run covers it.
+
 ### 2026-11-11 (1.0.0, branch fix/docs-v1.0.0)
 
 - The Installation binary-archive section in `README.md` and `README.nl.md` now names v1.0.0 (tag, archive name, and download URL), matching Cargo.toml 1.0.0. `tests/readme.rs` compares that section to `CARGO_PKG_VERSION`.
