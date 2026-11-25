@@ -226,7 +226,17 @@ Elke optie uit `acme-renew-doctor --help`:
 | `-h`, `--help` | Toon de hulp. |
 | `-V`, `--version` | Toon de versie (`acme-renew-doctor 1.0.0`) en eindig met 0. Een debug-build toont ook de git-commit als git die geeft. |
 
-Exitcodes: 0 `OK_NOT_DUE`, 1 een probleem met een benoemde laag, 2 onvoldoende bewijs, 3 gebruiksfout, 130 SIGINT (geen half rapport). Details staan in de [referentie](docs/reference.nl.md).
+## Afsluitcodes
+
+| Code | Betekenis |
+| --- | --- |
+| 0 | `OK_NOT_DUE` |
+| 1 | Een probleem met een benoemde laag |
+| 2 | Onvoldoende bewijs |
+| 3 | Gebruiksfout |
+| 130 | SIGINT (geen half rapport) |
+
+Details staan in de [referentie](docs/reference.nl.md).
 
 ## Hoe het werkt
 
@@ -280,6 +290,10 @@ Andere aanpakken en waarom deze tool ze niet kiest. Voor de producten hieronder 
 ## Privacy
 
 acme-renew-doctor werkt volledig offline: geen netwerk, geen API-key, geen telemetrie. De enige runtime-dependency is clap. Het redigeert niet: bewijstekst is de bestandstekst, met stuurtekens als zichtbare escapes in het tekstrapport. Alle fixtures zijn synthetisch of geanonimiseerde kopieën van openbare berichten. Zie [tests/fixtures/README.md](tests/fixtures/README.md).
+
+## Onderhoud
+
+Bugs en ideeën gaan naar [Issues](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/issues). Beveiligingsproblemen meld je privé, zie [SECURITY.md](SECURITY.md). De regels voor bijdragen staan in [CONTRIBUTING.md](CONTRIBUTING.md), de wijzigingen per release in [CHANGELOG.md](CHANGELOG.md) en de laatste kwaliteitsmeting in [QUALITY.nl.md](QUALITY.nl.md).
 
 ## Steunen
 

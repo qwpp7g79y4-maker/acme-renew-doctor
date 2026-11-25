@@ -224,7 +224,17 @@ Every option in `acme-renew-doctor --help`:
 | `-h`, `--help` | Print help. |
 | `-V`, `--version` | Print the version (`acme-renew-doctor 1.0.0`) and exit 0. A debug build also prints the git commit when git provides one. |
 
-Exit codes: 0 `OK_NOT_DUE`, 1 a problem with a named layer, 2 insufficient evidence, 3 usage error, 130 SIGINT (no half-written report). Details are in the [reference](docs/reference.md).
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| 0 | `OK_NOT_DUE` |
+| 1 | A problem with a named layer |
+| 2 | Insufficient evidence |
+| 3 | Usage error |
+| 130 | SIGINT (no half-written report) |
+
+Details are in the [reference](docs/reference.md).
 
 ## How it works
 
@@ -278,6 +288,10 @@ Other approaches and why this tool does not take them. No vendor page was checke
 ## Privacy
 
 acme-renew-doctor is fully offline: no network, no API key, no telemetry. The only runtime dependency is clap. It does not redact: evidence text is the file text, with controls shown as visible escapes in the text report. All fixtures are synthetic or anonymised copies of public posts. See [tests/fixtures/README.md](tests/fixtures/README.md).
+
+## Maintenance
+
+Bug reports and ideas go to [Issues](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/issues). Security problems are reported privately, see [SECURITY.md](SECURITY.md). Contribution rules are in [CONTRIBUTING.md](CONTRIBUTING.md), changes per release in [CHANGELOG.md](CHANGELOG.md), and the latest quality run in [QUALITY.md](QUALITY.md).
 
 ## Support
 
