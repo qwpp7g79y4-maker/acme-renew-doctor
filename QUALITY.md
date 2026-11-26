@@ -1,6 +1,6 @@
 # Quality report
 
-pep: 8.6
+pep: 10
 
 This page shows how acme-renew-doctor was checked, including after 0.1.0 and 0.2.0 were published, and what was fixed. It describes checks we did. It is not a guarantee that the software is free of bugs or secure.
 
