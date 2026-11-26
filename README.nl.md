@@ -295,6 +295,8 @@ acme-renew-doctor werkt volledig offline: geen netwerk, geen API-key, geen telem
 
 Bugs en ideeën gaan naar [Issues](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/issues). Beveiligingsproblemen meld je privé, zie [SECURITY.md](SECURITY.md). De regels voor bijdragen staan in [CONTRIBUTING.md](CONTRIBUTING.md), de wijzigingen per release in [CHANGELOG.md](CHANGELOG.md) en de laatste kwaliteitsmeting in [QUALITY.nl.md](QUALITY.nl.md).
 
+Na een release staat de tool in sluimermodus (dormant): een nieuwe versie komt er alleen bij een gemelde bug, een verzoek of een beveiligingsprobleem. Beveiliging gaat altijd voor.
+
 ## Steunen
 
 acme-renew-doctor is gratis te gebruiken. Bespaart het je tijd, dan kun je het werk steunen via [Ko-fi](https://ko-fi.com/pepai).

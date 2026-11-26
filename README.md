@@ -167,7 +167,7 @@ exit 0: ok, not due
 
 `1791273600` is 2026-10-06 08:00:00 UTC. `--json` prints one JSON object instead of this text. All options, exit codes and error messages are listed in the [reference](docs/reference.md) and in `acme-renew-doctor --help`.
 
-## Aan de slag in 5 minuten
+## Quickstart in 5 minutes
 
 Five commands, offline and read-only, on the synthetic fixtures in `tests/fixtures`. They read no `/var/log`, call no `journalctl`, make no network connection and open no TUI. Run them from the root of a clone, with `acme-renew-doctor` on your `PATH` (after `cargo install --locked --path .`, or use `target/release/acme-renew-doctor`). A test runs the commands in this block literally.
 
@@ -292,6 +292,8 @@ acme-renew-doctor is fully offline: no network, no API key, no telemetry. The on
 ## Maintenance
 
 Bug reports and ideas go to [Issues](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/issues). Security problems are reported privately, see [SECURITY.md](SECURITY.md). Contribution rules are in [CONTRIBUTING.md](CONTRIBUTING.md), changes per release in [CHANGELOG.md](CHANGELOG.md), and the latest quality run in [QUALITY.md](QUALITY.md).
+
+After a release the tool is dormant: a new version appears only for a reported bug, a request, or a security problem. Security always comes first.
 
 ## Support
 
