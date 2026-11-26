@@ -1,5 +1,7 @@
 # Kwaliteitsrapport
 
+pep: 8.6
+
 Deze pagina laat zien hoe acme-renew-doctor is gecontroleerd, ook na de publicatie van 0.1.0 en 0.2.0, en wat er is opgelost. Ze beschrijft de controles die we deden. Het is geen garantie dat de software vrij is van fouten of veilig is.
 
 ## Verificatielog

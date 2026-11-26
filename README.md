@@ -293,6 +293,8 @@ acme-renew-doctor is fully offline: no network, no API key, no telemetry. The on
 
 Bug reports and ideas go to [Issues](https://github.com/qwpp7g79y4-maker/acme-renew-doctor/issues). Security problems are reported privately, see [SECURITY.md](SECURITY.md). Contribution rules are in [CONTRIBUTING.md](CONTRIBUTING.md), changes per release in [CHANGELOG.md](CHANGELOG.md), and the latest quality run in [QUALITY.md](QUALITY.md).
 
+After a release the tool is dormant: a new version appears only for a reported bug, a request, or a security problem. Security always comes first.
+
 ## Support
 
 acme-renew-doctor is free to use. If it saves you time, you can support the work via [Ko-fi](https://ko-fi.com/pepai).

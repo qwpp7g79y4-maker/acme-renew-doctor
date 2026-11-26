@@ -2,8 +2,6 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
-
 ## [1.0.0] - 2026-11-09
 
 The previous version is 0.2.0.
