@@ -118,7 +118,7 @@ Nothing replaced. Match lines and indentation left as they were. No `Id=` lines.
 
 Synthetic. Constructed: the status "masked" turned into the shape of `systemctl show -p Id,LoadState,ActiveState,SubState,UnitFileState,Result,ConditionResult,LastTriggerUSec,NextElapseUSecRealtime`.
 
-Real reference for masked (run on pop-os, systemd 249, 6 October 2026, read only): `systemctl show alsa-utils.service -p ...` gave `Result=success`, `Id=alsa-utils.service`, `LoadState=masked`, `ActiveState=inactive`, `SubState=dead`, `UnitFileState=masked`, `ConditionResult=no`. A masked unit has `LoadState=masked`, not `loaded`. This file puts that shape on `Id=certbot.timer`.
+Real reference for masked (run on a Linux test host, systemd 249, 6 October 2026, read only): `systemctl show alsa-utils.service -p ...` gave `Result=success`, `Id=alsa-utils.service`, `LoadState=masked`, `ActiveState=inactive`, `SubState=dead`, `UnitFileState=masked`, `ConditionResult=no`. A masked unit has `LoadState=masked`, not `loaded`. This file puts that shape on `Id=certbot.timer`.
 
 - Expected: `LAYER1_TIMER_DISABLED`, exit 1. Evidence contains `LoadState=masked`, `UnitFileState=masked` and `ActiveState=inactive`.
 - Recorded: `LAYER1_TIMER_DISABLED`, exit 1, with those three evidence lines.

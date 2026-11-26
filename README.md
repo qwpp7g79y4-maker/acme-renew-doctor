@@ -167,7 +167,7 @@ exit 0: ok, not due
 
 `1791273600` is 2026-10-06 08:00:00 UTC. `--json` prints one JSON object instead of this text. All options, exit codes and error messages are listed in the [reference](docs/reference.md) and in `acme-renew-doctor --help`.
 
-## Aan de slag in 5 minuten
+## Quickstart in 5 minutes
 
 Five commands, offline and read-only, on the synthetic fixtures in `tests/fixtures`. They read no `/var/log`, call no `journalctl`, make no network connection and open no TUI. Run them from the root of a clone, with `acme-renew-doctor` on your `PATH` (after `cargo install --locked --path .`, or use `target/release/acme-renew-doctor`). A test runs the commands in this block literally.
 

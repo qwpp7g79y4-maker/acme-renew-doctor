@@ -160,7 +160,7 @@ fn offline_runs_never_need_a_network_tool() {
 #[cfg(target_os = "linux")]
 #[test]
 fn expired_certificate_is_reported_with_outgoing_connections_blocked() {
-    // GitHub CI / pepai-worker-01 often lack user namespaces (EPERM / uid_map).
+    // GitHub CI / some Linux test hosts often lack user namespaces (EPERM / uid_map).
     let probe = match Command::new("unshare").args(["-rn", "true"]).output() {
         Ok(out) => out,
         Err(err) => {
